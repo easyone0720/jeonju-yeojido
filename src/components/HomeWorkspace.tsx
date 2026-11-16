@@ -1,0 +1,1040 @@
+import { useState } from 'react';
+import {
+  Map as MapIcon,
+  ScrollText,
+  Ticket,
+  QrCode,
+  ExternalLink,
+  Lock,
+  CheckCircle2,
+  Navigation,
+  Sparkles,
+  RotateCcw,
+  Trash2,
+  UserCircle2,
+  X,
+} from 'lucide-react';
+import { JEONJU_SPOTS } from '../data/jeonjuSpots';
+import { SPOT_IMAGES, TRADITIONAL_MAP_IMAGE } from '../data/spotImages';
+import {
+  ClueCategory,
+  ClueSpotId,
+  HomeTab,
+  SpotDefinition,
+  SpotId,
+  UserSessionState,
+} from '../types/jeonju';
+import {
+  getCollectedClueCount,
+  isMuseumUnlocked,
+  isSpotClueOrPastLifeCompleted,
+  isSpotVisitVerified,
+} from '../utils/pastLifeEngine';
+import { CompleteSealStamp } from './CompleteSealStamp';
+import { TangramClueBoard, type ClueGridMeta } from './TangramClueBoard';
+
+export interface QrCompletionBanner {
+  spotId: SpotId;
+  spotName: string;
+  message: string;
+  isMuseum: boolean;
+  clueCategory?: ClueCategory;
+}
+
+interface HomeWorkspaceProps {
+  session: UserSessionState;
+  activeTab: HomeTab;
+  selectedSpotId: SpotId;
+  justStampedSpotId?: SpotId | null;
+  qrBanner?: QrCompletionBanner | null;
+  onDismissQrBanner?: () => void;
+  onOpenClueScroll?: (spotId: ClueSpotId) => void;
+  onChangeTab: (tab: HomeTab) => void;
+  onSelectSpot: (spotId: SpotId) => void;
+  onOpenQrScan: (spotId: SpotId) => void;
+  onContinueSpotVerify: (spotId: SpotId) => void;
+  onOpenMuseumFace: () => void;
+  onViewPastLifeResult: () => void;
+  onUseDemoCoupon: (couponId: string) => void;
+  onNavigateRoute: (path: '/wall' | '/admin') => void;
+  onGoHome: () => void;
+  onDeleteRecord: () => Promise<void>;
+  saveError?: string | null;
+  onRetrySync?: () => void;
+}
+
+const CLUE_GRID: ClueGridMeta[] = [
+  { category: 'era', spotId: 'gyeonggijeon', question: '당신의 시대는', spotName: '경기전' },
+  { category: 'status', spotId: 'jeollagamyeong', question: '당신의 신분은', spotName: '전라감영' },
+  { category: 'story', spotId: 'wanpanbon', question: '당신의 이야기는', spotName: '완판본문화관' },
+  { category: 'item', spotId: 'nambu_market', question: '당신의 소지품은', spotName: '남부시장' },
+];
+
+export function HomeWorkspace({
+  session,
+  activeTab,
+  selectedSpotId,
+  justStampedSpotId = null,
+  qrBanner = null,
+  onDismissQrBanner,
+  onOpenClueScroll,
+  onChangeTab,
+  onSelectSpot,
+  onOpenQrScan,
+  onContinueSpotVerify,
+  onOpenMuseumFace,
+  onViewPastLifeResult,
+  onUseDemoCoupon,
+  onNavigateRoute,
+  onGoHome,
+  onDeleteRecord,
+  saveError,
+  onRetrySync,
+}: HomeWorkspaceProps) {
+  const [spotImgErrors, setSpotImgErrors] = useState<Record<string, boolean>>({});
+  const [inspectedClue, setInspectedClue] = useState<ClueCategory | null>(null);
+  const [spotSheetOpen, setSpotSheetOpen] = useState<boolean>(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
+  const [deleting, setDeleting] = useState<boolean>(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const clueCount = getCollectedClueCount(session);
+  const museumReady = isMuseumUnlocked(session);
+  const museumVisitVerified = isSpotVisitVerified(session, 'jeonju_museum');
+  const selectedSpot =
+    JEONJU_SPOTS.find((s) => s.id === selectedSpotId) ?? JEONJU_SPOTS[0];
+  const unlockedCouponsCount = session.coupons.filter((c) => c.unlocked).length;
+
+  const isSpotVisited = (spot: SpotDefinition): boolean => {
+    return isSpotVisitVerified(session, spot.id);
+  };
+
+  const isSpotStage2Complete = (spot: SpotDefinition): boolean => {
+    return isSpotClueOrPastLifeCompleted(session, spot.id);
+  };
+
+  const buildExternalMapUrl = (spot: SpotDefinition, provider: 'naver' | 'kakao' | 'google') => {
+    const encodedName = encodeURIComponent(`전주 ${spot.name}`);
+    if (provider === 'naver') {
+      return `https://map.naver.com/v5/search/${encodedName}`;
+    }
+    if (provider === 'kakao') {
+      return `https://map.kakao.com/link/to/${encodedName},${spot.coordinates.lat},${spot.coordinates.lng}`;
+    }
+    return `https://www.google.com/maps/search/?api=1&query=${spot.coordinates.lat},${spot.coordinates.lng}`;
+  };
+
+  const handlePinClick = (spotId: SpotId) => {
+    onSelectSpot(spotId);
+    setSpotSheetOpen(true);
+  };
+
+  const renderSpotDetailContent = (spot: SpotDefinition) => {
+    const isMuseumLocked = spot.id === 'jeonju_museum' && !museumReady;
+    const visitVerified = isSpotVisited(spot);
+    const stage2Done = isSpotStage2Complete(spot);
+    const shouldAnimateStamp = justStampedSpotId === spot.id;
+
+    return (
+      <div className="space-y-4">
+        <div className="relative aspect-[16/10] w-full rounded-xl bg-[#EFE8DC] overflow-hidden border border-[#E5DDD0]">
+          {isMuseumLocked ? (
+            <div
+              className="w-full h-full bg-gradient-to-br from-[#EAE1D0] via-[#DFD4BE] to-[#D2C4AA] flex flex-col items-center justify-center p-5 text-center gap-2.5"
+              aria-label={`국립전주박물관 사진 잠김 (${clueCount} / 4 완료 시 해금)`}
+            >
+              <span className="w-12 h-12 rounded-full bg-[#FBF8F2]/90 border border-[#B8AD99] flex items-center justify-center text-[#57534E] shadow-xs">
+                <Lock className="w-5 h-5" aria-hidden="true" />
+              </span>
+              <div className="space-y-1">
+                <p className="font-serif-kr text-sm sm:text-base font-bold text-[#1C1917]">
+                  박물관 전경 잠김
+                </p>
+                <p className="text-xs text-[#57534E]">
+                  장소 1~4의 전생 조각을 모두 모으면 해금됩니다 ({clueCount} / 4)
+                </p>
+              </div>
+            </div>
+          ) : !spotImgErrors[spot.id] ? (
+            <img
+              src={SPOT_IMAGES[spot.id]}
+              alt={`${spot.name} 전경`}
+              className="w-full h-full object-cover block"
+              referrerPolicy="no-referrer"
+              onError={() => setSpotImgErrors((prev) => ({ ...prev, [spot.id]: true }))}
+            />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center text-[#57534E]">
+              <MapIcon className="w-8 h-8" aria-hidden="true" />
+            </div>
+          )}
+        </div>
+
+      <div className="flex items-start justify-between gap-3">
+        <div className="space-y-1 min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-[#57534E]">
+            <span>
+              {spot.id === 'jeonju_museum'
+                ? '최종 전생 완성지'
+                : `장소 ${spot.orderNumber} · ${spot.clueQuestion ?? ''}`}
+            </span>
+          </div>
+          <h2 className="font-serif-kr text-xl font-bold text-[#1C1917]">
+            {spot.name}{' '}
+            <span className="text-sm font-normal text-[#78716C]">{spot.hanjaName}</span>
+          </h2>
+          <p className="text-xs text-[#78716C]">{spot.address}</p>
+        </div>
+
+        {visitVerified && (
+          <CompleteSealStamp
+            animate={shouldAnimateStamp}
+            size="md"
+            label={`${spot.name} 방문 인증 완료 도장 (完)`}
+          />
+        )}
+      </div>
+
+      {/* Explicit 2-stage progression indicator */}
+      <div className="grid grid-cols-2 gap-2 rounded-xl border border-[#E5DDD0] bg-[#FBF8F2] px-3 py-2 text-xs">
+        <div className="flex items-center justify-between gap-1">
+          <span className="text-[#78716C]">방문 인증</span>
+          <span
+            className={`font-bold ${
+              visitVerified ? 'text-[#9A3412]' : 'text-[#57534E]'
+            }`}
+          >
+            {visitVerified ? '완료' : '미완료'}
+          </span>
+        </div>
+        <div className="flex items-center justify-between gap-1 border-l border-[#E5DDD0] pl-2">
+          <span className="text-[#78716C]">
+            {spot.id === 'jeonju_museum' ? '전생 완성' : '전생 조각'}
+          </span>
+          <span
+            className={`font-bold ${
+              stage2Done
+                ? 'text-[#16A34A]'
+                : visitVerified
+                  ? 'text-[#9A3412]'
+                  : 'text-[#57534E]'
+            }`}
+          >
+            {spot.id === 'jeonju_museum'
+              ? stage2Done
+                ? '완료'
+                : !museumReady
+                  ? '잠금 (4/4 필요)'
+                  : visitVerified
+                    ? '촬영 진행 중'
+                    : '촬영 대기'
+              : stage2Done
+                ? '획득 완료'
+                : visitVerified
+                  ? '획득 진행 중'
+                  : '미획득'}
+          </span>
+        </div>
+      </div>
+
+      <p className="text-sm text-[#44403C] leading-relaxed">
+        {spot.historicalSummary}. {spot.shortSubtitle}.
+      </p>
+
+      <div className="space-y-1.5 pt-1 border-t border-[#F0EAE0]">
+        <span className="text-xs font-medium text-[#57534E] inline-flex items-center gap-1">
+          <Navigation className="w-3.5 h-3.5" aria-hidden="true" />
+          <span>길찾기</span>
+        </span>
+        <div className="grid grid-cols-3 gap-2">
+          <a
+            href={buildExternalMapUrl(spot, 'naver')}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="min-h-[40px] px-2 py-1.5 rounded-lg border border-[#E5DDD0] bg-[#FBF8F2] text-xs font-medium text-[#1C1917] hover:bg-[#F2ECE1] flex items-center justify-center gap-1 whitespace-nowrap"
+          >
+            <span>네이버</span>
+            <ExternalLink className="w-3 h-3" aria-hidden="true" />
+          </a>
+          <a
+            href={buildExternalMapUrl(spot, 'kakao')}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="min-h-[40px] px-2 py-1.5 rounded-lg border border-[#E5DDD0] bg-[#FBF8F2] text-xs font-medium text-[#1C1917] hover:bg-[#F2ECE1] flex items-center justify-center gap-1 whitespace-nowrap"
+          >
+            <span>카카오</span>
+            <ExternalLink className="w-3 h-3" aria-hidden="true" />
+          </a>
+          <a
+            href={buildExternalMapUrl(spot, 'google')}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="min-h-[40px] px-2 py-1.5 rounded-lg border border-[#E5DDD0] bg-[#FBF8F2] text-xs font-medium text-[#1C1917] hover:bg-[#F2ECE1] flex items-center justify-center gap-1 whitespace-nowrap"
+          >
+            <span>구글</span>
+            <ExternalLink className="w-3 h-3" aria-hidden="true" />
+          </a>
+        </div>
+      </div>
+
+      {spot.id === 'jeonju_museum' ? (
+        session.pastLifeResult ? (
+          <button
+            type="button"
+            onClick={onViewPastLifeResult}
+            className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#1C1917] text-white font-semibold text-sm hover:bg-[#292524]"
+          >
+            완성된 내 전생 결과 보기
+          </button>
+        ) : !museumReady ? (
+          <div className="rounded-xl border border-[#E5DDD0] bg-[#FBF8F2] p-3 text-xs text-[#57534E]">
+            조각 4개를 모두 모아야 박물관 체험이 열립니다. (현재 {clueCount} / 4)
+          </div>
+        ) : visitVerified ? (
+          <button
+            type="button"
+            onClick={() => {
+              setSpotSheetOpen(false);
+              onOpenMuseumFace();
+            }}
+            className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#9A3412] text-white font-semibold text-sm hover:bg-[#7C2D12] flex items-center justify-center gap-2"
+          >
+            <Sparkles className="w-4 h-4" aria-hidden="true" />
+            <span>전생 초상화 촬영 이어하기</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              setSpotSheetOpen(false);
+              onOpenQrScan('jeonju_museum');
+            }}
+            className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#9A3412] text-white font-semibold text-sm hover:bg-[#7C2D12] flex items-center justify-center gap-2"
+          >
+            <QrCode className="w-4 h-4" aria-hidden="true" />
+            <span>
+              {session.mode === 'demo'
+                ? '박물관 QR 스캔으로 이동 (시연 가능)'
+                : '박물관 현장 QR 스캔하기'}
+            </span>
+          </button>
+        )
+      ) : stage2Done ? (
+        <button
+          type="button"
+          onClick={() => {
+            setSpotSheetOpen(false);
+            onChangeTab('clues');
+            if (spot.clueCategory) setInspectedClue(spot.clueCategory);
+          }}
+          className="w-full min-h-[48px] px-5 py-3 rounded-xl border border-[#16A34A]/50 bg-[#F0FDF4] text-[#14532D] font-semibold text-sm hover:bg-[#DCFCE7] flex items-center justify-center gap-2"
+        >
+          <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
+          <span>획득한 조각 확인하기</span>
+        </button>
+      ) : visitVerified ? (
+        <button
+          type="button"
+          onClick={() => {
+            setSpotSheetOpen(false);
+            onContinueSpotVerify(spot.id);
+          }}
+          className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#9A3412] text-white font-semibold text-sm hover:bg-[#7C2D12] flex items-center justify-center gap-2"
+        >
+          <ScrollText className="w-4 h-4" aria-hidden="true" />
+          <span>전생 조각 이어받기</span>
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => {
+            setSpotSheetOpen(false);
+            onOpenQrScan(spot.id);
+          }}
+          className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#9A3412] text-white font-semibold text-sm hover:bg-[#7C2D12] flex items-center justify-center gap-2"
+        >
+          <QrCode className="w-4 h-4" aria-hidden="true" />
+          <span>
+            {session.mode === 'demo' ? 'QR 스캔으로 이동 (시연 가능)' : '현장 QR 스캔하기'}
+          </span>
+        </button>
+      )}
+      </div>
+    );
+  };
+
+  const inspectedClueData = inspectedClue ? session.clues[inspectedClue] : null;
+  const inspectedClueMeta = inspectedClue
+    ? CLUE_GRID.find((c) => c.category === inspectedClue)
+    : null;
+
+  return (
+    <div className="min-h-app hanji-texture flex flex-col pb-20">
+      {/* Wireframe Top Profile + Progress Header: [Profile Icon] 0 / 4 */}
+      <header className="sticky top-0 z-30 border-b border-[#E5DDD0] bg-[#FBF8F2]/95 backdrop-blur-md">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 text-[#1C1917]">
+              <UserCircle2 className="w-7 h-7 text-[#57534E]" aria-hidden="true" />
+              <span
+                className="font-mono-tabular text-lg font-bold tracking-tight"
+                aria-label={`전생 조각 진행도 ${clueCount} / 4`}
+              >
+                {clueCount} / 4
+              </span>
+            </div>
+            {session.visitorName && (
+              <span className="text-xs text-[#57534E] hidden sm:inline">
+                · {session.visitorName}
+              </span>
+            )}
+            <span className="text-xs text-[#9A3412] font-medium">
+              · {session.mode === 'demo' ? '시연 모드' : '현장 체험'}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              type="button"
+              onClick={() => onNavigateRoute('/wall')}
+              className="text-xs font-medium text-[#57534E] hover:text-[#9A3412] min-h-[36px] px-2 whitespace-nowrap"
+            >
+              미디어월
+            </button>
+            <button
+              type="button"
+              onClick={onGoHome}
+              title="처음 화면으로 (기록은 안전하게 보관됩니다)"
+              aria-label="처음으로 돌아가기"
+              className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg text-[#57534E] hover:bg-[#EFE8DC] hover:text-[#1C1917]"
+            >
+              <RotateCcw className="w-4 h-4" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDeleteError(null);
+                setDeleteDialogOpen(true);
+              }}
+              title="저장된 기록 삭제"
+              aria-label="진행 기록 삭제"
+              className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg text-[#78716C] hover:bg-[#9A3412]/10 hover:text-[#9A3412]"
+            >
+              <Trash2 className="w-4 h-4" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <main className="flex-1 mx-auto w-full max-w-5xl px-4 sm:px-6 py-4 sm:py-6 flex flex-col gap-4">
+        {saveError && (
+          <div
+            role="alert"
+            className="rounded-xl border border-[#9A3412]/40 bg-[#9A3412]/10 px-4 py-2.5 flex items-center justify-between gap-3 text-xs text-[#7C2D12]"
+          >
+            <span>{saveError}</span>
+            {onRetrySync && (
+              <button
+                type="button"
+                onClick={onRetrySync}
+                className="min-h-[34px] px-3 rounded-lg bg-[#9A3412] text-white font-semibold whitespace-nowrap shrink-0"
+              >
+                다시 저장 시도
+              </button>
+            )}
+          </div>
+        )}
+
+        {qrBanner && activeTab === 'map' && (
+          <div
+            role="status"
+            aria-live="polite"
+            className="rounded-xl border border-[#16A34A]/40 bg-[#F0FDF4] px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs"
+          >
+            <div className="flex items-start gap-2.5 min-w-0">
+              <CheckCircle2
+                className="w-5 h-5 text-[#16A34A] shrink-0 mt-0.5"
+                aria-hidden="true"
+              />
+              <p className="text-xs sm:text-sm font-semibold text-[#14532D] leading-relaxed">
+                {qrBanner.message}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              {qrBanner.isMuseum ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDismissQrBanner?.();
+                    onOpenMuseumFace();
+                  }}
+                  className="min-h-[36px] px-3.5 py-1.5 rounded-lg bg-[#9A3412] text-white text-xs font-semibold hover:bg-[#7C2D12] whitespace-nowrap"
+                >
+                  전생 초상화 촬영
+                </button>
+              ) : (
+                onOpenClueScroll && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const targetId = qrBanner.spotId as ClueSpotId;
+                      onDismissQrBanner?.();
+                      onOpenClueScroll(targetId);
+                    }}
+                    className="min-h-[36px] px-3.5 py-1.5 rounded-lg bg-[#9A3412] text-white text-xs font-semibold hover:bg-[#7C2D12] whitespace-nowrap"
+                  >
+                    획득 조각 · 쿠폰 보기
+                  </button>
+                )
+              )}
+              {onDismissQrBanner && (
+                <button
+                  type="button"
+                  onClick={onDismissQrBanner}
+                  aria-label="안내 닫기"
+                  className="min-w-[34px] min-h-[34px] flex items-center justify-center rounded-lg text-[#14532D]/70 hover:bg-[#DCFCE7]"
+                >
+                  <X className="w-4 h-4" aria-hidden="true" />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+        {/* Completion Ready Banner */}
+        {museumReady && (
+          <div className="rounded-xl border border-[#9A3412]/30 bg-white px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
+            <p className="text-sm font-semibold text-[#1C1917]">
+              {session.pastLifeResult
+                ? `전생 완성: ${session.pastLifeResult.title} (${session.pastLifeResult.hanjaTitle})`
+                : museumVisitVerified
+                  ? '박물관 방문 인증 완료! 얼굴 촬영으로 전생을 완성하세요.'
+                  : '네 조각을 모두 모았습니다! 국립전주박물관 현장 QR을 스캔해 주세요.'}
+            </p>
+            <button
+              type="button"
+              onClick={
+                session.pastLifeResult
+                  ? onViewPastLifeResult
+                  : museumVisitVerified
+                    ? onOpenMuseumFace
+                    : () => onOpenQrScan('jeonju_museum')
+              }
+              className="min-h-[40px] px-4 py-2 rounded-lg bg-[#9A3412] text-white text-xs font-semibold hover:bg-[#7C2D12] whitespace-nowrap shrink-0"
+            >
+              {session.pastLifeResult
+                ? '내 전생 결과 보기'
+                : museumVisitVerified
+                  ? '박물관 얼굴 촬영'
+                  : '박물관 QR 스캔'}
+            </button>
+          </div>
+        )}
+
+        {/* SCENE 3: 홈① 지도 — Map as the dominant hero area matching wireframe */}
+        {activeTab === 'map' && (
+          <section aria-labelledby="map-section-title" className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            <div className="lg:col-span-7 space-y-2.5">
+              <div className="flex items-center justify-between">
+                <h1 id="map-section-title" className="font-serif-kr text-base sm:text-lg font-bold text-[#1C1917]">
+                  지도
+                </h1>
+                <span className="text-xs text-[#78716C]">
+                  장소 1~4와 박물관을 눌러 탐색하세요
+                </span>
+              </div>
+
+              {/* Large Traditional Joseon Map Container matching Scene 3 */}
+              <div className="relative w-full aspect-[4/3] min-h-[340px] max-h-[580px] rounded-2xl border-2 border-[#A8967A] bg-[#EFE4CE] overflow-hidden shadow-md">
+                <img
+                  src={TRADITIONAL_MAP_IMAGE}
+                  alt="전주 전통 여지도 고지도 배경"
+                  className="absolute inset-0 w-full h-full object-cover select-none pointer-events-none"
+                />
+                {/* Soft inner parchment frame & subtle contrast veil so pins stay crisp */}
+                <div
+                  className="absolute inset-0 bg-[#FBF6EB]/10 pointer-events-none ring-1 ring-inset ring-[#6B5439]/30 rounded-2xl"
+                  aria-hidden="true"
+                />
+                {/* Percentage-aligned exploration path lines connecting 1->2->3->4->Museum */}
+                <svg
+                  viewBox="0 0 100 100"
+                  preserveAspectRatio="none"
+                  className="absolute inset-0 w-full h-full pointer-events-none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M 56 54 L 46 33 L 80 68 L 40 74 L 24 18"
+                    fill="none"
+                    stroke="#FBF8F2"
+                    strokeWidth="1.2"
+                    strokeDasharray="1.8 1.5"
+                    opacity="0.85"
+                  />
+                  <path
+                    d="M 56 54 L 46 33 L 80 68 L 40 74 L 24 18"
+                    fill="none"
+                    stroke="#9A3412"
+                    strokeWidth="0.65"
+                    strokeDasharray="1.8 1.5"
+                    opacity="0.75"
+                  />
+                </svg>
+
+                {/* Museum Rectangular Node & Numbered Circular Spot Nodes with red '完' stamp overlay */}
+                {JEONJU_SPOTS.map((spot) => {
+                  const visited = isSpotVisited(spot);
+                  const stage2Done = isSpotStage2Complete(spot);
+                  const isMuseum = spot.id === 'jeonju_museum';
+                  const locked = isMuseum && !museumReady;
+                  const isSelected = spot.id === selectedSpot.id;
+                  const shouldAnimatePinStamp = justStampedSpotId === spot.id;
+
+                  if (isMuseum) {
+                    return (
+                      <div
+                        key={spot.id}
+                        style={{
+                          left: `${spot.mapPositionPercent.x}%`,
+                          top: `${spot.mapPositionPercent.y}%`,
+                        }}
+                        className={`absolute -translate-x-1/2 -translate-y-1/2 hover:z-30 ${
+                          isSelected ? 'z-20' : 'z-10'
+                        }`}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handlePinClick(spot.id)}
+                          aria-label={`국립전주박물관 ${
+                            locked
+                              ? '잠김'
+                              : visited
+                                ? '방문 인증 완료'
+                                : '방문 가능'
+                          }`}
+                          aria-pressed={isSelected}
+                          className={`relative hover-scale min-h-[44px] px-3.5 py-2 rounded-xl border-2 flex items-center gap-1.5 shadow-md ring-2 ring-[#FBF8F2]/90 ${
+                            isSelected
+                              ? 'bg-[#1C1917] text-white border-[#1C1917]'
+                              : locked
+                                ? 'bg-[#F5EFE6]/95 text-[#44403C] border-[#78716C]'
+                                : 'bg-white text-[#9A3412] border-[#9A3412]'
+                          }`}
+                        >
+                          {locked ? (
+                            <Lock className="w-4 h-4 shrink-0" aria-hidden="true" />
+                          ) : (
+                            <Sparkles className="w-4 h-4 shrink-0" aria-hidden="true" />
+                          )}
+                          <span className="text-xs sm:text-sm font-bold whitespace-nowrap">
+                            박물관
+                          </span>
+                          {visited && (
+                            <CompleteSealStamp
+                              animate={shouldAnimatePinStamp}
+                              size="xs"
+                              label="국립전주박물관 방문 인증 도장 (完)"
+                              className="absolute -top-3.5 -right-3 z-20"
+                            />
+                          )}
+                        </button>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={spot.id}
+                      style={{
+                        left: `${spot.mapPositionPercent.x}%`,
+                        top: `${spot.mapPositionPercent.y}%`,
+                      }}
+                      className={`absolute -translate-x-1/2 -translate-y-1/2 hover:z-30 ${
+                        isSelected ? 'z-20' : 'z-10'
+                      }`}
+                    >
+                      <button
+                        type="button"
+                        onClick={() => handlePinClick(spot.id)}
+                        aria-label={`${spot.name} ${
+                          visited ? '방문 인증 완료' : '방문 가능'
+                        }`}
+                        aria-pressed={isSelected}
+                        className="relative hover-scale flex flex-col items-center gap-1"
+                      >
+                        <span
+                          className={`relative w-11 h-11 rounded-full border-2 flex items-center justify-center font-mono-tabular text-sm font-bold shadow-md ring-2 ring-[#FBF8F2]/95 ${
+                            isSelected
+                              ? 'bg-[#9A3412] text-white border-[#FBF8F2]'
+                              : stage2Done
+                                ? 'bg-[#F0FDF4] text-[#14532D] border-[#16A34A]'
+                                : visited
+                                  ? 'bg-[#FFF7ED] text-[#9A3412] border-[#9A3412]'
+                                  : 'bg-white text-[#1C1917] border-[#1C1917]'
+                          }`}
+                        >
+                          {stage2Done ? (
+                            <CheckCircle2 className="w-5 h-5 text-[#16A34A]" aria-hidden="true" />
+                          ) : (
+                            spot.orderNumber
+                          )}
+                          {visited && (
+                            <CompleteSealStamp
+                              animate={shouldAnimatePinStamp}
+                              size="xs"
+                              label={`${spot.name} 방문 인증 도장 (完)`}
+                              className="absolute -top-3 -right-3.5 z-20"
+                            />
+                          )}
+                        </span>
+                        <span className="px-2.5 py-1 leading-tight rounded-md bg-[#FBF8F2]/95 border border-[#8C7A62]/70 text-xs font-bold text-[#1C1917] whitespace-nowrap shadow-sm">
+                          {spot.name}
+                        </span>
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Mobile Quick Access Strip for the selected spot */}
+              <div className="lg:hidden rounded-xl border border-[#E5DDD0] bg-white p-3.5 flex items-center justify-between gap-3 shadow-xs">
+                <div className="flex items-center gap-2.5 min-w-0">
+                  {isSpotVisited(selectedSpot) && (
+                    <CompleteSealStamp
+                      animate={justStampedSpotId === selectedSpot.id}
+                      size="sm"
+                      label={`${selectedSpot.name} 방문 인증 완료 도장 (完)`}
+                    />
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-xs text-[#9A3412] font-semibold">
+                      {selectedSpot.id === 'jeonju_museum'
+                        ? '최종 목적지'
+                        : `장소 ${selectedSpot.orderNumber} 선택됨`}
+                      {isSpotVisited(selectedSpot) ? ' · 방문 인증 완료' : ''}
+                    </p>
+                    <p className="font-serif-kr text-base font-bold text-[#1C1917] truncate">
+                      {selectedSpot.name}
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setSpotSheetOpen(true)}
+                    className="min-h-[44px] px-3 py-2 rounded-lg border border-[#D6CEBE] bg-[#FBF8F2] text-xs font-semibold text-[#1C1917]"
+                  >
+                    상세 보기
+                  </button>
+                  {selectedSpot.id === 'jeonju_museum' ? (
+                    museumReady && !session.pastLifeResult && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          museumVisitVerified
+                            ? onOpenMuseumFace()
+                            : onOpenQrScan('jeonju_museum')
+                        }
+                        className="min-h-[44px] px-3.5 py-2 rounded-lg bg-[#9A3412] text-white text-xs font-semibold"
+                      >
+                        {museumVisitVerified ? '초상 촬영' : 'QR 스캔'}
+                      </button>
+                    )
+                  ) : !isSpotVisited(selectedSpot) ? (
+                    <button
+                      type="button"
+                      onClick={() => onOpenQrScan(selectedSpot.id)}
+                      className="min-h-[44px] px-3.5 py-2 rounded-lg bg-[#9A3412] text-white text-xs font-semibold"
+                    >
+                      QR 스캔
+                    </button>
+                  ) : (
+                    !isSpotStage2Complete(selectedSpot) && (
+                      <button
+                        type="button"
+                        onClick={() => onContinueSpotVerify(selectedSpot.id)}
+                        className="min-h-[44px] px-3.5 py-2 rounded-lg bg-[#9A3412] text-white text-xs font-semibold"
+                      >
+                        조각 받기
+                      </button>
+                    )
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Side Detail Panel */}
+            <aside className="hidden lg:block lg:col-span-5 bg-white border border-[#E5DDD0] rounded-2xl p-5 shadow-sm">
+              {renderSpotDetailContent(selectedSpot)}
+            </aside>
+          </section>
+        )}
+
+        {/* Mobile Spot Detail Modal Sheet */}
+        {activeTab === 'map' && spotSheetOpen && (
+          <div
+            className="lg:hidden fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-end justify-center"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${selectedSpot.name} 상세 정보`}
+          >
+            <div className="w-full max-w-lg rounded-t-3xl bg-white p-5 pb-8 max-h-[85dvh] overflow-y-auto shadow-xl space-y-3">
+              <div className="flex items-center justify-between pb-1">
+                <span className="text-xs font-semibold text-[#78716C]">장소 상세</span>
+                <button
+                  type="button"
+                  onClick={() => setSpotSheetOpen(false)}
+                  aria-label="닫기"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full hover:bg-[#F5EFE6]"
+                >
+                  <X className="w-5 h-5" aria-hidden="true" />
+                </button>
+              </div>
+              {renderSpotDetailContent(selectedSpot)}
+            </div>
+          </div>
+        )}
+
+        {/* SCENE 4: 홈② 내 조각 — Korean Tangram (칠교놀이) 2x2 board */}
+        {activeTab === 'clues' && (
+          <section aria-labelledby="clues-section-title" className="space-y-4">
+            <h1 id="clues-section-title" className="sr-only">
+              내 조각
+            </h1>
+
+            <TangramClueBoard
+              clueGrid={CLUE_GRID}
+              clues={session.clues}
+              onInspectClue={(category) => setInspectedClue(category)}
+              onGoToSpot={(spotId) => {
+                onSelectSpot(spotId);
+                onChangeTab('map');
+              }}
+            />
+
+            {inspectedClueData && inspectedClueMeta && (
+              <div
+                role="dialog"
+                aria-modal="true"
+                aria-label={`${inspectedClueMeta.spotName} 조각 상세`}
+                className="rounded-2xl border border-[#D6CEBE] bg-white p-5 space-y-2 shadow-sm"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-semibold text-[#9A3412]">
+                    {inspectedClueMeta.spotName} · {inspectedClueData.label}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setInspectedClue(null)}
+                    className="min-h-[36px] px-2 text-xs text-[#57534E] hover:text-[#1C1917]"
+                  >
+                    닫기
+                  </button>
+                </div>
+                <p className="font-serif-kr text-base font-bold text-[#1C1917]">
+                  {inspectedClueData.value}
+                </p>
+                <p className="text-sm text-[#44403C] leading-relaxed">
+                  {inspectedClueData.detail}
+                </p>
+                <p className="text-xs text-[#78716C]">
+                  역사 배경: {inspectedClueData.historicalNote}
+                </p>
+              </div>
+            )}
+          </section>
+        )}
+
+        {/* SCENE 5: 홈③ 쿠폰 — Horizontal rounded cards stacked vertically matching Scene 5 wireframe */}
+        {activeTab === 'coupons' && (
+          <section aria-labelledby="coupons-section-title" className="mx-auto w-full max-w-2xl space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <h1 id="coupons-section-title" className="font-serif-kr text-lg font-bold text-[#1C1917]">
+                쿠폰 ({unlockedCouponsCount} / 4)
+              </h1>
+              <span className="text-xs text-[#78716C]">시연용 제휴 쿠폰</span>
+            </div>
+
+            <div className="flex flex-col gap-3.5">
+              {session.coupons.map((coupon) => {
+                const spotName =
+                  JEONJU_SPOTS.find((s) => s.id === coupon.spotId)?.name ?? '';
+
+                return (
+                  <article
+                    key={coupon.id}
+                    className={`w-full rounded-2xl border px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${
+                      coupon.unlocked
+                        ? 'bg-white border-[#D6CEBE] shadow-sm'
+                        : 'bg-[#F5EFE6]/70 border-dashed border-[#C7BDA9]'
+                    }`}
+                  >
+                    <div className="space-y-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#9A3412]">
+                        <span>&lt;{coupon.category}&gt;</span>
+                        <span className="text-[#78716C] font-normal">· {spotName}</span>
+                        <span className="text-[#57534E] font-normal">
+                          · {coupon.unlocked ? (coupon.used ? '사용 완료' : '보유 중') : '미획득'}
+                        </span>
+                      </div>
+                      <h2 className="font-serif-kr text-base sm:text-lg font-bold text-[#1C1917]">
+                        {coupon.title}
+                      </h2>
+                      <p className="text-sm text-[#44403C]">{coupon.benefit}</p>
+                      <p className="text-xs text-[#78716C]">
+                        {coupon.partnerArea} · {coupon.expiresLabel}
+                      </p>
+                    </div>
+
+                    <div className="shrink-0">
+                      {!coupon.unlocked ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            onSelectSpot(coupon.spotId);
+                            onChangeTab('map');
+                          }}
+                          className="w-full sm:w-auto min-h-[44px] px-4 py-2 rounded-xl border border-[#D6CEBE] bg-white text-xs font-semibold text-[#1C1917] hover:bg-[#F5EFE6] whitespace-nowrap"
+                        >
+                          {spotName} 방문하기
+                        </button>
+                      ) : coupon.used ? (
+                        <span className="inline-flex min-h-[44px] items-center px-3 text-xs font-medium text-[#78716C]">
+                          시연 사용 완료
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => onUseDemoCoupon(coupon.id)}
+                          className="w-full sm:w-auto min-h-[44px] px-4 py-2 rounded-xl bg-[#1C1917] text-white text-xs font-semibold hover:bg-[#292524] whitespace-nowrap"
+                        >
+                          시연 사용 확인
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        )}
+      </main>
+
+      {/* Unified Bottom 3-Tab Navigation across all devices matching Scenes 3, 4, 5 wireframes */}
+      <nav
+        aria-label="홈 하단 내비게이션"
+        className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#E5DDD0] bg-[#FBF8F2]/95 backdrop-blur-md safe-pb"
+      >
+        <div className="grid grid-cols-3 h-14 max-w-3xl mx-auto">
+          <button
+            type="button"
+            onClick={() => onChangeTab('map')}
+            aria-current={activeTab === 'map' ? 'page' : undefined}
+            className={`min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-xs border-t-2 transition-colors ${
+              activeTab === 'map'
+                ? 'border-[#9A3412] text-[#9A3412] font-bold'
+                : 'border-transparent text-[#57534E] font-medium hover:text-[#1C1917]'
+            }`}
+          >
+            <MapIcon className="w-4 h-4" aria-hidden="true" />
+            <span>지도</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onChangeTab('clues')}
+            aria-current={activeTab === 'clues' ? 'page' : undefined}
+            className={`min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-xs border-t-2 transition-colors ${
+              activeTab === 'clues'
+                ? 'border-[#9A3412] text-[#9A3412] font-bold'
+                : 'border-transparent text-[#57534E] font-medium hover:text-[#1C1917]'
+            }`}
+          >
+            <ScrollText className="w-4 h-4" aria-hidden="true" />
+            <span>내 조각</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => onChangeTab('coupons')}
+            aria-current={activeTab === 'coupons' ? 'page' : undefined}
+            className={`min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-xs border-t-2 transition-colors ${
+              activeTab === 'coupons'
+                ? 'border-[#9A3412] text-[#9A3412] font-bold'
+                : 'border-transparent text-[#57534E] font-medium hover:text-[#1C1917]'
+            }`}
+          >
+            <Ticket className="w-4 h-4" aria-hidden="true" />
+            <span>쿠폰</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Explicit Confirmation Modal for Permanent Record Deletion */}
+      {deleteDialogOpen && (
+        <div
+          className="fixed inset-0 z-50 bg-[#1C1917]/55 backdrop-blur-xs flex items-center justify-center p-4"
+          role="presentation"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !deleting) {
+              setDeleteDialogOpen(false);
+            }
+          }}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-record-title"
+            className="w-full max-w-sm rounded-2xl border-2 border-[#C7B596] bg-[#FBF8F2] p-6 shadow-2xl space-y-4"
+          >
+            <h2
+              id="delete-record-title"
+              className="font-serif-kr text-lg font-bold text-[#1C1917]"
+            >
+              전생 진행 기록을 삭제할까요?
+            </h2>
+            <p className="text-xs sm:text-sm text-[#44403C] leading-relaxed">
+              지금까지 수집한 전생 조각, 쿠폰, 생성된 전생 결과가 영구적으로 삭제됩니다. 삭제한 기록은 복구 코드로도 다시 불러올 수 없습니다.
+            </p>
+            {deleteError && (
+              <div
+                role="alert"
+                className="rounded-xl border border-[#9A3412]/40 bg-[#9A3412]/10 px-3 py-2 text-xs text-[#7C2D12]"
+              >
+                {deleteError}
+              </div>
+            )}
+            <div className="flex gap-2.5 pt-1">
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={() => setDeleteDialogOpen(false)}
+                className="flex-1 min-h-[44px] px-4 py-2 rounded-xl border border-[#D6CEBE] bg-white text-sm font-semibold text-[#1C1917] hover:bg-[#F5EFE6]"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                disabled={deleting}
+                onClick={async () => {
+                  setDeleting(true);
+                  setDeleteError(null);
+                  try {
+                    await onDeleteRecord();
+                    setDeleteDialogOpen(false);
+                  } catch (err) {
+                    setDeleteError(
+                      err instanceof Error ? err.message : '기록 삭제 중 오류가 발생했습니다.'
+                    );
+                  } finally {
+                    setDeleting(false);
+                  }
+                }}
+                className="flex-1 min-h-[44px] px-4 py-2 rounded-xl bg-[#9A3412] text-white text-sm font-semibold hover:bg-[#7C2D12] disabled:opacity-60"
+              >
+                {deleting ? '삭제 중...' : '영구 삭제'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

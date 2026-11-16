@@ -1,0 +1,11 @@
+{
+  "name": "Remix 전생여지도 (前生輿地圖)",
+  "description": "전주의 역사·문화유산을 직접 탐험하며 전생의 네 가지 단서를 모으고, 국립전주박물관에서 AI로 나만의 전생 초상화와 일대기를 완성하는 참여형 관광 웹 애플리케이션입니다.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

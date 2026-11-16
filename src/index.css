@@ -1,0 +1,390 @@
+@import "tailwindcss";
+
+@font-face {
+  font-family: 'SangSangRock';
+  src: url('https://cdn.jsdelivr.net/gh/fontbee/font@main/Sangsangfont/SangSangRockOTF.woff') format('woff');
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Joseon100Years';
+  src: url('https://gcore.jsdelivr.net/gh/projectnoonnu/noonfonts_2206-02@1.0/ChosunCentennial.woff2') format('woff2');
+  font-weight: 400 800;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'MaruBuri';
+  src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@1.0/MaruBuri-Regular.woff') format('woff');
+  font-weight: 400 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --font-trad-bold: 'SangSangRock', 'Joseon100Years', 'Gowun Batang', 'Noto Serif KR', serif;
+    --font-trad-base: 'Joseon100Years', 'Gowun Batang', 'Noto Serif KR', serif;
+    --font-trad-caption: 'MaruBuri', 'Gowun Batang', 'Noto Serif KR', serif;
+    --font-serif: var(--font-trad-bold);
+    --font-sans: var(--font-trad-base);
+    --font-mono: var(--font-trad-base);
+    --bg-hanji: #FAF5E8;
+    --bg-surface: #FFFFFF;
+    --bg-subtle: #F2ECE1;
+    --ink-primary: #1C1917;
+    --ink-secondary: #57534E;
+    --accent-seal: #9A3412;
+    --accent-indigo: #1E3A8A;
+  }
+
+  html {
+    font-family: var(--font-trad-base);
+    background-color: var(--bg-hanji);
+    color: var(--ink-primary);
+    -webkit-tap-highlight-color: transparent;
+    overflow-x: clip;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+    font-family: var(--font-trad-base);
+    overflow-x: clip;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+
+  input,
+  textarea,
+  button,
+  select {
+    font-family: inherit;
+  }
+}
+
+.font-serif-kr {
+  font-family: var(--font-trad-bold);
+  font-synthesis-weight: none;
+}
+
+.font-sans-kr {
+  font-family: var(--font-trad-base);
+}
+
+.font-mono-tabular {
+  font-family: var(--font-trad-base);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Bold & dark titles/headings -> Attachment 5 (SangSangRock / 바위체) */
+h1,
+h2,
+h3,
+:is(.font-bold, .font-semibold):is(.text-\[\#1C1917\], .text-\[\#292524\], .text-\[\#141210\], .text-black) {
+  font-family: var(--font-trad-bold);
+  font-synthesis-weight: none;
+}
+
+/* Small muted/gray secondary descriptions -> Attachment 4 (MaruBuri / Gowun Batang) */
+:is(.text-\[\#78716C\], .text-\[\#57534E\]),
+input::placeholder,
+textarea::placeholder {
+  font-family: var(--font-trad-caption);
+}
+
+.safe-pb {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom, 0.75rem));
+}
+
+.safe-pt {
+  padding-top: max(0.75rem, env(safe-area-inset-top, 0.75rem));
+}
+
+.min-h-app {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Scroll unfurling animation for Scene 8 */
+@keyframes scrollUnfurl {
+  0% {
+    opacity: 0;
+    transform: scaleY(0.18) translateY(-14px);
+  }
+  65% {
+    opacity: 1;
+    transform: scaleY(1.02) translateY(0);
+  }
+  100% {
+    opacity: 1;
+    transform: scaleY(1) translateY(0);
+  }
+}
+
+.animate-scroll-unfurl {
+  transform-origin: top center;
+  animation: scrollUnfurl 620ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Page 1 entrance Fade Up animation (Scene 1 only) */
+.fade-up {
+  opacity: 0;
+  transform: translateY(30px);
+  animation: fadeUp 0.8s ease-out forwards;
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Smooth Hover Scale Effect for desktop pointer devices only */
+.hover-scale {
+  display: inline-block;
+  transform-origin: center center;
+  transition: transform 0.3s ease-in-out;
+  will-change: transform;
+}
+
+.character-hover-wrapper {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: center center;
+  transition: transform 0.3s ease-in-out;
+  will-change: transform;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .hover-scale:hover {
+    transform: scale(1.1);
+  }
+
+  .character-hover-wrapper:hover {
+    transform: scale(1.1);
+  }
+}
+
+/* Traditional red '完' seal slam-down animation (no audio, ~15° tilted resting angle) */
+@keyframes sealSlam {
+  0% {
+    opacity: 0;
+    transform: rotate(-24deg) scale(1.95);
+  }
+  45% {
+    opacity: 1;
+    transform: rotate(-16.5deg) scale(0.93);
+  }
+  75% {
+    opacity: 1;
+    transform: rotate(-14.2deg) scale(1.03);
+  }
+  100% {
+    opacity: 1;
+    transform: rotate(-15deg) scale(1);
+  }
+}
+
+.animate-seal-slam {
+  transform-origin: center center;
+  animation: sealSlam 420ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.seal-stamped-tilt {
+  transform-origin: center center;
+  transform: rotate(-15deg) scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-up {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  .animate-seal-slam {
+    animation: none;
+    opacity: 1;
+    transform: rotate(-15deg) scale(1);
+  }
+  .hover-scale,
+  .character-hover-wrapper {
+    transition: none;
+  }
+  .animate-scroll-unfurl {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Traditional Korean Hanji backdrop combining mulberry fibers + vintage manuscript borders */
+.hanji-texture {
+  position: relative;
+  isolation: isolate;
+  background-color: #FAF5E8;
+}
+
+.hanji-texture::before {
+  content: '';
+  position: fixed;
+  inset: -12px;
+  z-index: -1;
+  pointer-events: none;
+  background-color: #FAF4E4;
+  background-image:
+    radial-gradient(ellipse at 50% 42%, rgba(253, 249, 239, 0.56) 0%, rgba(248, 240, 222, 0.4) 68%, rgba(232, 212, 174, 0.52) 100%),
+    url('/assets/aistudio/image_39db9218.png'),
+    url('/assets/aistudio/image_52689d27.png');
+  background-size: 100% 100%, cover, cover;
+  background-position: center center, center -10px, center center;
+  background-repeat: no-repeat;
+  background-blend-mode: normal, multiply, normal;
+}
+
+/* Subtle dark-dyed hanji texture for the museum projection media wall */
+.hanji-texture-dark {
+  position: relative;
+  isolation: isolate;
+  background-color: #15120E;
+}
+
+.hanji-texture-dark::before {
+  content: '';
+  position: fixed;
+  inset: -12px;
+  z-index: -1;
+  pointer-events: none;
+  background-image:
+    linear-gradient(180deg, rgba(20, 17, 13, 0.9), rgba(24, 20, 15, 0.88)),
+    url('/assets/aistudio/image_39db9218.png'),
+    url('/assets/aistudio/image_52689d27.png');
+  background-size: 100% 100%, cover, cover;
+  background-position: center center, center -10px, center center;
+  background-repeat: no-repeat;
+  background-blend-mode: normal, soft-light, normal;
+  opacity: 0.92;
+}
+
+/* Hahoe traditional 'deongsil-deongsil' seamless dance stage (Scene 1) */
+.hahoe-dance-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.hahoe-dance {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  height: 100%;
+  transform-origin: center 72%;
+  animation: hahoeDance 3s ease-in-out infinite;
+  will-change: transform;
+}
+
+.hahoe-layer {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+}
+
+/* Stationary bottom '전주 (Jeonju)' text & emblem outside dynamic mesh */
+.hahoe-static-emblem {
+  z-index: 0;
+  clip-path: polygon(0% 79.2%, 100% 79.2%, 100% 100%, 0% 100%);
+}
+
+/* Stationary soft ground shadow directly beneath the dancing feet */
+.hahoe-ground-shadow {
+  position: absolute;
+  left: 48.5%;
+  top: 75.4%;
+  width: 39%;
+  height: 4.6%;
+  transform: translateX(-50%);
+  border-radius: 9999px;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(202, 181, 160, 0.7) 0%,
+    rgba(202, 181, 160, 0.48) 60%,
+    rgba(202, 181, 160, 0) 100%
+  );
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Uncut character mask used only when WebGL is unavailable */
+.hahoe-fallback-character {
+  z-index: 1;
+  clip-path: polygon(
+    0% 0%,
+    100% 0%,
+    100% 73.5%,
+    47.8% 73.5%,
+    47.8% 78.9%,
+    38.2% 78.9%,
+    38.2% 73.5%,
+    0% 73.5%
+  );
+}
+
+@keyframes hahoeDance {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  15% {
+    transform: translate3d(-4px, -6px, 0) rotate(-3.5deg);
+  }
+  30% {
+    transform: translate3d(-7px, 0, 0) rotate(-4.8deg);
+  }
+  45% {
+    transform: translate3d(0, -8px, 0) rotate(0deg);
+  }
+  60% {
+    transform: translate3d(7px, 0, 0) rotate(4.8deg);
+  }
+  75% {
+    transform: translate3d(4px, -6px, 0) rotate(3.5deg);
+  }
+  90% {
+    transform: translate3d(0, -2.5px, 0) rotate(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hahoe-dance {
+    animation: none;
+  }
+}
+
+/* Focus visibility for keyboard accessibility */
+:focus-visible {
+  outline: 2px solid #9A3412;
+  outline-offset: 2px;
+}
