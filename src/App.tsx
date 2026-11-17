@@ -447,26 +447,27 @@ export default function App() {
   };
 
   const handleUseDemoCoupon = async (couponId: string) => {
-    try {
-      const res = await fetch(
-        `/api/session/${encodeURIComponent(session.sessionId)}/coupons/${encodeURIComponent(couponId)}/use`,
-        {
-          method: 'POST',
-          headers: getAuthHeaders(session.mode),
-          credentials: 'same-origin',
-        }
-      );
-      if (!res.ok) {
-        throw new Error('쿠폰 사용 저장 실패');
+    const res = await fetch(
+      `/api/session/${encodeURIComponent(session.sessionId)}/coupons/${encodeURIComponent(couponId)}/use`,
+      {
+        method: 'POST',
+        headers: getAuthHeaders(session.mode),
+        credentials: 'same-origin',
       }
-      const data = (await res.json()) as { session?: UserSessionState };
-      if (data.session) {
-        setSession(data.session);
-      }
-      setSaveError(null);
-    } catch {
-      setSaveError('쿠폰 사용 상태를 서버에 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    );
+    const data = (await res.json().catch(() => ({}))) as {
+      session?: UserSessionState;
+      error?: string;
+    };
+    if (!res.ok) {
+      const msg = data.error || '쿠폰 사용 처리 중 오류가 발생했습니다.';
+      setSaveError(msg);
+      throw new Error(msg);
     }
+    if (data.session) {
+      setSession(data.session);
+    }
+    setSaveError(null);
   };
 
   // Scene 9 -> Scene 10

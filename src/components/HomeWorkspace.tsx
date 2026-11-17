@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Map as MapIcon,
   ScrollText,
@@ -25,12 +25,19 @@ import {
   UserSessionState,
 } from '../types/jeonju';
 import {
+  formatCouponExpiryDate,
+  getCouponStatusLabel,
+  resolveCouponBaseStatus,
+} from '../utils/couponBarcode';
+import {
   getCollectedClueCount,
   isMuseumUnlocked,
   isSpotClueOrPastLifeCompleted,
   isSpotVisitVerified,
 } from '../utils/pastLifeEngine';
 import { CompleteSealStamp } from './CompleteSealStamp';
+import { CouponBarcodeModal } from './CouponBarcodeModal';
+import { JeonjuNaverMap, type NaverMapLoadStatus } from './JeonjuNaverMap';
 import { TangramClueBoard, type ClueGridMeta } from './TangramClueBoard';
 
 export interface QrCompletionBanner {
@@ -55,7 +62,7 @@ interface HomeWorkspaceProps {
   onContinueSpotVerify: (spotId: SpotId) => void;
   onOpenMuseumFace: () => void;
   onViewPastLifeResult: () => void;
-  onUseDemoCoupon: (couponId: string) => void;
+  onUseDemoCoupon: (couponId: string) => Promise<void>;
   onNavigateRoute: (path: '/wall' | '/admin') => void;
   onGoHome: () => void;
   onDeleteRecord: () => Promise<void>;
@@ -97,6 +104,38 @@ export function HomeWorkspace({
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
   const [deleting, setDeleting] = useState<boolean>(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  // Interactive Map View Mode (official NAVER Maps JS v3 vs Traditional 여지도)
+  const [mapViewMode, setMapViewMode] = useState<'naver' | 'traditional'>('traditional');
+  const [naverMapStatus, setNaverMapStatus] = useState<NaverMapLoadStatus>('checking');
+
+  // Barcode Modal State
+  const [barcodeCouponId, setBarcodeCouponId] = useState<string | null>(null);
+  const [redeemingCoupon, setRedeemingCoupon] = useState<boolean>(false);
+  const [redeemCouponError, setRedeemCouponError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const envClientId =
+      (import.meta.env?.VITE_NAVER_MAP_CLIENT_ID as string | undefined)?.trim() ?? '';
+    if (envClientId) {
+      setMapViewMode('naver');
+      return;
+    }
+    fetch('/api/config/map')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: { configured?: boolean } | null) => {
+        if (data?.configured) {
+          setMapViewMode('naver');
+        } else {
+          setNaverMapStatus('missing_key');
+          setMapViewMode('traditional');
+        }
+      })
+      .catch(() => {
+        setNaverMapStatus('missing_key');
+        setMapViewMode('traditional');
+      });
+  }, []);
 
   const clueCount = getCollectedClueCount(session);
   const museumReady = isMuseumUnlocked(session);
@@ -197,18 +236,18 @@ export function HomeWorkspace({
 
       {/* Explicit 2-stage progression indicator */}
       <div className="grid grid-cols-2 gap-2 rounded-xl border border-[#E5DDD0] bg-[#FBF8F2] px-3 py-2 text-xs">
-        <div className="flex items-center justify-between gap-1">
-          <span className="text-[#78716C]">방문 인증</span>
+        <div className="flex flex-wrap items-center justify-between gap-1">
+          <span className="text-[#78716C] whitespace-nowrap">방문 인증</span>
           <span
-            className={`font-bold ${
+            className={`font-bold whitespace-nowrap ${
               visitVerified ? 'text-[#9A3412]' : 'text-[#57534E]'
             }`}
           >
             {visitVerified ? '완료' : '미완료'}
           </span>
         </div>
-        <div className="flex items-center justify-between gap-1 border-l border-[#E5DDD0] pl-2">
-          <span className="text-[#78716C]">
+        <div className="flex flex-wrap items-center justify-between gap-1 border-l border-[#E5DDD0] pl-2">
+          <span className="text-[#78716C] whitespace-nowrap">
             {spot.id === 'jeonju_museum' ? '전생 완성' : '전생 조각'}
           </span>
           <span
@@ -369,26 +408,26 @@ export function HomeWorkspace({
     : null;
 
   return (
-    <div className="min-h-app hanji-texture flex flex-col pb-20">
+    <div className="min-h-app hanji-texture flex flex-col pb-24">
       {/* Wireframe Top Profile + Progress Header: [Profile Icon] 0 / 4 */}
       <header className="sticky top-0 z-30 border-b border-[#E5DDD0] bg-[#FBF8F2]/95 backdrop-blur-md">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 text-[#1C1917]">
-              <UserCircle2 className="w-7 h-7 text-[#57534E]" aria-hidden="true" />
+        <div className="mx-auto max-w-5xl px-3 sm:px-6 min-h-14 py-1.5 flex items-center justify-between gap-2 sm:gap-4">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 text-[#1C1917] shrink-0">
+              <UserCircle2 className="w-6 h-6 sm:w-7 sm:h-7 text-[#57534E]" aria-hidden="true" />
               <span
-                className="font-mono-tabular text-lg font-bold tracking-tight"
+                className="font-mono-tabular text-lg font-bold tracking-tight whitespace-nowrap"
                 aria-label={`전생 조각 진행도 ${clueCount} / 4`}
               >
                 {clueCount} / 4
               </span>
             </div>
             {session.visitorName && (
-              <span className="text-xs text-[#57534E] hidden sm:inline">
+              <span className="text-xs text-[#57534E] hidden sm:inline truncate max-w-[140px]">
                 · {session.visitorName}
               </span>
             )}
-            <span className="text-xs text-[#9A3412] font-medium">
+            <span className="text-xs text-[#9A3412] font-medium whitespace-nowrap">
               · {session.mode === 'demo' ? '시연 모드' : '현장 체험'}
             </span>
           </div>
@@ -397,7 +436,7 @@ export function HomeWorkspace({
             <button
               type="button"
               onClick={() => onNavigateRoute('/wall')}
-              className="text-xs font-medium text-[#57534E] hover:text-[#9A3412] min-h-[36px] px-2 whitespace-nowrap"
+              className="section-heading text-xs font-bold text-[#1C1917] hover:text-[#9A3412] min-h-[44px] px-2 whitespace-nowrap"
             >
               미디어월
             </button>
@@ -530,18 +569,67 @@ export function HomeWorkspace({
           </div>
         )}
 
-        {/* SCENE 3: 홈① 지도 — Map as the dominant hero area matching wireframe */}
+        {/* SCENE 3: 홈① 지도 — NAVER Maps JS v3 & Traditional 여지도 */}
         {activeTab === 'map' && (
           <section aria-labelledby="map-section-title" className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             <div className="lg:col-span-7 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <h1 id="map-section-title" className="font-serif-kr text-base sm:text-lg font-bold text-[#1C1917]">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h1 id="map-section-title" className="section-heading text-lg font-bold text-[#1C1917]">
                   지도
                 </h1>
-                <span className="text-xs text-[#78716C]">
-                  장소 1~4와 박물관을 눌러 탐색하세요
-                </span>
+                <div className="inline-flex rounded-xl border border-[#D6CEBE] bg-[#F5EFE6] p-1 gap-1">
+                  <button
+                    type="button"
+                    onClick={() => setMapViewMode('naver')}
+                    aria-pressed={mapViewMode === 'naver'}
+                    className={`min-h-[38px] px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
+                      mapViewMode === 'naver'
+                        ? 'bg-[#1C1917] text-white'
+                        : 'text-[#44403C] hover:text-[#1C1917]'
+                    }`}
+                  >
+                    네이버 지도
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMapViewMode('traditional')}
+                    aria-pressed={mapViewMode === 'traditional'}
+                    className={`min-h-[38px] px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
+                      mapViewMode === 'traditional'
+                        ? 'bg-[#1C1917] text-white'
+                        : 'text-[#44403C] hover:text-[#1C1917]'
+                    }`}
+                  >
+                    전통 여지도
+                  </button>
+                </div>
               </div>
+
+              {mapViewMode === 'naver' ? (
+                <JeonjuNaverMap
+                  session={session}
+                  selectedSpotId={selectedSpot.id}
+                  museumReady={museumReady}
+                  onSelectSpot={onSelectSpot}
+                  onOpenSpotDetail={() => setSpotSheetOpen(true)}
+                  onStatusChange={setNaverMapStatus}
+                />
+              ) : (
+                <>
+                  {naverMapStatus === 'missing_key' && (
+                    <div className="rounded-xl border border-[#D6CEBE] bg-[#FBF8F2] px-3.5 py-2 flex flex-wrap items-center justify-between gap-2 text-xs text-[#44403C]">
+                      <span>
+                        실시간 네이버 지도 연동 준비 중 (Client ID 미설정 · 전통 여지도 및 길찾기 정상 작동)
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setMapViewMode('naver')}
+                        className="font-bold text-[#9A3412] underline underline-offset-4 whitespace-nowrap"
+                      >
+                        연동 상태 보기
+                      </button>
+                    </div>
+                  )}
 
               {/* Large Traditional Joseon Map Container matching Scene 3 */}
               <div className="relative w-full aspect-[4/3] min-h-[340px] max-h-[580px] rounded-2xl border-2 border-[#A8967A] bg-[#EFE4CE] overflow-hidden shadow-md">
@@ -625,7 +713,7 @@ export function HomeWorkspace({
                           ) : (
                             <Sparkles className="w-4 h-4 shrink-0" aria-hidden="true" />
                           )}
-                          <span className="text-xs sm:text-sm font-bold whitespace-nowrap">
+                          <span className="text-xs font-bold whitespace-nowrap">
                             박물관
                           </span>
                           {visited && (
@@ -686,7 +774,7 @@ export function HomeWorkspace({
                             />
                           )}
                         </span>
-                        <span className="px-2.5 py-1 leading-tight rounded-md bg-[#FBF8F2]/95 border border-[#8C7A62]/70 text-xs font-bold text-[#1C1917] whitespace-nowrap shadow-sm">
+                        <span className="px-2 py-0.5 leading-tight rounded-md bg-[#FBF8F2]/95 border border-[#8C7A62]/70 text-xs font-bold text-[#1C1917] whitespace-nowrap shadow-sm">
                           {spot.name}
                         </span>
                       </button>
@@ -694,9 +782,11 @@ export function HomeWorkspace({
                   );
                 })}
               </div>
+                </>
+              )}
 
               {/* Mobile Quick Access Strip for the selected spot */}
-              <div className="lg:hidden rounded-xl border border-[#E5DDD0] bg-white p-3.5 flex items-center justify-between gap-3 shadow-xs">
+              <div className="lg:hidden rounded-xl border border-[#E5DDD0] bg-white p-3.5 flex flex-wrap items-center justify-between gap-2.5 shadow-xs">
                 <div className="flex items-center gap-2.5 min-w-0">
                   {isSpotVisited(selectedSpot) && (
                     <CompleteSealStamp
@@ -717,11 +807,11 @@ export function HomeWorkspace({
                     </p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-2 shrink-0 ml-auto">
                   <button
                     type="button"
                     onClick={() => setSpotSheetOpen(true)}
-                    className="min-h-[44px] px-3 py-2 rounded-lg border border-[#D6CEBE] bg-[#FBF8F2] text-xs font-semibold text-[#1C1917]"
+                    className="min-h-[44px] px-3 py-2 rounded-lg border border-[#D6CEBE] bg-[#FBF8F2] text-xs font-semibold text-[#1C1917] whitespace-nowrap"
                   >
                     상세 보기
                   </button>
@@ -844,48 +934,108 @@ export function HomeWorkspace({
           </section>
         )}
 
-        {/* SCENE 5: 홈③ 쿠폰 — Horizontal rounded cards stacked vertically matching Scene 5 wireframe */}
+        {/* SCENE 5: 홈③ 쿠폰 — Pure #A35139 Key Color + CODE128 Barcode Issuance */}
         {activeTab === 'coupons' && (
           <section aria-labelledby="coupons-section-title" className="mx-auto w-full max-w-2xl space-y-4">
-            <div className="flex items-center justify-between gap-2">
-              <h1 id="coupons-section-title" className="font-serif-kr text-lg font-bold text-[#1C1917]">
-                쿠폰 ({unlockedCouponsCount} / 4)
-              </h1>
-              <span className="text-xs text-[#78716C]">시연용 제휴 쿠폰</span>
+            {/* Top Coupon Issuance Banner Box using exact pure #A35139 (zero opacity/gradient) */}
+            <div
+              className="rounded-2xl border-2 bg-white overflow-hidden shadow-sm"
+              style={{ borderColor: 'var(--coupon-primary)' }}
+            >
+              <div
+                className="px-5 py-3.5 text-white flex flex-wrap items-center justify-between gap-2"
+                style={{ backgroundColor: 'var(--coupon-primary)' }}
+              >
+                <div className="flex items-center gap-2">
+                  <Ticket className="w-5 h-5 shrink-0 text-white" aria-hidden="true" />
+                  <h1 id="coupons-section-title" className="section-heading text-lg font-bold text-white">
+                    전주 제휴 쿠폰 발급함
+                  </h1>
+                </div>
+                <span className="font-mono-tabular text-sm font-extrabold text-white whitespace-nowrap">
+                  {unlockedCouponsCount} / 4 보유
+                </span>
+              </div>
+              <div className="px-5 py-3 flex flex-wrap items-center justify-between gap-2 text-xs text-[#44403C]">
+                <span>
+                  {session.mode === 'demo'
+                    ? '시연 모드: 발급된 쿠폰에서 시연용 가상 바코드(DEMO)를 확인할 수 있습니다.'
+                    : '장소 QR 인증 시 제휴 매장 할인 바코드가 자동 발급됩니다.'}
+                </span>
+                <span
+                  className="font-bold whitespace-nowrap"
+                  style={{ color: 'var(--coupon-primary)' }}
+                >
+                  {session.mode === 'demo' ? '시연용 가상 쿠폰' : '현장 검증 쿠폰'}
+                </span>
+              </div>
             </div>
 
             <div className="flex flex-col gap-3.5">
               {session.coupons.map((coupon) => {
                 const spotName =
                   JEONJU_SPOTS.find((s) => s.id === coupon.spotId)?.name ?? '';
+                const baseStatus = resolveCouponBaseStatus(coupon);
+                const statusLabel = getCouponStatusLabel(baseStatus);
+                const expiryText = formatCouponExpiryDate(
+                  coupon.expiresAt,
+                  coupon.expiresLabel
+                );
 
                 return (
                   <article
                     key={coupon.id}
-                    className={`w-full rounded-2xl border px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${
+                    className={`w-full rounded-2xl border-2 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${
                       coupon.unlocked
-                        ? 'bg-white border-[#D6CEBE] shadow-sm'
-                        : 'bg-[#F5EFE6]/70 border-dashed border-[#C7BDA9]'
+                        ? 'bg-white shadow-sm'
+                        : 'bg-[#F5EFE6] border-dashed border-[#C7BDA9]'
                     }`}
+                    style={
+                      coupon.unlocked
+                        ? { borderColor: 'var(--coupon-primary)' }
+                        : undefined
+                    }
                   >
-                    <div className="space-y-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[#9A3412]">
-                        <span>&lt;{coupon.category}&gt;</span>
-                        <span className="text-[#78716C] font-normal">· {spotName}</span>
-                        <span className="text-[#57534E] font-normal">
-                          · {coupon.unlocked ? (coupon.used ? '사용 완료' : '보유 중') : '미획득'}
+                    <div className="space-y-1.5 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2 text-xs">
+                        <span
+                          className="font-bold"
+                          style={{ color: 'var(--coupon-primary)' }}
+                        >
+                          &lt;{coupon.category}&gt;
+                        </span>
+                        <span className="text-[#44403C] font-medium">· {spotName}</span>
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 rounded-md font-bold text-white"
+                          style={{
+                            backgroundColor:
+                              baseStatus === 'used'
+                                ? '#44403C'
+                                : baseStatus === 'expired'
+                                  ? '#B91C1C'
+                                  : baseStatus === 'available'
+                                    ? 'var(--coupon-primary)'
+                                    : '#78716C',
+                          }}
+                        >
+                          {statusLabel}
                         </span>
                       </div>
-                      <h2 className="font-serif-kr text-base sm:text-lg font-bold text-[#1C1917]">
+                      <h2 className="section-heading text-base font-bold text-[#1C1917]">
                         {coupon.title}
                       </h2>
-                      <p className="text-sm text-[#44403C]">{coupon.benefit}</p>
-                      <p className="text-xs text-[#78716C]">
-                        {coupon.partnerArea} · {coupon.expiresLabel}
+                      <p
+                        className="text-sm font-semibold"
+                        style={{ color: 'var(--coupon-primary)' }}
+                      >
+                        {coupon.benefit}
+                      </p>
+                      <p className="text-xs text-[#44403C]">
+                        {coupon.partnerArea} · {expiryText}
                       </p>
                     </div>
 
-                    <div className="shrink-0">
+                    <div className="shrink-0 flex flex-col sm:items-end gap-1.5">
                       {!coupon.unlocked ? (
                         <button
                           type="button"
@@ -893,21 +1043,36 @@ export function HomeWorkspace({
                             onSelectSpot(coupon.spotId);
                             onChangeTab('map');
                           }}
-                          className="w-full sm:w-auto min-h-[44px] px-4 py-2 rounded-xl border border-[#D6CEBE] bg-white text-xs font-semibold text-[#1C1917] hover:bg-[#F5EFE6] whitespace-nowrap"
+                          className="w-full sm:w-auto min-h-[44px] px-4 py-2 rounded-xl border-2 bg-white text-xs font-bold hover:bg-[#F5EFE6] whitespace-nowrap"
+                          style={{
+                            borderColor: 'var(--coupon-primary)',
+                            color: 'var(--coupon-primary)',
+                          }}
                         >
                           {spotName} 방문하기
                         </button>
-                      ) : coupon.used ? (
-                        <span className="inline-flex min-h-[44px] items-center px-3 text-xs font-medium text-[#78716C]">
-                          시연 사용 완료
-                        </span>
+                      ) : baseStatus === 'available' ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setRedeemCouponError(null);
+                            setBarcodeCouponId(coupon.id);
+                          }}
+                          className="w-full sm:w-auto min-h-[44px] px-5 py-2 rounded-xl text-white text-xs font-bold hover:opacity-95 whitespace-nowrap"
+                          style={{ backgroundColor: 'var(--coupon-primary)' }}
+                        >
+                          사용하기
+                        </button>
                       ) : (
                         <button
                           type="button"
-                          onClick={() => onUseDemoCoupon(coupon.id)}
-                          className="w-full sm:w-auto min-h-[44px] px-4 py-2 rounded-xl bg-[#1C1917] text-white text-xs font-semibold hover:bg-[#292524] whitespace-nowrap"
+                          onClick={() => {
+                            setRedeemCouponError(null);
+                            setBarcodeCouponId(coupon.id);
+                          }}
+                          className="w-full sm:w-auto min-h-[44px] px-4 py-2 rounded-xl border border-[#C7BDA9] bg-[#FBF8F2] text-xs font-semibold text-[#44403C] hover:bg-[#EFE8DC] whitespace-nowrap"
                         >
-                          시연 사용 확인
+                          {baseStatus === 'used' ? '사용 내역 · 바코드 보기' : '만료 내역 보기'}
                         </button>
                       )}
                     </div>
@@ -924,7 +1089,7 @@ export function HomeWorkspace({
         aria-label="홈 하단 내비게이션"
         className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#E5DDD0] bg-[#FBF8F2]/95 backdrop-blur-md safe-pb"
       >
-        <div className="grid grid-cols-3 h-14 max-w-3xl mx-auto">
+        <div className="grid grid-cols-3 min-h-[58px] h-auto max-w-3xl mx-auto">
           <button
             type="button"
             onClick={() => onChangeTab('map')}
@@ -1035,6 +1200,45 @@ export function HomeWorkspace({
           </div>
         </div>
       )}
+
+      {/* Coupon CODE128 Barcode Modal */}
+      {(() => {
+        const activeCoupon =
+          session.coupons.find((c) => c.id === barcodeCouponId) ?? null;
+        const activeSpotName = activeCoupon
+          ? JEONJU_SPOTS.find((s) => s.id === activeCoupon.spotId)?.name ?? ''
+          : '';
+        return (
+          <CouponBarcodeModal
+            coupon={activeCoupon}
+            spotName={activeSpotName}
+            isDemoMode={session.mode === 'demo'}
+            redeeming={redeemingCoupon}
+            redeemError={redeemCouponError}
+            onConfirmDemoUse={async (couponId) => {
+              setRedeemingCoupon(true);
+              setRedeemCouponError(null);
+              try {
+                await onUseDemoCoupon(couponId);
+              } catch (err) {
+                setRedeemCouponError(
+                  err instanceof Error
+                    ? err.message
+                    : '쿠폰 사용 처리 중 오류가 발생했습니다.'
+                );
+              } finally {
+                setRedeemingCoupon(false);
+              }
+            }}
+            onClose={() => {
+              if (!redeemingCoupon) {
+                setBarcodeCouponId(null);
+                setRedeemCouponError(null);
+              }
+            }}
+          />
+        );
+      })()}
     </div>
   );
 }

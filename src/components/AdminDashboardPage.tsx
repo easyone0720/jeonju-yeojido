@@ -7,6 +7,9 @@ import {
   RefreshCw,
   BarChart3,
   QrCode,
+  Ticket,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import { JEONJU_SPOTS } from '../data/jeonjuSpots';
 import { AdminDashboardStats } from '../types/jeonju';
@@ -22,6 +25,12 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
   const [stats, setStats] = useState<AdminDashboardStats | null>(null);
   const [loading, setLoading] = useState(false);
   const [qrImages, setQrImages] = useState<Record<string, string>>({});
+  const [couponCodeInput, setCouponCodeInput] = useState('');
+  const [couponRedeeming, setCouponRedeeming] = useState(false);
+  const [couponRedeemResult, setCouponRedeemResult] = useState<{
+    ok: boolean;
+    message: string;
+  } | null>(null);
 
   const fetchStats = async (code: string) => {
     setLoading(true);
@@ -68,11 +77,58 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
     fetchStats(passcode.trim());
   };
 
+  const handleRedeemCouponCode = async (e: FormEvent) => {
+    e.preventDefault();
+    const code = couponCodeInput.trim();
+    if (!code) {
+      setCouponRedeemResult({ ok: false, message: '쿠폰 바코드 번호를 입력해 주세요.' });
+      return;
+    }
+    setCouponRedeeming(true);
+    setCouponRedeemResult(null);
+    try {
+      const res = await fetch('/api/admin/coupons/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          passcode: (passcode || '전주2026').trim(),
+          issueCode: code,
+        }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        couponTitle?: string;
+        visitorName?: string;
+        error?: string;
+      };
+      if (!res.ok || !data.ok) {
+        setCouponRedeemResult({
+          ok: false,
+          message: data.error || '쿠폰 바코드 검증에 실패했습니다.',
+        });
+        return;
+      }
+      setCouponRedeemResult({
+        ok: true,
+        message: `사용 확정 완료: ${data.visitorName ?? '여행자'} 님 · ${data.couponTitle ?? code}`,
+      });
+      setCouponCodeInput('');
+      void fetchStats(passcode || '전주2026');
+    } catch {
+      setCouponRedeemResult({
+        ok: false,
+        message: '네트워크 오류로 바코드를 검증하지 못했습니다.',
+      });
+    } finally {
+      setCouponRedeeming(false);
+    }
+  };
+
   if (!authenticated) {
     return (
       <div className="min-h-app hanji-texture flex flex-col">
         <header className="border-b border-[#E5DDD0] bg-[#FBF8F2]">
-          <div className="mx-auto max-w-5xl px-4 h-14 flex items-center justify-between">
+          <div className="mx-auto max-w-5xl px-4 min-h-14 py-1.5 flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={onBackToApp}
@@ -152,17 +208,17 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
   return (
     <div className="min-h-app hanji-texture flex flex-col">
       <header className="sticky top-0 z-20 border-b border-[#E5DDD0] bg-[#FBF8F2]/95 backdrop-blur-md">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6 h-14 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 min-h-14 py-1.5 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
               onClick={onBackToApp}
-              className="min-h-[44px] inline-flex items-center gap-1.5 text-sm font-medium text-[#44403C] hover:text-[#1C1917]"
+              className="min-h-[44px] inline-flex items-center gap-1.5 text-sm font-medium text-[#44403C] hover:text-[#1C1917] whitespace-nowrap shrink-0"
             >
               <ArrowLeft className="w-4 h-4" aria-hidden="true" />
               <span>체험 화면</span>
             </button>
-            <span className="font-serif-kr text-base sm:text-lg font-bold text-[#1C1917]">
+            <span className="font-serif-kr text-base sm:text-lg font-bold text-[#1C1917] truncate">
               전생여지도 운영 현황
             </span>
           </div>
@@ -170,7 +226,7 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
           <button
             type="button"
             onClick={() => fetchStats(passcode || '전주2026')}
-            className="min-h-[40px] px-3 py-1.5 rounded-lg border border-[#D6CEBE] bg-white text-xs font-semibold text-[#1C1917] hover:bg-[#F5EFE6] inline-flex items-center gap-1.5"
+            className="min-h-[40px] px-3 py-1.5 rounded-lg border border-[#D6CEBE] bg-white text-xs font-semibold text-[#1C1917] hover:bg-[#F5EFE6] inline-flex items-center gap-1.5 whitespace-nowrap shrink-0"
           >
             <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
             <span>새로고침</span>
@@ -188,47 +244,47 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
             {/* Summary Metrics Grid */}
             <section className="grid grid-cols-2 lg:grid-cols-5 gap-4">
               <div className="rounded-2xl border border-[#E5DDD0] bg-white p-4 space-y-1">
-                <p className="text-xs text-[#57534E]">전체 참여 세션</p>
+                <p className="text-xs text-[#44403C]">전체 참여 세션</p>
                 <p className="font-mono-tabular text-2xl font-bold text-[#1C1917]">
                   {stats.totalVisitors.liveCount}건
                 </p>
-                <p className="text-[11px] text-[#78716C] font-mono-tabular">
+                <p className="text-xs text-[#57534E] font-mono-tabular">
                   가상 시연 기준: {stats.totalVisitors.demoBaseline}건
                 </p>
               </div>
               <div className="rounded-2xl border border-[#E5DDD0] bg-white p-4 space-y-1">
-                <p className="text-xs text-[#57534E]">4조각 완주</p>
+                <p className="text-xs text-[#44403C]">4조각 완주</p>
                 <p className="font-mono-tabular text-2xl font-bold text-[#9A3412]">
                   {stats.clueCompletionCount.liveCount}건
                 </p>
-                <p className="text-[11px] text-[#78716C] font-mono-tabular">
+                <p className="text-xs text-[#57534E] font-mono-tabular">
                   가상 시연 기준: {stats.clueCompletionCount.demoBaseline}건
                 </p>
               </div>
               <div className="rounded-2xl border border-[#E5DDD0] bg-white p-4 space-y-1">
-                <p className="text-xs text-[#57534E]">전생 결과 생성</p>
+                <p className="text-xs text-[#44403C]">전생 결과 생성</p>
                 <p className="font-mono-tabular text-2xl font-bold text-[#1C1917]">
                   {stats.pastLifeGenerated.liveCount}건
                 </p>
-                <p className="text-[11px] text-[#78716C] font-mono-tabular">
+                <p className="text-xs text-[#57534E] font-mono-tabular">
                   가상 시연 기준: {stats.pastLifeGenerated.demoBaseline}건
                 </p>
               </div>
               <div className="rounded-2xl border border-[#E5DDD0] bg-white p-4 space-y-1">
-                <p className="text-xs text-[#57534E]">쿠폰 발급 / 사용</p>
+                <p className="text-xs text-[#44403C]">쿠폰 발급 / 사용</p>
                 <p className="font-mono-tabular text-2xl font-bold text-[#1C1917]">
                   {stats.coupons.issuedLive} / {stats.coupons.usedLive}
                 </p>
-                <p className="text-[11px] text-[#78716C] font-mono-tabular">
+                <p className="text-xs text-[#57534E] font-mono-tabular">
                   가상 기준: {stats.coupons.issuedDemoBaseline} / {stats.coupons.usedDemoBaseline}
                 </p>
               </div>
               <div className="rounded-2xl border border-[#E5DDD0] bg-white p-4 space-y-1 col-span-2 lg:col-span-1">
-                <p className="text-xs text-[#57534E]">미디어월 전시 동의</p>
+                <p className="text-xs text-[#44403C]">미디어월 전시 동의</p>
                 <p className="font-mono-tabular text-2xl font-bold text-[#14532D]">
                   {stats.mediaWallCount.liveCount}건
                 </p>
-                <p className="text-[11px] text-[#78716C] font-mono-tabular">
+                <p className="text-xs text-[#57534E] font-mono-tabular">
                   예시 작품: {stats.mediaWallCount.demoBaseline}건
                 </p>
               </div>
@@ -348,7 +404,7 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
                     )}
                     <div>
                       <p className="text-sm font-bold text-[#1C1917]">{spot.name}</p>
-                      <p className="text-[11px] font-mono-tabular text-[#78716C] break-all">
+                      <p className="text-xs font-mono-tabular text-[#57534E] break-all">
                         {spot.qrCodeValue}
                       </p>
                     </div>
@@ -365,6 +421,59 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
                   </div>
                 ))}
               </div>
+            </section>
+
+            {/* Partner Store / Admin Live Coupon Barcode Verification */}
+            <section
+              className="rounded-2xl border-2 bg-white p-5 space-y-4"
+              style={{ borderColor: 'var(--coupon-primary)' }}
+            >
+              <div className="flex items-center gap-2 border-b border-[#F0EAE0] pb-3">
+                <Ticket className="w-4 h-4 text-[#A35139]" aria-hidden="true" />
+                <h2 className="section-heading text-lg font-bold text-[#1C1917]">
+                  제휴 매장 · 운영자 쿠폰 바코드 검증 및 사용 확정
+                </h2>
+              </div>
+              <p className="text-xs text-[#44403C]">
+                실제 체험 모드에서 발급된 쿠폰 바코드(JSYJ-LV-...)를 검증하여 중복 사용 없이 단 1회만 사용 확정 처리합니다. 시연용(DEMO) 바코드는 실제 매장 사용이 차단됩니다.
+              </p>
+
+              <form onSubmit={handleRedeemCouponCode} className="flex flex-col sm:flex-row gap-2.5">
+                <input
+                  type="text"
+                  value={couponCodeInput}
+                  onChange={(e) => setCouponCodeInput(e.target.value)}
+                  placeholder="예: JSYJ-LV-GJ-XXXXXXXX-XXXX"
+                  aria-label="쿠폰 바코드 번호 입력"
+                  className="flex-1 min-h-[48px] px-4 py-2 rounded-xl border border-[#D6CEBE] bg-[#FBF8F2] text-sm font-mono-tabular uppercase text-[#1C1917]"
+                />
+                <button
+                  type="submit"
+                  disabled={couponRedeeming}
+                  className="min-h-[48px] px-5 py-2 rounded-xl text-white text-sm font-bold whitespace-nowrap disabled:opacity-60"
+                  style={{ backgroundColor: 'var(--coupon-primary)' }}
+                >
+                  {couponRedeeming ? '검증 중...' : '바코드 검증 · 사용 확정'}
+                </button>
+              </form>
+
+              {couponRedeemResult && (
+                <div
+                  role="status"
+                  className={`rounded-xl border px-4 py-3 flex items-center gap-2 text-xs font-semibold ${
+                    couponRedeemResult.ok
+                      ? 'border-[#16A34A] bg-[#F0FDF4] text-[#14532D]'
+                      : 'border-[#B91C1C] bg-[#FEF2F2] text-[#B91C1C]'
+                  }`}
+                >
+                  {couponRedeemResult.ok ? (
+                    <CheckCircle2 className="w-4 h-4 shrink-0" aria-hidden="true" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 shrink-0" aria-hidden="true" />
+                  )}
+                  <span>{couponRedeemResult.message}</span>
+                </div>
+              )}
             </section>
           </>
         )}
