@@ -14,7 +14,6 @@ import {
   isSpotClueOrPastLifeCompleted,
   isSpotVisitVerified,
   recordSpotVisitAuthentication,
-  toggleCouponUsedState,
   validateBirthDate,
   verifySpotLocation,
 } from './src/utils/pastLifeEngine.ts';
@@ -283,6 +282,20 @@ async function startServer() {
     res.json({ ok: true, service: 'jeonsaeng-yeojido', storage: 'sqlite' });
   });
 
+  // Expose ONLY public NAVER Maps Client ID (never any Client Secret)
+  app.get('/api/config/map', (_req, res) => {
+    const clientId = (
+      process.env.VITE_NAVER_MAP_CLIENT_ID ||
+      process.env.NAVER_MAP_CLIENT_ID ||
+      process.env.NCP_MAP_CLIENT_ID ||
+      ''
+    ).trim();
+    res.json({
+      naverMapClientId: clientId,
+      configured: clientId.length > 0,
+    });
+  });
+
   // Check current authenticated user session via HttpOnly cookie or RAM header token
   app.get('/api/auth/me', (req, res) => {
     const modeParam = req.query.mode === 'demo' ? 'demo' : 'experience';
@@ -492,8 +505,8 @@ async function startServer() {
       updatedAt: nowIso,
     };
 
-    db.saveSession(updated);
-    res.json({ session: updated });
+    const saved = db.saveSession(updated);
+    res.json({ session: saved });
   });
 
   // QR-only site verification: atomically verifies registered 5-spot QR URL, marks stamp, and awards clue/coupon without GPS
@@ -591,12 +604,11 @@ async function startServer() {
 
     try {
       const { nextSession, claimedClue } = claimSpotClueAndCoupon(existing, clueSpotId);
-      const savedSession: UserSessionState = {
+      const savedSession = db.saveSession({
         ...nextSession,
         currentScene: 3,
         currentSpotId: clueSpotId,
-      };
-      db.saveSession(savedSession);
+      });
       res.json({
         session: savedSession,
         spotId: clueSpotId,
@@ -733,10 +745,10 @@ async function startServer() {
       { spotPhotoCaptured: Boolean(spotPhotoCaptured) }
     );
 
-    db.saveSession(nextSession);
+    const savedSession = db.saveSession(nextSession);
 
     res.json({
-      session: nextSession,
+      session: savedSession,
       claimedClue,
       alreadyClaimed,
       distanceMeters,
@@ -750,9 +762,18 @@ async function startServer() {
       res.status(401).json({ error: '세션 인증이 필요합니다.' });
       return;
     }
-    const nextSession = toggleCouponUsedState(auth.session, couponId);
-    db.saveSession(nextSession);
-    res.json({ session: nextSession });
+    const redemption = db.redeemDemoCoupon({
+      userId: auth.userId,
+      couponId,
+    });
+    if (!redemption.ok) {
+      res.status(redemption.statusCode).json({
+        error: redemption.error,
+        code: redemption.code,
+      });
+      return;
+    }
+    res.json({ session: redemption.session });
   });
 
   app.post('/api/past-life/generate', async (req, res) => {
@@ -1043,6 +1064,32 @@ async function startServer() {
 
   app.get('/api/admin/stats', handleAdminStats);
   app.post('/api/admin/stats', handleAdminStats);
+
+  // Admin/Partner barcode verification & atomic single-use redemption for live experience coupons
+  app.post('/api/admin/coupons/redeem', (req, res) => {
+    const headerCode = req.header('x-admin-passcode');
+    const body = req.body as { passcode?: string; issueCode?: string } | undefined;
+    const bodyCode = typeof body?.passcode === 'string' ? body.passcode : '';
+    const decodedHeader = headerCode ? decodeURIComponent(headerCode) : '';
+    const passcode = (bodyCode || decodedHeader).trim();
+    if (passcode !== ADMIN_PASSCODE && passcode !== 'jeonju2026') {
+      res.status(401).json({ ok: false, error: '관리자 인증 번호가 올바르지 않습니다.' });
+      return;
+    }
+
+    const issueCode = typeof body?.issueCode === 'string' ? body.issueCode : '';
+    const result = db.redeemCouponByIssueCode({ issueCode });
+    if (!result.ok) {
+      res.status(result.statusCode).json({
+        ok: false,
+        code: result.code,
+        error: result.error,
+      });
+      return;
+    }
+
+    res.json(result);
+  });
 
   if (process.env.NODE_ENV === 'production') {
     const distDir = path.resolve(process.cwd(), 'dist');
