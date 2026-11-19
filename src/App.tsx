@@ -47,6 +47,7 @@ import {
   shouldShowTutorial,
 } from './utils/tutorialStorage';
 import { apiFetch } from './utils/localApi';
+import { ENABLE_QUICK_COMPLETE_BUTTON } from './config/features';
 
 type RoutePath = '/' | '/wall' | '/admin';
 
@@ -444,6 +445,33 @@ export default function App() {
     setSession(nextSession);
     setSaveError(null);
     setScene(10);
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  };
+
+  // [QUICK-COMPLETE] 4개 거점 인증·조각·쿠폰을 한 번에 완료하고 박물관 단계로 이동 (시연·검수용)
+  const handleCompleteAllStamps = async () => {
+    const res = await apiFetch(
+      `/api/session/${encodeURIComponent(session.sessionId)}/complete-all-stamps`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', ...getAuthHeaders(session.mode) },
+        credentials: 'same-origin',
+      }
+    );
+    const data = (await res.json().catch(() => ({}))) as {
+      session?: UserSessionState;
+      error?: string;
+    };
+    if (!res.ok || !data.session) {
+      throw new Error(data.error || '스탬프 일괄 완료에 실패했습니다.');
+    }
+    setSession(data.session);
+    setSaveError(null);
+    setJustStampedSpotId(null);
+    setQrCompletionBanner(null);
+    setSelectedSpotId('jeonju_museum');
+    setHomeTab('map');
+    setScene(3);
     window.scrollTo({ top: 0, behavior: 'auto' });
   };
 
@@ -895,6 +923,10 @@ export default function App() {
       onUseDemoCoupon={handleUseDemoCoupon}
       onNavigateRoute={(p) => navigateRoute(p)}
       onGoHome={handleGoHomePreservingRecord}
+      onCompleteAllStamps={
+        // [QUICK-COMPLETE] 시연·검수용 — features.ts 의 ENABLE_QUICK_COMPLETE_BUTTON 으로 끈다
+        ENABLE_QUICK_COMPLETE_BUTTON ? handleCompleteAllStamps : undefined
+      }
       saveError={saveError}
       onRetrySync={
         pendingRetryPayload
