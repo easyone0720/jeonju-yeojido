@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { JEONJU_SPOTS } from '../data/jeonjuSpots';
 import { ClueRecord, CouponRecord } from '../types/jeonju';
+import { CouponCategoryBadge } from './CouponCategoryBadge';
 
 interface SceneClueRevealProps {
   clue: ClueRecord;
@@ -88,13 +89,17 @@ export function SceneClueReveal({
           {coupon && (
             <div className="rounded-2xl border border-[#D6CEBE] bg-white p-4 flex items-center justify-between gap-3 shadow-sm">
               <div className="min-w-0">
-                <p className="text-xs font-semibold text-[#9A3412]">
-                  ({coupon.category} 쿠폰 · 시연용)
+                <p className="flex items-center gap-1.5 text-xs font-semibold text-[#9A3412]">
+                  <CouponCategoryBadge category={coupon.category} />
+                  <span>쿠폰 · 시연용</span>
                 </p>
                 <p className="font-serif-kr text-sm sm:text-base font-bold text-[#1C1917] truncate">
                   {coupon.title}
                 </p>
                 <p className="text-xs text-[#57534E] truncate">{coupon.benefit}</p>
+                {coupon.locationHint && (
+                  <p className="text-[11px] text-[#78716C] truncate">{coupon.locationHint}</p>
+                )}
               </div>
               <button
                 type="button"

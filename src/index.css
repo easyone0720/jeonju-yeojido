@@ -26,6 +26,8 @@
 
 @layer base {
   :root {
+    /* 쿠폰함 키 컬러 (쿠폰 카드·배너·버튼에서 var(--coupon-primary) 로 사용) */
+    --coupon-primary: #A35139;
     --font-trad-bold: 'SangSangRock', 'Joseon100Years', 'Gowun Batang', 'Noto Serif KR', serif;
     --font-trad-base: 'Joseon100Years', 'Gowun Batang', 'Noto Serif KR', serif;
     --font-trad-caption: 'MaruBuri', 'Gowun Batang', 'Noto Serif KR', serif;

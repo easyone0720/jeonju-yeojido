@@ -35,6 +35,8 @@ import {
   isSpotVisitVerified,
 } from '../utils/pastLifeEngine';
 import { BottomNav } from './BottomNav';
+import { CouponCategoryBadge } from './CouponCategoryBadge';
+import { ENABLE_QUICK_COMPLETE_BUTTON } from '../config/features';
 import { CompleteSealStamp } from './CompleteSealStamp';
 import { CouponBarcodeModal } from './CouponBarcodeModal';
 import { JeonjuNaverMap, type NaverMapLoadStatus } from './JeonjuNaverMap';
@@ -66,6 +68,8 @@ interface HomeWorkspaceProps {
   onUseDemoCoupon: (couponId: string) => Promise<void>;
   onNavigateRoute: (path: '/wall' | '/admin') => void;
   onGoHome: () => void;
+  /** [시연·검수용] 4개 거점 인증·조각·쿠폰을 한 번에 완료 처리 (ENABLE_QUICK_COMPLETE_BUTTON) */
+  onCompleteAllStamps?: () => Promise<void>;
   saveError?: string | null;
   onRetrySync?: () => void;
 }
@@ -94,6 +98,7 @@ export function HomeWorkspace({
   onUseDemoCoupon,
   onNavigateRoute,
   onGoHome,
+  onCompleteAllStamps,
   saveError,
   onRetrySync,
 }: HomeWorkspaceProps) {
@@ -109,6 +114,8 @@ export function HomeWorkspace({
   const [barcodeCouponId, setBarcodeCouponId] = useState<string | null>(null);
   const [redeemingCoupon, setRedeemingCoupon] = useState<boolean>(false);
   const [redeemCouponError, setRedeemCouponError] = useState<string | null>(null);
+  const [quickCompleting, setQuickCompleting] = useState<boolean>(false);
+  const [quickCompleteError, setQuickCompleteError] = useState<string | null>(null);
 
   useEffect(() => {
     const envClientId =
@@ -444,6 +451,38 @@ export function HomeWorkspace({
       </header>
 
       <main className="flex-1 mx-auto w-full max-w-5xl px-4 sm:px-6 py-4 sm:py-6 flex flex-col gap-4">
+        {/* [QUICK-COMPLETE] 시연·검수용 빠른 이동 버튼 — 최종 시연 영상 녹화 전에 features.ts 의
+            ENABLE_QUICK_COMPLETE_BUTTON 을 false 로 바꾸거나 이 블록을 통째로 삭제하세요. */}
+        {ENABLE_QUICK_COMPLETE_BUTTON && onCompleteAllStamps && clueCount < 4 && (
+          <div className="flex flex-col items-end gap-1">
+            <button
+              type="button"
+              disabled={quickCompleting}
+              onClick={async () => {
+                setQuickCompleting(true);
+                setQuickCompleteError(null);
+                try {
+                  await onCompleteAllStamps();
+                } catch (err) {
+                  setQuickCompleteError(
+                    err instanceof Error ? err.message : '스탬프 일괄 완료에 실패했습니다.'
+                  );
+                } finally {
+                  setQuickCompleting(false);
+                }
+              }}
+              className="min-h-[36px] px-3 py-1.5 rounded-lg border border-dashed border-[#9A3412]/60 bg-white/70 text-xs font-semibold text-[#9A3412] hover:bg-[#FFF7ED] disabled:opacity-60"
+            >
+              {quickCompleting ? '처리 중...' : '스탬프 4개 완료로 이동'}
+            </button>
+            {quickCompleteError && (
+              <p role="alert" className="text-[11px] text-[#7C2D12]">
+                {quickCompleteError}
+              </p>
+            )}
+          </div>
+        )}
+
         {saveError && (
           <div
             role="alert"
@@ -935,7 +974,7 @@ export function HomeWorkspace({
                 </span>
               </div>
               <div className="px-5 py-3 flex flex-wrap items-center justify-between gap-2 text-xs text-[#44403C]">
-                <span>장소 QR 인증 시 제휴 매장 할인 바코드가 자동 발급됩니다.</span>
+                <span>장소 QR 인증 시 카페·식당·숙박권·전주 지역 상품권 중 1종이 무작위로 발급됩니다.</span>
                 <span
                   className="font-bold whitespace-nowrap"
                   style={{ color: 'var(--coupon-primary)' }}
@@ -972,12 +1011,13 @@ export function HomeWorkspace({
                   >
                     <div className="space-y-1.5 min-w-0">
                       <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <span
-                          className="font-bold"
-                          style={{ color: 'var(--coupon-primary)' }}
-                        >
-                          &lt;{coupon.category}&gt;
-                        </span>
+                        {coupon.unlocked ? (
+                          <CouponCategoryBadge category={coupon.category} />
+                        ) : (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded-md border border-[#C7BDA9] bg-white text-[11px] font-bold text-[#78716C]">
+                            랜덤 쿠폰
+                          </span>
+                        )}
                         <span className="text-[#44403C] font-medium">· {spotName}</span>
                         <span
                           className="inline-flex items-center px-2 py-0.5 rounded-md font-bold text-white"
@@ -996,16 +1036,20 @@ export function HomeWorkspace({
                         </span>
                       </div>
                       <h2 className="section-heading text-base font-bold text-[#1C1917]">
-                        {coupon.title}
+                        {coupon.unlocked ? coupon.title : '방문하면 랜덤 제휴 쿠폰이 발급돼요'}
                       </h2>
                       <p
                         className="text-sm font-semibold"
                         style={{ color: 'var(--coupon-primary)' }}
                       >
-                        {coupon.benefit}
+                        {coupon.unlocked
+                          ? coupon.benefit
+                          : '카페 · 식당 · 숙박권 · 전주 지역 상품권 중 1종'}
                       </p>
                       <p className="text-xs text-[#44403C]">
-                        {coupon.partnerArea} · {expiryText}
+                        {coupon.unlocked
+                          ? `${coupon.locationHint ?? coupon.partnerArea} · ${expiryText}`
+                          : '제휴 예정 모델 · 시연용 가상 쿠폰'}
                       </p>
                     </div>
 

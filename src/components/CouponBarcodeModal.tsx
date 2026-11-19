@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import JsBarcode from 'jsbarcode';
 import { AlertCircle, CheckCircle2, Info, Ticket, X } from 'lucide-react';
 import type { CouponRecord } from '../types/jeonju';
+import { CouponCategoryBadge } from './CouponCategoryBadge';
 import {
   formatCouponExpiryDate,
   getCouponStatusLabel,
@@ -134,7 +135,8 @@ export function CouponBarcodeModal({
             <Ticket className="w-5 h-5 shrink-0 text-white" aria-hidden="true" />
             <div className="min-w-0">
               <p className="text-xs font-semibold text-white/95 truncate">
-                {coupon.category} · {spotName}
+                <CouponCategoryBadge category={coupon.category} className="mr-1.5 align-middle" />
+                {spotName}
               </p>
               <h2
                 id="coupon-barcode-modal-title"
