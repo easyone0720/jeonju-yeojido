@@ -46,6 +46,7 @@
 ### 2-2. 지도 탐색과 거점 QR 인증 — 조각 4개 수집
 - `HomeWorkspace`의 지도는 **전통 여지도(기본)** 와 **네이버 지도** 보기를 전환할 수 있습니다. 네이버 지도는 `VITE_NAVER_MAP_CLIENT_ID`가 있을 때만 쓰입니다(`JeonjuNaverMap`).
 - 조각을 모으는 거점은 **4곳**이며 거점마다 조각 종류가 정해져 있습니다(`src/data/jeonjuSpots.ts`).
+
 | 순서 | 거점 | 조각 | 인증 반경(`verifyRadiusMeters`) |
 |---|---|---|---|
 | 1 | 완판본문화관 | 이야기(`story`) | 240m |

@@ -165,6 +165,7 @@ export function MediaWallVideo({ onClose }: MediaWallVideoProps) {
         </p>
       ) : (
         <video
+          controls
           ref={videoRef}
           src={MEDIA_WALL_VIDEO_SRC}
           loop
