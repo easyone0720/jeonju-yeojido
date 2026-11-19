@@ -98,7 +98,7 @@ export function TutorialModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-[#1C1917]/55 backdrop-blur-xs flex items-center justify-center p-3 sm:p-5 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-[#26201B]/45 backdrop-blur-sm flex items-center justify-center p-3 sm:p-5 overflow-y-auto"
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) {
@@ -112,21 +112,21 @@ export function TutorialModal({
         aria-modal="true"
         aria-labelledby="tutorial-modal-title"
         aria-describedby="tutorial-modal-desc"
-        className="w-full max-w-xl rounded-2xl border-2 border-[#C7B596] bg-[#FBF8F2] shadow-2xl overflow-hidden my-auto max-h-[92dvh] flex flex-col"
+        className="w-[calc(100vw-2rem)] max-w-[430px] rounded-2xl border border-[#D8CEBE] ring-1 ring-inset ring-[#E6DEC8] bg-[#FBF8F1] shadow-2xl overflow-hidden my-auto max-h-[92dvh] flex flex-col"
       >
         {/* Top Utility Row: Today hide checkbox + Close X button */}
-        <div className="px-4 sm:px-5 pt-3 pb-2 border-b border-[#E5DDD0] bg-[#F7F1E4]/80 flex items-center justify-between gap-2 shrink-0">
+        <div className="px-4 sm:px-5 pt-3 pb-2 border-b border-[#D6CBB9] bg-[#F7F1E4]/80 flex items-center justify-between gap-2 shrink-0">
           <button
             type="button"
             role="checkbox"
             aria-checked={checkedHideToday}
             onClick={handleToggleHideToday}
-            className="inline-flex items-center gap-2 min-h-[44px] px-2 rounded-lg text-xs sm:text-sm font-medium text-[#44403C] hover:text-[#1C1917] hover:bg-[#EFE8DC]/70 transition-colors"
+            className="inline-flex items-center gap-2 min-h-[44px] px-2 rounded-lg text-xs sm:text-sm font-medium text-[#5C5349] hover:text-[#26201B] hover:bg-[#EFE8DC]/70 transition-colors"
           >
             {checkedHideToday ? (
-              <CheckSquare className="w-4 h-4 text-[#9A3412] shrink-0" aria-hidden="true" />
+              <CheckSquare className="w-4 h-4 text-[#8E3524] shrink-0" aria-hidden="true" />
             ) : (
-              <Square className="w-4 h-4 text-[#78716C] shrink-0" aria-hidden="true" />
+              <Square className="w-4 h-4 text-[#5C5349] shrink-0" aria-hidden="true" />
             )}
             <span>오늘은 다시 이 창을 보지 않음</span>
           </button>
@@ -136,7 +136,7 @@ export function TutorialModal({
             type="button"
             onClick={onCloseWithoutHide}
             aria-label="튜토리얼 닫기"
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-[#57534E] hover:text-[#1C1917] hover:bg-[#EFE8DC] transition-colors"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-full text-[#5C5349] hover:text-[#26201B] hover:bg-[#EFE8DC] transition-colors"
           >
             <X className="w-5 h-5" aria-hidden="true" />
           </button>
@@ -145,14 +145,14 @@ export function TutorialModal({
         {/* Scrollable Content */}
         <div className="p-5 sm:p-6 space-y-5 overflow-y-auto">
           {/* Top-Center Visual Header reusing existing Jeonju Hanok illustration */}
-          <div className="mx-auto w-full max-w-xs aspect-[16/9] rounded-xl overflow-hidden border border-[#D6CEBE] bg-[#EFE6D4] shadow-xs relative">
+          <div className="mx-auto w-full max-w-xs aspect-[16/9] rounded-xl overflow-hidden border border-[#D6CBB9] bg-[#EFE6D4] shadow-xs relative">
             <img
               src="/assets/aistudio/image_8a6fad13.png"
               alt="전주 경기전과 전통 한옥 풍경"
               className="w-full h-full object-cover"
             />
             <div
-              className="absolute inset-0 bg-gradient-to-t from-[#1C1917]/25 via-transparent to-transparent pointer-events-none"
+              className="absolute inset-0 bg-gradient-to-t from-[#26201B]/25 via-transparent to-transparent pointer-events-none"
               aria-hidden="true"
             />
           </div>
@@ -161,13 +161,13 @@ export function TutorialModal({
           <div className="text-center space-y-2">
             <h2
               id="tutorial-modal-title"
-              className="font-serif-kr text-xl sm:text-2xl font-bold text-[#1C1917]"
+              className="font-serif-kr text-[clamp(1rem,2.4vw,1.25rem)] font-bold text-[#26201B]"
             >
               전생여지도에 오신 것을 환영합니다
             </h2>
             <p
               id="tutorial-modal-desc"
-              className="text-xs sm:text-sm text-[#44403C] leading-relaxed max-w-md mx-auto"
+              className="text-xs sm:text-sm text-[#5C5349] leading-relaxed max-w-md mx-auto"
             >
               전주의 명소를 걸으며 잃어버린 나의 전생 조각을 찾아보세요.
               <br />
@@ -182,18 +182,18 @@ export function TutorialModal({
               return (
                 <li
                   key={step.num}
-                  className="rounded-xl border border-[#E5DDD0] bg-white p-3.5 shadow-xs space-y-1.5"
+                  className="rounded-xl border border-[#D6CBB9] bg-[#F3ECE0] p-3.5 shadow-xs space-y-1.5"
                 >
                   <div className="flex items-center gap-2">
-                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#9A3412]/10 text-[#9A3412] font-mono-tabular text-xs font-bold shrink-0">
+                    <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-[#8E3524]/10 text-[#8E3524] font-mono-tabular text-xs font-bold shrink-0">
                       {step.num}
                     </span>
-                    <Icon className="w-3.5 h-3.5 text-[#9A3412] shrink-0" aria-hidden="true" />
-                    <h3 className="font-serif-kr text-sm font-bold text-[#1C1917]">
+                    <Icon className="w-3.5 h-3.5 text-[#8E3524] shrink-0" aria-hidden="true" />
+                    <h3 className="font-serif-kr text-sm font-bold text-[#26201B]">
                       {step.title}
                     </h3>
                   </div>
-                  <p className="text-xs text-[#57534E] leading-relaxed">
+                  <p className="text-xs text-[#5C5349] leading-relaxed">
                     {step.desc}
                   </p>
                 </li>
@@ -203,11 +203,11 @@ export function TutorialModal({
         </div>
 
         {/* Bottom Primary CTA */}
-        <div className="px-5 sm:px-6 py-4 border-t border-[#E5DDD0] bg-[#F7F1E4]/60 shrink-0">
+        <div className="px-5 sm:px-6 py-4 border-t border-[#D6CBB9] bg-[#F7F1E4]/60 shrink-0">
           <button
             type="button"
             onClick={onCloseWithoutHide}
-            className="w-full min-h-[48px] px-6 py-3 rounded-xl bg-[#9A3412] text-white font-semibold text-sm sm:text-base hover:bg-[#7C2D12] active:scale-[0.99] transition-all shadow-xs"
+            className="w-full min-h-[48px] px-6 py-3 rounded-xl bg-[#8E3524] text-[#FBF8F1] font-semibold text-sm sm:text-base hover:bg-[#762A1C] active:scale-[0.99] transition-all shadow-xs"
           >
             확인하고 시작하기
           </button>

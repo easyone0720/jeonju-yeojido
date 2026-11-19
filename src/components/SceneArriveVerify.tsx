@@ -332,7 +332,7 @@ export function SceneArriveVerify({
                   authStartedRef.current = false;
                   void persistVisitAuthentication(coords);
                 }}
-                className="min-h-[38px] px-3 py-1.5 rounded-lg bg-[#9A3412] text-white text-xs font-semibold inline-flex items-center gap-1 shrink-0"
+                className="min-h-[38px] px-3 py-1.5 rounded-lg bg-[#8E3524] text-[#FBF8F1] text-xs font-semibold inline-flex items-center gap-1 shrink-0"
               >
                 <RefreshCw className="w-3 h-3" aria-hidden="true" />
                 <span>저장 재시도</span>
@@ -408,7 +408,7 @@ export function SceneArriveVerify({
           {submitError && (
             <div
               role="alert"
-              className="rounded-xl border border-[#9A3412]/40 bg-[#9A3412]/10 px-4 py-3 text-xs font-medium text-[#7C2D12]"
+              className="rounded-xl border border-[#9A3412]/40 bg-[#8E3524]/10 px-4 py-3 text-xs font-medium text-[#7C2D12]"
             >
               {submitError}
             </div>
@@ -423,7 +423,7 @@ export function SceneArriveVerify({
             type="button"
             disabled={!isVisitStamped || submitting}
             onClick={handlePrimaryCta}
-            className="w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#9A3412] text-white font-semibold text-base hover:bg-[#7C2D12] disabled:bg-[#C7BDA9] disabled:cursor-not-allowed transition-colors"
+            className="w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#8E3524] text-[#FBF8F1] font-semibold text-base hover:bg-[#762A1C] disabled:bg-[#C7BDA9] disabled:cursor-not-allowed transition-colors"
           >
             {submitting
               ? '조각을 펼치는 중...'

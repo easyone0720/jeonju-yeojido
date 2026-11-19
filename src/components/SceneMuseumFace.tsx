@@ -156,7 +156,7 @@ export function SceneMuseumFace({ session, onBack, onGenerated }: SceneMuseumFac
           <>
             <div
               role="alert"
-              className="w-full rounded-xl border border-[#9A3412]/40 bg-[#9A3412]/10 p-3 flex items-start gap-2 text-xs text-[#7C2D12] text-left"
+              className="w-full rounded-xl border border-[#9A3412]/40 bg-[#8E3524]/10 p-3 flex items-start gap-2 text-xs text-[#7C2D12] text-left"
             >
               <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
               <span>{message}</span>
@@ -168,7 +168,7 @@ export function SceneMuseumFace({ session, onBack, onGenerated }: SceneMuseumFac
                 setErrorMsg(null);
                 setAttempt((n) => n + 1);
               }}
-              className="w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#9A3412] text-white font-semibold text-base hover:bg-[#7C2D12] transition-colors"
+              className="w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#8E3524] text-[#FBF8F1] font-semibold text-base hover:bg-[#762A1C] transition-colors"
             >
               다시 시도
             </button>

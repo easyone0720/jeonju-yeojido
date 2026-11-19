@@ -183,7 +183,7 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
               <Lock className="w-4 h-4" aria-hidden="true" />
               <span>관리자 전용 접근</span>
             </div>
-            <h1 className="font-serif-kr text-2xl font-bold text-[#1B2632]">전생여지도 운영 현황</h1>
+            <h1 className="font-serif-kr text-[clamp(1.25rem,3.5vw,1.875rem)] font-bold text-[#1B2632]">전생여지도 운영 현황</h1>
           </div>
           <input
             id="admin-passcode"
@@ -297,7 +297,7 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
               className="rounded-xl border border-[#C9C1B1] bg-[#EEE9DF] p-5 space-y-2 shadow-sm"
             >
               <p className="text-xs font-semibold text-[#2C3B4D]">{k.label}</p>
-              <p className="tabular-nums text-3xl font-bold tracking-tight text-[#1B2632]">
+              <p className="tabular-nums text-[clamp(1.75rem,4vw,2.5rem)] font-bold tracking-tight text-[#1B2632]">
                 {k.value}
                 <span className="text-base font-semibold text-[#2C3B4D]">{k.unit}</span>
               </p>
@@ -443,25 +443,25 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-[#C9C1B1] text-xs font-semibold text-[#2C3B4D]">
-                    <th className="py-2 pr-2">#</th>
-                    <th className="py-2 pr-2">제휴 상점</th>
-                    <th className="py-2 px-2">위치 권역</th>
-                    <th className="py-2 px-2 text-right">발급</th>
-                    <th className="py-2 pl-2 text-right">사용률</th>
+                    <th className="whitespace-nowrap py-2 pr-2">#</th>
+                    <th className="whitespace-nowrap py-2 pr-2">제휴 상점</th>
+                    <th className="whitespace-nowrap py-2 px-2">위치 권역</th>
+                    <th className="whitespace-nowrap py-2 px-2 text-right">발급</th>
+                    <th className="whitespace-nowrap py-2 pl-2 text-right">사용률</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#C9C1B1]">
                   {view.stores.map((s, i) => (
                     <tr key={s.templateId}>
-                      <td className="py-2.5 pr-2 tabular-nums text-[#2C3B4D]">{i + 1}</td>
-                      <td className="py-2.5 pr-2 font-semibold text-[#1B2632]">
+                      <td className="whitespace-nowrap py-2.5 pr-2 tabular-nums text-[#2C3B4D]">{i + 1}</td>
+                      <td className="whitespace-nowrap py-2.5 pr-2 font-semibold text-[#1B2632]">
                         {s.name}
                         <span className="block text-[11px] font-normal text-[#2C3B4D]">{s.category}</span>
                         {s.liveIssued > 0 && <LiveBadge>내 쿠폰 +{s.liveIssued}</LiveBadge>}
                       </td>
-                      <td className="py-2.5 px-2 text-xs text-[#2C3B4D]">{s.area}</td>
-                      <td className="py-2.5 px-2 text-right tabular-nums">{fmt(s.issued)}</td>
-                      <td className="py-2.5 pl-2 text-right tabular-nums font-bold" style={{ color: BLUE }}>
+                      <td className="whitespace-nowrap py-2.5 px-2 text-xs text-[#2C3B4D]">{s.area}</td>
+                      <td className="whitespace-nowrap py-2.5 px-2 text-right tabular-nums">{fmt(s.issued)}</td>
+                      <td className="whitespace-nowrap py-2.5 pl-2 text-right tabular-nums font-bold" style={{ color: BLUE }}>
                         {pct(s.used, s.issued).toFixed(1)}%
                       </td>
                     </tr>

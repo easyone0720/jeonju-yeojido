@@ -514,7 +514,7 @@ export function SceneQrScan({
                 aria-label="현재 화면 QR 스캔 시도"
                 className="w-16 h-16 rounded-full border-2 border-[#9A3412] bg-white/90 hover:bg-white active:scale-95 transition-all flex items-center justify-center shadow-md disabled:opacity-60"
               >
-                <span className="w-12 h-12 rounded-full bg-[#9A3412] flex items-center justify-center text-white">
+                <span className="w-12 h-12 rounded-full bg-[#8E3524] flex items-center justify-center text-white">
                   <Camera className="w-5 h-5" aria-hidden="true" />
                 </span>
               </button>

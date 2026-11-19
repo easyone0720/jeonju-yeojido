@@ -81,7 +81,7 @@ const SOCIAL_BUTTONS: {
 ];
 
 const INPUT_CLASS =
-  'w-full min-h-[48px] px-4 py-3 rounded-xl border border-[#D6CEBE] bg-white text-base text-[#1C1917] placeholder:text-[#A8A29E] focus:outline-none focus:border-[#9A3412] focus:ring-2 focus:ring-[#9A3412]/20 disabled:opacity-60';
+  'w-full min-h-[48px] px-4 py-3 rounded-xl border border-[#D6CBB9] bg-[#F3ECE0] text-base text-[#26201B] placeholder:text-[#A8A29E] focus:outline-none focus:border-[#8E3524] focus:ring-2 focus:ring-[#8E3524]/20 disabled:opacity-60';
 
 export function LoginModal({ open, onClose, onSuccess }: LoginModalProps) {
   const [tab, setTab] = useState<AuthTab>('login');
@@ -197,40 +197,40 @@ export function LoginModal({ open, onClose, onSuccess }: LoginModalProps) {
 
   const tabClass = (active: boolean) =>
     `flex-1 min-h-[40px] rounded-lg text-sm font-semibold transition-colors disabled:opacity-60 ${
-      active ? 'bg-[#9A3412] text-white shadow-sm' : 'text-[#57534E] hover:bg-[#F5EFE6]'
+      active ? 'bg-[#8E3524] text-[#FBF8F1] shadow-sm' : 'text-[#5C5349] hover:bg-[#F5EFE6]'
     }`;
 
   return (
     // 오버레이는 화면 전체를 덮되, 카드는 모바일 프레임(max-w-[430px]) 중앙에 뜬다.
     <div
-      className="fixed inset-0 z-50 bg-[#1C1917]/55 backdrop-blur-xs flex justify-center"
+      className="fixed inset-0 z-50 bg-[#26201B]/45 backdrop-blur-sm flex justify-center"
       role="presentation"
       onClick={() => {
         if (!busy) onClose();
       }}
     >
-      <div className="relative w-full max-w-[430px] mx-auto flex items-center justify-center p-4 pointer-events-none">
+      <div className="relative w-full max-w-[430px] mx-auto flex items-center justify-center px-4 py-4 pointer-events-none">
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="login-modal-title"
           onClick={(e) => e.stopPropagation()}
-          className="pointer-events-auto relative w-full max-h-full overflow-y-auto rounded-2xl border-2 border-[#C7B596] bg-[#FBF8F2] p-6 shadow-2xl space-y-5"
+          className="pointer-events-auto relative w-[calc(100vw-2rem)] max-w-[430px] max-h-full overflow-y-auto rounded-2xl border border-[#D8CEBE] ring-1 ring-inset ring-[#E6DEC8] bg-[#FBF8F1] p-6 shadow-2xl space-y-5"
         >
           <button
             type="button"
             onClick={onClose}
             aria-label="닫기"
-            className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full text-[#78716C] hover:text-[#1C1917] hover:bg-[#F5EFE6] transition-colors"
+            className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full text-[#5C5349] hover:text-[#26201B] hover:bg-[#F5EFE6] transition-colors"
           >
             <X className="w-5 h-5" aria-hidden="true" />
           </button>
 
           <div className="text-center space-y-1 pt-1">
-            <h2 id="login-modal-title" className="font-serif-kr text-xl font-bold text-[#1C1917]">
+            <h2 id="login-modal-title" className="font-serif-kr text-[clamp(1rem,2.4vw,1.25rem)] font-bold text-[#26201B]">
               {tab === 'login' ? '로그인' : '간편 회원가입'}
             </h2>
-            <p className="text-xs text-[#78716C]">전생의 여정을 시작하기 전, 신원을 밝혀 주시게.</p>
+            <p className="text-xs text-[#5C5349]">전생의 여정을 시작하기 전, 신원을 밝혀 주시게.</p>
           </div>
 
           <div role="tablist" aria-label="로그인 방식" className="flex gap-1 rounded-xl bg-[#F0EAE0] p-1">
@@ -301,12 +301,12 @@ export function LoginModal({ open, onClose, onSuccess }: LoginModalProps) {
             <button
               type="submit"
               disabled={busy}
-              className="hover-scale w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#9A3412] text-white font-semibold text-base hover:bg-[#7C2D12] active:scale-[0.99] shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+              className="hover-scale w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#8E3524] text-[#FBF8F1] font-semibold text-base hover:bg-[#762A1C] active:scale-[0.99] shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
             >
               {busy ? '확인 중…' : tab === 'signup' ? '가입하고 시작하기' : '로그인'}
             </button>
             {tab === 'login' && (
-              <p className="text-center text-[11px] text-[#78716C]">
+              <p className="text-center text-[11px] text-[#5C5349]">
                 시연 계정: {DEFAULT_DEMO_ACCOUNT.id} / {DEFAULT_DEMO_ACCOUNT.password}
               </p>
             )}
@@ -357,7 +357,7 @@ export function LoginModal({ open, onClose, onSuccess }: LoginModalProps) {
               type="button"
               onClick={handleGuestLogin}
               disabled={busy}
-              className="min-h-[40px] px-2 text-sm font-medium text-[#57534E] hover:text-[#9A3412] underline underline-offset-4 transition-colors disabled:opacity-60"
+              className="min-h-[40px] px-2 text-sm font-medium text-[#5C5349] hover:text-[#8E3524] underline underline-offset-4 transition-colors disabled:opacity-60"
             >
               게스트 로그인
             </button>

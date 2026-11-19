@@ -112,7 +112,7 @@ export function CouponBarcodeModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-[#1C1917]/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto"
+      className="fixed inset-0 z-50 bg-[#26201B]/45 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto"
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget && !redeeming) {
@@ -124,7 +124,7 @@ export function CouponBarcodeModal({
         role="dialog"
         aria-modal="true"
         aria-labelledby="coupon-barcode-modal-title"
-        className="w-full max-w-md rounded-2xl border-2 border-[#A35139] bg-[#FBF8F2] shadow-2xl overflow-hidden my-auto max-h-[92dvh] flex flex-col"
+        className="w-[calc(100vw-2rem)] max-w-[430px] rounded-2xl border-2 border-[#A35139] bg-[#FBF8F1] ring-1 ring-inset ring-[#E6DEC8] shadow-2xl overflow-hidden my-auto max-h-[92dvh] flex flex-col"
       >
         {/* Pure #A35139 Key Color Modal Header */}
         <div
@@ -215,7 +215,7 @@ export function CouponBarcodeModal({
 
           {/* Demo vs Production Honest Usage Notice */}
           {isDemo ? (
-            <div className="rounded-xl border border-[#D6CEBE] bg-white p-3.5 flex items-start gap-2.5 text-xs text-[#44403C] leading-relaxed">
+            <div className="rounded-xl border border-[#D6CBB9] bg-[#F3ECE0] p-3.5 flex items-start gap-2.5 text-xs text-[#44403C] leading-relaxed">
               <Info className="w-4 h-4 shrink-0 mt-0.5 text-[#A35139]" aria-hidden="true" />
               <div className="space-y-1">
                 <p className="font-bold text-[#A35139]">
@@ -227,7 +227,7 @@ export function CouponBarcodeModal({
               </div>
             </div>
           ) : (
-            <div className="rounded-xl border border-[#D6CEBE] bg-white p-3.5 flex items-start gap-2.5 text-xs text-[#44403C] leading-relaxed">
+            <div className="rounded-xl border border-[#D6CBB9] bg-[#F3ECE0] p-3.5 flex items-start gap-2.5 text-xs text-[#44403C] leading-relaxed">
               <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-[#A35139]" aria-hidden="true" />
               <div className="space-y-1">
                 <p className="font-bold text-[#1C1917]">제휴 매장 확인 안내</p>
@@ -265,7 +265,7 @@ export function CouponBarcodeModal({
             type="button"
             disabled={redeeming}
             onClick={onClose}
-            className="w-full min-h-[44px] px-5 py-2.5 rounded-xl border border-[#D6CEBE] bg-white text-sm font-semibold text-[#1C1917] hover:bg-[#F5EFE6]"
+            className="w-full min-h-[44px] px-5 py-2.5 rounded-xl border border-[#C4B8A3] bg-[#FBF8F1] text-sm font-semibold text-[#26201B] hover:bg-[#F3ECE0]"
           >
             닫기
           </button>

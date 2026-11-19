@@ -67,7 +67,7 @@ export function SceneClueReveal({
 
               <p className="text-sm text-[#57534E]">{spot.clueQuestion}...</p>
 
-              <h1 className="font-serif-kr text-2xl sm:text-3xl font-bold text-[#1C1917] leading-snug">
+              <h1 className="font-serif-kr text-[clamp(1.25rem,3.5vw,1.875rem)] font-bold text-[#1C1917] leading-snug">
                 {clue.value}
               </h1>
 
@@ -104,7 +104,7 @@ export function SceneClueReveal({
               <button
                 type="button"
                 onClick={handleReceiveCoupon}
-                className="min-h-[44px] px-5 py-2 rounded-xl bg-[#9A3412] text-white text-sm font-semibold hover:bg-[#7C2D12] whitespace-nowrap shrink-0"
+                className="min-h-[44px] px-5 py-2 rounded-xl bg-[#8E3524] text-[#FBF8F1] text-sm font-semibold hover:bg-[#762A1C] whitespace-nowrap shrink-0"
               >
                 {couponReceived ? '완료' : '받기'}
               </button>

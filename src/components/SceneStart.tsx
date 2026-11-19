@@ -44,7 +44,7 @@ export function SceneStart({
       <main className="flex-1 mx-auto w-full max-w-md sm:max-w-lg px-5 py-4 sm:py-8 flex flex-col items-center justify-between text-center gap-5">
         {/* Top Service Name */}
         <div className="pt-2 sm:pt-4 space-y-1">
-          <h1 className="font-logo text-3xl sm:text-4xl font-bold tracking-tight text-[#1C1917]">
+          <h1 className="font-logo text-[clamp(1.25rem,3.5vw,1.875rem)] font-bold tracking-tight text-[#1C1917]">
             전생여지도
           </h1>
           <p className="text-xs tracking-widest text-[#78716C]">前生輿地圖</p>
@@ -160,7 +160,7 @@ export function SceneStart({
           <button
             type="button"
             onClick={() => setLoginOpen(true)}
-            className="hover-scale w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#9A3412] text-white font-semibold text-base hover:bg-[#7C2D12] active:scale-[0.99] shadow-sm"
+            className="hover-scale w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#8E3524] text-[#FBF8F1] font-semibold text-base hover:bg-[#762A1C] active:scale-[0.99] shadow-sm"
           >
             시작하기
           </button>
