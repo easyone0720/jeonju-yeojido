@@ -1,6 +1,6 @@
 /**
  * 전생 캐릭터 10종 데이터.
- * - 이미지: public/characters/NN.webp (9:16), 음성: public/characters/NN.mp3
+ * - 이미지: public/characters/NN.jpg (16:9, 1920×1080), 음성: public/characters/NN.mp3
  * - dialogue / setting / ending 은 줄바꿈(\n)을 그대로 유지한다.
  *   dialogue 에서 `화자: "대사"` 는 화자 강조, `( ... )` 한 줄은 지문으로 렌더링된다.
  */
@@ -32,7 +32,7 @@ export const CHARACTERS: Character[] = [
     id: '01',
     emoji: '📜',
     title: '몰래 상단 차린 막내딸',
-    imageUrl: '/characters/01.webp',
+    imageUrl: '/characters/01.jpg',
     audioUrl: '/characters/01.mp3',
     quote: '어머니, 그 댁 재산이 얼마나 되옵니까? 인수합병을 검토 중이옵니다.',
     setting: `대감댁 막내딸. 수놓기 시간에 몰래 주판을 튕겼어요.`,
@@ -53,7 +53,7 @@ export const CHARACTERS: Character[] = [
     id: '02',
     emoji: '🍚',
     title: '수라간 반항아 숙수',
-    imageUrl: '/characters/02.webp',
+    imageUrl: '/characters/02.jpg',
     audioUrl: '/characters/02.mp3',
     quote: '퓨전 신선로이옵니다. 김치를 넣었사옵니다.',
     setting: `궁궐 수라간 막내 숙수예요. 정해진 레시피대로는 절대 안 만들어요.`,
@@ -74,7 +74,7 @@ export const CHARACTERS: Character[] = [
     id: '03',
     emoji: '🎨',
     title: '도화서 사고뭉치 화원',
-    imageUrl: '/characters/03.webp',
+    imageUrl: '/characters/03.jpg',
     audioUrl: '/characters/03.mp3',
     quote: '조금 귀엽게 그렸사옵니다. 눈이 얼굴의 절반이옵니다.',
     setting: `어릴 때부터 그림 하나는 기가 막히게 잘 그렸어요.
@@ -103,7 +103,7 @@ export const CHARACTERS: Character[] = [
     id: '04',
     emoji: '📚',
     title: '과거 낙방 9수생',
-    imageUrl: '/characters/04.webp',
+    imageUrl: '/characters/04.jpg',
     audioUrl: '/characters/04.mp3',
     quote: '제 족보로 공부한 놈들이 다 붙었사옵니다.',
     setting: `어릴 때부터 책과 함께 살았어요.
@@ -141,7 +141,7 @@ export const CHARACTERS: Character[] = [
     id: '05',
     emoji: '🧺',
     title: '수다쟁이 보부상',
-    imageUrl: '/characters/05.webp',
+    imageUrl: '/characters/05.jpg',
     audioUrl: '/characters/05.mp3',
     quote: '빗은 두 푼, 이야기는 공짜이옵니다.',
     setting: `어깨에는 보따리, 입에는 끝없는 이야기를 달고 다녔어요.
@@ -173,7 +173,7 @@ export const CHARACTERS: Character[] = [
     id: '06',
     emoji: '🚨',
     title: '오지랖 포도청 포졸',
-    imageUrl: '/characters/06.webp',
+    imageUrl: '/characters/06.jpg',
     audioUrl: '/characters/06.mp3',
     quote: '도둑은 못 잡았지만 김씨네 부부를 화해시켰사옵니다.',
     setting: `포도청에 들어가면서 다짐했어요.
@@ -211,7 +211,7 @@ export const CHARACTERS: Character[] = [
     id: '07',
     emoji: '🐎',
     title: '마패를 숨긴 암행어사',
-    imageUrl: '/characters/07.webp',
+    imageUrl: '/characters/07.jpg',
     audioUrl: '/characters/07.mp3',
     quote: '그 말씀을 기다렸습니다. 암행어사 출두요!',
     setting: `허름한 갓과 낡은 도포를 입고 조선의 여러 고을을 떠돌았어요.
@@ -246,7 +246,7 @@ export const CHARACTERS: Character[] = [
     id: '08',
     emoji: '🌧️',
     title: '빗속의 어진 수문장',
-    imageUrl: '/characters/08.webp',
+    imageUrl: '/characters/08.jpg',
     audioUrl: '/characters/08.mp3',
     quote: '누가 오지 않아야 오늘 밤이 무사했던 것이지.',
     setting: `전주의 경기전에서 임금의 어진을 지키는 수문장이었어요.
@@ -280,7 +280,7 @@ export const CHARACTERS: Character[] = [
     id: '09',
     emoji: '🪵',
     title: '마지막 글자를 새긴 목판 각수',
-    imageUrl: '/characters/09.webp',
+    imageUrl: '/characters/09.jpg',
     audioUrl: '/characters/09.mp3',
     quote: '백 년 뒤의 누군가도 그 글자를 읽을 것이 아니냐.',
     setting: `전주의 작은 공방에서 평생 글자를 새겼어요.
@@ -314,7 +314,7 @@ export const CHARACTERS: Character[] = [
     id: '10',
     emoji: '🎭',
     title: '관객보다 추임새가 큰 소리꾼',
-    imageUrl: '/characters/10.webp',
+    imageUrl: '/characters/10.jpg',
     audioUrl: '/characters/10.mp3',
     quote: '오늘은 여러분이 대신 한 대목 불러주시겠소?',
     setting: `전주의 장터에서 소리를 하며 살아갔어요.

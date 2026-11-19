@@ -355,12 +355,12 @@ export function SceneArriveVerify({
           <section className="space-y-2.5">
             <h1 className="text-sm font-semibold text-[#57534E]">&lt;이곳의 이야기&gt;</h1>
             <article className="rounded-2xl border border-[#D6CEBE] bg-white overflow-hidden shadow-sm">
-              <div className="aspect-[4/3] w-full bg-[#EFE8DC] overflow-hidden">
+              <div className="aspect-video w-full bg-[#EFE8DC] overflow-hidden">
                 {!imgError ? (
                   <img
                     src={SPOT_IMAGES[spot.id]}
                     alt={`${spot.name} 현장`}
-                    className="w-full h-full object-cover block"
+                    className="w-full h-full object-cover object-top block"
                     referrerPolicy="no-referrer"
                     onError={() => setImgError(true)}
                   />

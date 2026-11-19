@@ -515,7 +515,8 @@ export async function buildDownloadableResultCard(
 ): Promise<string> {
   const story = result.story ?? characterToStory(CHARACTERS[0]);
   const width = 900;
-  const height = 1700;
+  // 초상 영역을 16:9(780×439)로 두기 때문에 3:4(540×720)일 때보다 281px 낮다
+  const height = 1419;
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
@@ -535,11 +536,11 @@ export async function buildDownloadableResultCard(
   ctx.textAlign = 'center';
   ctx.fillText('전생여지도 · 국립전주박물관 체험 기록', width / 2, 76);
 
-  // Portrait (3:4)
+  // Portrait (16:9)
   try {
     const portraitImg = await loadImage(result.portraitDataUrl);
-    // 9:16 등 어떤 비율이든 3:4 칸에 중앙 크롭(cover)으로 채운다
-    const targetRatio = 540 / 720;
+    // 어떤 비율이든 16:9 칸에 cover 로 채우되, 인물 얼굴이 잘리지 않도록 위쪽을 기준으로 자른다
+    const targetRatio = 780 / 439;
     const srcRatio = portraitImg.width / portraitImg.height;
     let sx = 0;
     let sy = 0;
@@ -547,25 +548,25 @@ export async function buildDownloadableResultCard(
     let sh = portraitImg.height;
     if (srcRatio < targetRatio) {
       sh = sw / targetRatio;
-      sy = (portraitImg.height - sh) / 2;
+      sy = 0;
     } else {
       sw = sh * targetRatio;
       sx = (portraitImg.width - sw) / 2;
     }
-    ctx.drawImage(portraitImg, sx, sy, sw, sh, 180, 108, 540, 720);
+    ctx.drawImage(portraitImg, sx, sy, sw, sh, 60, 108, 780, 439);
   } catch {
     ctx.fillStyle = '#EBE6DF';
-    ctx.fillRect(180, 108, 540, 720);
+    ctx.fillRect(60, 108, 780, 439);
   }
 
   // Title: [이름] 님의 전생 기록 + 직업
   ctx.fillStyle = '#78716C';
   ctx.font = '500 22px "Noto Sans KR", sans-serif';
-  ctx.fillText(`${visitorName.trim() || '전주 나그네'} 님의 전생 기록`, width / 2, 874);
+  ctx.fillText(`${visitorName.trim() || '전주 나그네'} 님의 전생 기록`, width / 2, 593);
 
   ctx.fillStyle = '#1C1917';
   ctx.font = '700 42px "Noto Serif KR", serif';
-  const titleBottom = drawWrappedText(ctx, story.jobTitle, width / 2, 928, 760, 54, 2);
+  const titleBottom = drawWrappedText(ctx, story.jobTitle, width / 2, 647, 760, 54, 2);
 
   // Divider
   let y = titleBottom + 6;

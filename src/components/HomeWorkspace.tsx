@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import {
   Map as MapIcon,
   ScrollText,
@@ -39,9 +39,7 @@ import { CouponCategoryBadge } from './CouponCategoryBadge';
 import { ENABLE_QUICK_COMPLETE_BUTTON } from '../config/features';
 import { CompleteSealStamp } from './CompleteSealStamp';
 import { CouponBarcodeModal } from './CouponBarcodeModal';
-import { JeonjuNaverMap, type NaverMapLoadStatus } from './JeonjuNaverMap';
 import { TangramClueBoard, type ClueGridMeta } from './TangramClueBoard';
-import { apiFetch } from '../utils/localApi';
 
 export interface QrCompletionBanner {
   spotId: SpotId;
@@ -106,39 +104,12 @@ export function HomeWorkspace({
   const [inspectedClue, setInspectedClue] = useState<ClueCategory | null>(null);
   const [spotSheetOpen, setSpotSheetOpen] = useState<boolean>(false);
 
-  // Interactive Map View Mode (official NAVER Maps JS v3 vs Traditional 여지도)
-  const [mapViewMode, setMapViewMode] = useState<'naver' | 'traditional'>('traditional');
-  const [naverMapStatus, setNaverMapStatus] = useState<NaverMapLoadStatus>('checking');
-
   // Barcode Modal State
   const [barcodeCouponId, setBarcodeCouponId] = useState<string | null>(null);
   const [redeemingCoupon, setRedeemingCoupon] = useState<boolean>(false);
   const [redeemCouponError, setRedeemCouponError] = useState<string | null>(null);
   const [quickCompleting, setQuickCompleting] = useState<boolean>(false);
   const [quickCompleteError, setQuickCompleteError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const envClientId =
-      (import.meta.env?.VITE_NAVER_MAP_CLIENT_ID as string | undefined)?.trim() ?? '';
-    if (envClientId) {
-      setMapViewMode('naver');
-      return;
-    }
-    apiFetch('/api/config/map')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: { configured?: boolean } | null) => {
-        if (data?.configured) {
-          setMapViewMode('naver');
-        } else {
-          setNaverMapStatus('missing_key');
-          setMapViewMode('traditional');
-        }
-      })
-      .catch(() => {
-        setNaverMapStatus('missing_key');
-        setMapViewMode('traditional');
-      });
-  }, []);
 
   const clueCount = getCollectedClueCount(session);
   const museumReady = isMuseumUnlocked(session);
@@ -179,7 +150,7 @@ export function HomeWorkspace({
 
     return (
       <div className="space-y-4">
-        <div className="relative aspect-[16/10] w-full rounded-xl bg-[#EFE8DC] overflow-hidden border border-[#E5DDD0]">
+        <div className="relative aspect-video w-full rounded-xl bg-[#EFE8DC] overflow-hidden border border-[#E5DDD0]">
           {isMuseumLocked ? (
             <div
               className="w-full h-full bg-gradient-to-br from-[#EAE1D0] via-[#DFD4BE] to-[#D2C4AA] flex flex-col items-center justify-center p-5 text-center gap-2.5"
@@ -201,7 +172,7 @@ export function HomeWorkspace({
             <img
               src={SPOT_IMAGES[spot.id]}
               alt={`${spot.name} 전경`}
-              className="w-full h-full object-cover block"
+              className="w-full h-full object-cover object-top block"
               referrerPolicy="no-referrer"
               onError={() => setSpotImgErrors((prev) => ({ ...prev, [spot.id]: true }))}
             />
@@ -586,7 +557,7 @@ export function HomeWorkspace({
           </div>
         )}
 
-        {/* SCENE 3: 홈① 지도 — NAVER Maps JS v3 & Traditional 여지도 */}
+        {/* SCENE 3: 홈① 지도 — 전통 여지도 */}
         {activeTab === 'map' && (
           <section aria-labelledby="map-section-title" className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             <div className="lg:col-span-7 space-y-2.5">
@@ -594,59 +565,7 @@ export function HomeWorkspace({
                 <h1 id="map-section-title" className="section-heading text-lg font-bold text-[#1C1917]">
                   지도
                 </h1>
-                <div className="inline-flex rounded-xl border border-[#D6CEBE] bg-[#F5EFE6] p-1 gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setMapViewMode('naver')}
-                    aria-pressed={mapViewMode === 'naver'}
-                    className={`min-h-[38px] px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
-                      mapViewMode === 'naver'
-                        ? 'bg-[#1C1917] text-white'
-                        : 'text-[#44403C] hover:text-[#1C1917]'
-                    }`}
-                  >
-                    네이버 지도
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setMapViewMode('traditional')}
-                    aria-pressed={mapViewMode === 'traditional'}
-                    className={`min-h-[38px] px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-colors ${
-                      mapViewMode === 'traditional'
-                        ? 'bg-[#1C1917] text-white'
-                        : 'text-[#44403C] hover:text-[#1C1917]'
-                    }`}
-                  >
-                    전통 여지도
-                  </button>
-                </div>
               </div>
-
-              {mapViewMode === 'naver' ? (
-                <JeonjuNaverMap
-                  session={session}
-                  selectedSpotId={selectedSpot.id}
-                  museumReady={museumReady}
-                  onSelectSpot={onSelectSpot}
-                  onOpenSpotDetail={() => setSpotSheetOpen(true)}
-                  onStatusChange={setNaverMapStatus}
-                />
-              ) : (
-                <>
-                  {naverMapStatus === 'missing_key' && (
-                    <div className="rounded-xl border border-[#D6CEBE] bg-[#FBF8F2] px-3.5 py-2 flex flex-wrap items-center justify-between gap-2 text-xs text-[#44403C]">
-                      <span>
-                        실시간 네이버 지도 연동 준비 중 (Client ID 미설정 · 전통 여지도 및 길찾기 정상 작동)
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => setMapViewMode('naver')}
-                        className="font-bold text-[#9A3412] underline underline-offset-4 whitespace-nowrap"
-                      >
-                        연동 상태 보기
-                      </button>
-                    </div>
-                  )}
 
               {/* Large Traditional Joseon Map Container matching Scene 3 */}
               <div className="relative w-full aspect-[4/3] min-h-[340px] max-h-[580px] rounded-2xl border-2 border-[#A8967A] bg-[#EFE4CE] overflow-hidden shadow-md">
@@ -799,8 +718,6 @@ export function HomeWorkspace({
                   );
                 })}
               </div>
-                </>
-              )}
 
               {/* Mobile Quick Access Strip for the selected spot */}
               <div className="lg:hidden rounded-xl border border-[#E5DDD0] bg-white p-3.5 flex flex-wrap items-center justify-between gap-2.5 shadow-xs">

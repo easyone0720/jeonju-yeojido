@@ -83,7 +83,7 @@ describe('characters', () => {
     for (const c of CHARACTERS) {
       assert.ok(c.emoji && c.title && c.setting && c.dialogue && c.ending && c.quote, c.id);
       assert.ok(c.result.job && c.result.reputation && c.result.achievement, c.id);
-      assert.match(c.imageUrl, /^\/characters\/\d\d\.webp$/);
+      assert.match(c.imageUrl, /^\/characters\/\d\d\.jpg$/);
       assert.match(c.audioUrl, /^\/characters\/\d\d\.mp3$/);
       assert.ok(parseDialogue(c.dialogue).length >= 5, c.id);
     }

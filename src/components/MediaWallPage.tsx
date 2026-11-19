@@ -153,15 +153,15 @@ export function MediaWallPage({ onBackToApp }: MediaWallPageProps) {
             {/* Spotlight Exhibition Stage */}
             <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
               <div className="lg:col-span-5 flex justify-center">
-                <div className="w-full max-w-[380px] rounded-2xl overflow-hidden border-2 border-[#C59B43]/50 bg-[#221D18] shadow-2xl">
+                <div className="w-full max-w-[560px] rounded-2xl overflow-hidden border-2 border-[#C59B43]/50 bg-[#221D18] shadow-2xl">
                   {resolvePortrait(featured) ? (
                     <img
                       src={resolvePortrait(featured)}
                       alt={`${featured.visitorAlias} 님의 전생 초상화`}
-                      className="w-full aspect-[3/4] object-cover block"
+                      className="w-full aspect-video object-cover object-top block"
                     />
                   ) : (
-                    <div className="w-full aspect-[3/4] flex items-center justify-center">
+                    <div className="w-full aspect-video flex items-center justify-center">
                       <ScrollText className="w-10 h-10 text-[#D4B483]" aria-hidden="true" />
                     </div>
                   )}
@@ -217,12 +217,12 @@ export function MediaWallPage({ onBackToApp }: MediaWallPageProps) {
                           : 'border-white/10 bg-white/5 hover:border-white/30'
                       }`}
                     >
-                      <div className="aspect-[3/4] rounded-lg overflow-hidden bg-[#1F1B17] mb-2">
+                      <div className="aspect-video rounded-lg overflow-hidden bg-[#1F1B17] mb-2">
                         {imgUrl && (
                           <img
                             src={imgUrl}
                             alt={`${entry.title} 썸네일`}
-                            className="w-full h-full object-cover block"
+                            className="w-full h-full object-cover object-top block"
                           />
                         )}
                       </div>

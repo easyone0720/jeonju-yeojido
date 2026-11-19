@@ -84,11 +84,11 @@ export function SceneMediaConsent({
         {/* Top & Center: 내 전생 초상 large rectangle */}
         <div className="w-full flex-1 flex flex-col items-center justify-center space-y-2">
           <p className="text-xs font-medium text-[#78716C]">내 전생 초상</p>
-          <div className="w-full max-w-[300px] sm:max-w-[320px] rounded-2xl overflow-hidden border border-[#C7B596] bg-[#EFE5D0] shadow-md">
+          <div className="w-full rounded-2xl overflow-hidden border border-[#C7B596] bg-[#EFE5D0] shadow-md">
             <img
               src={result.portraitDataUrl}
               alt="내 전생 초상 미리보기"
-              className="w-full aspect-[3/4] object-cover block"
+              className="w-full aspect-video object-cover object-top block"
             />
           </div>
         </div>

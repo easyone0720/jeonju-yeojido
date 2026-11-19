@@ -1,12 +1,14 @@
-import { FormEvent, useEffect, useRef, useState } from 'react';
+import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import {
   AuthResult,
+  DEFAULT_DEMO_ACCOUNT,
   LoginMethod,
   SocialProvider,
   loginAsGuest,
   loginWithPassword,
   loginWithSocial,
+  registerWithPassword,
 } from '../utils/authHandlers';
 
 interface LoginModalProps {
@@ -16,33 +18,62 @@ interface LoginModalProps {
   onSuccess: (method: LoginMethod) => void;
 }
 
+type AuthTab = 'login' | 'signup';
+
+/** 공식 브랜드 컬러의 원형 로고 버튼 정의 */
 const SOCIAL_BUTTONS: {
   provider: SocialProvider;
   label: string;
-  letter: string;
   className: string;
-  letterClassName: string;
+  icon: ReactNode;
 }[] = [
   {
     provider: 'google',
     label: 'Google 로그인',
-    letter: 'G',
-    className: 'bg-white border border-[#D6CEBE] hover:bg-[#F5EFE6]',
-    letterClassName: 'text-[#4285F4]',
+    className: 'bg-white border border-[#D6D3D1] shadow-sm hover:bg-[#FAFAF9]',
+    icon: (
+      <svg viewBox="0 0 48 48" width="22" height="22" aria-hidden="true">
+        <path
+          fill="#EA4335"
+          d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"
+        />
+        <path
+          fill="#4285F4"
+          d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"
+        />
+        <path
+          fill="#FBBC05"
+          d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"
+        />
+        <path
+          fill="#34A853"
+          d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"
+        />
+      </svg>
+    ),
   },
   {
     provider: 'kakao',
     label: 'Kakao 로그인',
-    letter: 'K',
-    className: 'bg-[#FEE500] hover:brightness-95',
-    letterClassName: 'text-[#191919]',
+    className: 'bg-[#FEE500] shadow-sm hover:brightness-95',
+    icon: (
+      <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+        <path
+          fill="#3C1E1E"
+          d="M12 3C6.48 3 2 6.58 2 11c0 2.84 1.87 5.33 4.69 6.75l-.95 3.5c-.08.3.26.54.52.37l4.15-2.74c.52.07 1.05.12 1.59.12 5.52 0 10-3.58 10-8S17.52 3 12 3z"
+        />
+      </svg>
+    ),
   },
   {
     provider: 'naver',
     label: 'Naver 로그인',
-    letter: 'N',
-    className: 'bg-[#03C75A] hover:brightness-95',
-    letterClassName: 'text-white',
+    className: 'bg-[#03C75A] shadow-sm hover:brightness-95',
+    icon: (
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+        <path fill="#FFFFFF" d="M16.273 12.845 7.376 0H0v24h7.726V11.156L16.624 24H24V0h-7.727v12.845z" />
+      </svg>
+    ),
   },
 ];
 
@@ -50,8 +81,10 @@ const INPUT_CLASS =
   'w-full min-h-[48px] px-4 py-3 rounded-xl border border-[#D6CEBE] bg-white text-base text-[#1C1917] placeholder:text-[#A8A29E] focus:outline-none focus:border-[#9A3412] focus:ring-2 focus:ring-[#9A3412]/20 disabled:opacity-60';
 
 export function LoginModal({ open, onClose, onSuccess }: LoginModalProps) {
+  const [tab, setTab] = useState<AuthTab>('login');
   const [id, setId] = useState('');
   const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const idRef = useRef<HTMLInputElement | null>(null);
@@ -59,8 +92,10 @@ export function LoginModal({ open, onClose, onSuccess }: LoginModalProps) {
   // 열릴 때마다 입력값/에러 초기화
   useEffect(() => {
     if (!open) return;
+    setTab('login');
     setId('');
     setPassword('');
+    setName('');
     setError(null);
     setBusy(false);
   }, [open]);
@@ -105,12 +140,23 @@ export function LoginModal({ open, onClose, onSuccess }: LoginModalProps) {
     }
   };
 
-  const handlePasswordLogin = (e: FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    void run(() => loginWithPassword({ id, password }));
+    if (tab === 'signup') void run(() => registerWithPassword({ id, password, name }));
+    else void run(() => loginWithPassword({ id, password }));
   };
   const handleSocialLogin = (provider: SocialProvider) => void run(() => loginWithSocial(provider));
   const handleGuestLogin = () => void run(() => loginAsGuest());
+  const switchTab = (next: AuthTab) => {
+    if (busy) return;
+    setTab(next);
+    setError(null);
+  };
+
+  const tabClass = (active: boolean) =>
+    `flex-1 min-h-[40px] rounded-lg text-sm font-semibold transition-colors disabled:opacity-60 ${
+      active ? 'bg-[#9A3412] text-white shadow-sm' : 'text-[#57534E] hover:bg-[#F5EFE6]'
+    }`;
 
   return (
     // 오버레이는 화면 전체를 덮되, 카드는 모바일 프레임(max-w-[430px]) 중앙에 뜬다.
@@ -122,104 +168,143 @@ export function LoginModal({ open, onClose, onSuccess }: LoginModalProps) {
       }}
     >
       <div className="relative w-full max-w-[430px] mx-auto flex items-center justify-center p-4 pointer-events-none">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="login-modal-title"
-        onClick={(e) => e.stopPropagation()}
-        className="pointer-events-auto relative w-full rounded-2xl border-2 border-[#C7B596] bg-[#FBF8F2] p-6 shadow-2xl space-y-5"
-      >
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="닫기"
-          className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full text-[#78716C] hover:text-[#1C1917] hover:bg-[#F5EFE6] transition-colors"
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="login-modal-title"
+          onClick={(e) => e.stopPropagation()}
+          className="pointer-events-auto relative w-full max-h-full overflow-y-auto rounded-2xl border-2 border-[#C7B596] bg-[#FBF8F2] p-6 shadow-2xl space-y-5"
         >
-          <X className="w-5 h-5" aria-hidden="true" />
-        </button>
-
-        <div className="text-center space-y-1 pt-1">
-          <h2 id="login-modal-title" className="font-serif-kr text-xl font-bold text-[#1C1917]">
-            로그인
-          </h2>
-          <p className="text-xs text-[#78716C]">전생의 여정을 시작하기 전, 신원을 밝혀 주시게.</p>
-        </div>
-
-        <form onSubmit={handlePasswordLogin} className="space-y-3" noValidate>
-          <input
-            ref={idRef}
-            type="text"
-            value={id}
-            onChange={(e) => setId(e.target.value)}
-            placeholder="아이디 또는 이메일"
-            aria-label="ID"
-            autoComplete="username"
-            disabled={busy}
-            className={INPUT_CLASS}
-          />
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="비밀번호"
-            aria-label="비밀번호"
-            autoComplete="current-password"
-            disabled={busy}
-            className={INPUT_CLASS}
-          />
-
-          {error && (
-            <p role="alert" className="text-xs text-[#B91C1C] leading-relaxed">
-              {error}
-            </p>
-          )}
-
-          <button
-            type="submit"
-            disabled={busy}
-            className="hover-scale w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#9A3412] text-white font-semibold text-base hover:bg-[#7C2D12] active:scale-[0.99] shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {busy ? '확인 중…' : '로그인'}
-          </button>
-        </form>
-
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 text-[11px] text-[#A8A29E]" aria-hidden="true">
-            <span className="flex-1 h-px bg-[#E5DDD0]" />
-            <span>간편 로그인</span>
-            <span className="flex-1 h-px bg-[#E5DDD0]" />
-          </div>
-
-          <div className="grid grid-cols-3 gap-3">
-            {SOCIAL_BUTTONS.map(({ provider, label, letter, className, letterClassName }) => (
-              <button
-                key={provider}
-                type="button"
-                aria-label={label}
-                title={label}
-                disabled={busy}
-                onClick={() => handleSocialLogin(provider)}
-                className={`aspect-square w-full max-h-[64px] rounded-xl flex items-center justify-center shadow-sm transition active:scale-[0.97] disabled:opacity-60 disabled:cursor-not-allowed ${className}`}
-              >
-                <span aria-hidden="true" className={`text-2xl font-extrabold leading-none ${letterClassName}`}>
-                  {letter}
-                </span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className="text-center">
           <button
             type="button"
-            onClick={handleGuestLogin}
-            disabled={busy}
-            className="min-h-[40px] px-2 text-sm font-medium text-[#57534E] hover:text-[#9A3412] underline underline-offset-4 transition-colors disabled:opacity-60"
+            onClick={onClose}
+            aria-label="닫기"
+            className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-full text-[#78716C] hover:text-[#1C1917] hover:bg-[#F5EFE6] transition-colors"
           >
-            게스트 로그인
+            <X className="w-5 h-5" aria-hidden="true" />
           </button>
+
+          <div className="text-center space-y-1 pt-1">
+            <h2 id="login-modal-title" className="font-serif-kr text-xl font-bold text-[#1C1917]">
+              {tab === 'login' ? '로그인' : '간편 회원가입'}
+            </h2>
+            <p className="text-xs text-[#78716C]">전생의 여정을 시작하기 전, 신원을 밝혀 주시게.</p>
+          </div>
+
+          <div role="tablist" aria-label="로그인 방식" className="flex gap-1 rounded-xl bg-[#F0EAE0] p-1">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'login'}
+              disabled={busy}
+              onClick={() => switchTab('login')}
+              className={tabClass(tab === 'login')}
+            >
+              로그인
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'signup'}
+              disabled={busy}
+              onClick={() => switchTab('signup')}
+              className={tabClass(tab === 'signup')}
+            >
+              간편 회원가입
+            </button>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-3" noValidate>
+            <input
+              ref={idRef}
+              type="text"
+              value={id}
+              onChange={(e) => setId(e.target.value)}
+              placeholder="아이디 또는 이메일"
+              aria-label="ID"
+              autoComplete="username"
+              disabled={busy}
+              className={INPUT_CLASS}
+            />
+            <input
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="비밀번호"
+              aria-label="비밀번호"
+              autoComplete={tab === 'signup' ? 'new-password' : 'current-password'}
+              disabled={busy}
+              className={INPUT_CLASS}
+            />
+            {tab === 'signup' && (
+              <input
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="이름 (선택, 비우면 아이디로 표시)"
+                aria-label="이름"
+                maxLength={16}
+                autoComplete="name"
+                disabled={busy}
+                className={INPUT_CLASS}
+              />
+            )}
+
+            {error && (
+              <p role="alert" className="text-xs text-[#B91C1C] leading-relaxed">
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={busy}
+              className="hover-scale w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#9A3412] text-white font-semibold text-base hover:bg-[#7C2D12] active:scale-[0.99] shadow-sm disabled:opacity-60 disabled:cursor-not-allowed"
+            >
+              {busy ? '확인 중…' : tab === 'signup' ? '가입하고 시작하기' : '로그인'}
+            </button>
+            {tab === 'login' && (
+              <p className="text-center text-[11px] text-[#78716C]">
+                시연 계정: {DEFAULT_DEMO_ACCOUNT.id} / {DEFAULT_DEMO_ACCOUNT.password}
+              </p>
+            )}
+          </form>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 text-[11px] text-[#A8A29E]" aria-hidden="true">
+              <span className="flex-1 h-px bg-[#E5DDD0]" />
+              <span>간편 로그인</span>
+              <span className="flex-1 h-px bg-[#E5DDD0]" />
+            </div>
+
+            <div className="flex items-center justify-center gap-5">
+              {SOCIAL_BUTTONS.map(({ provider, label, className, icon }) => (
+                <button
+                  key={provider}
+                  type="button"
+                  aria-label={label}
+                  title={label}
+                  disabled={busy}
+                  onClick={() => handleSocialLogin(provider)}
+                  className={`rounded-full w-12 h-12 flex items-center justify-center transition active:scale-[0.96] disabled:opacity-60 disabled:cursor-not-allowed ${className}`}
+                >
+                  {icon}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={handleGuestLogin}
+              disabled={busy}
+              className="min-h-[40px] px-2 text-sm font-medium text-[#57534E] hover:text-[#9A3412] underline underline-offset-4 transition-colors disabled:opacity-60"
+            >
+              게스트 로그인
+            </button>
+          </div>
         </div>
-      </div>
       </div>
     </div>
   );

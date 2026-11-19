@@ -267,14 +267,14 @@ export function SceneResult({
       <main className="flex-1 mx-auto w-full max-w-[430px] px-4 py-3 space-y-5 pb-14">
         <div ref={topRef} className="scroll-mt-2" />
 
-        {/* 1) 상단 카드: 9:16 캐릭터 이미지 + 타이틀 + 음성 플레이어 */}
+        {/* 1) 상단 카드: 16:9 캐릭터 이미지 + 타이틀 + 음성 플레이어 */}
         <section className="space-y-4 text-center">
           <div className="relative w-full rounded-2xl overflow-hidden border border-[#C7B596] bg-[#EFE5D0] shadow-md">
             <img
               key={character.id}
               src={character.imageUrl}
               alt={`${character.title} 전생 캐릭터 일러스트`}
-              className="w-full aspect-[9/16] object-cover block"
+              className="w-full aspect-video object-cover object-top block"
             />
           </div>
           <h1 className="font-serif-kr text-2xl font-bold text-[#1C1917] leading-snug">

@@ -22,8 +22,16 @@ describe('로컬 회원·로그인 (authHandlers)', () => {
     g.window.sessionStorage = makeStorage();
   });
 
-  it('기본 시연 계정 test / 1234 로 로그인되고 이름은 전주여행자', async () => {
-    const r = await auth.loginWithPassword({ id: 'test', password: '1234' });
+  it('앱 초기화 시 기본 계정이 localStorage 에 시드된다', async () => {
+    await auth.ensureDefaultAccount();
+    const users = JSON.parse(g.window.localStorage.getItem(auth.AUTH_USERS_KEY) ?? '[]') as { id: string; name: string }[];
+    assert.deepEqual(users.map((u) => [u.id, u.name]), [['jeonju', '전주여행자']]);
+    await auth.ensureDefaultAccount(); // 중복 시드 없음
+    assert.equal(JSON.parse(g.window.localStorage.getItem(auth.AUTH_USERS_KEY) ?? '[]').length, 1);
+  });
+
+  it('기본 시연 계정 jeonju / 1234 로 로그인되고 이름은 전주여행자', async () => {
+    const r = await auth.loginWithPassword({ id: 'jeonju', password: '1234' });
     assert.equal(r.ok, true);
     const info = auth.getLocalAuth();
     assert.equal(info?.displayName, '전주여행자');
@@ -32,16 +40,16 @@ describe('로컬 회원·로그인 (authHandlers)', () => {
   });
 
   it('틀린 비밀번호는 안내 문구와 함께 거부되고 세션이 저장되지 않는다', async () => {
-    const r = await auth.loginWithPassword({ id: 'test', password: '9999' });
-    assert.deepEqual(r, { ok: false, message: '비밀번호가 일치하지 않습니다.' });
+    const r = await auth.loginWithPassword({ id: 'jeonju', password: '9999' });
+    assert.deepEqual(r, { ok: false, message: '아이디 또는 비밀번호가 올바르지 않습니다.' });
     assert.equal(auth.getLocalAuth(), null);
   });
 
   it('빈 값 안내 / 미등록 아이디는 로그인되지 않는다', async () => {
     assert.equal((await auth.loginWithPassword({ id: '', password: 'x' })).ok, false);
-    assert.equal((await auth.loginWithPassword({ id: 'test', password: '' })).ok, false);
+    assert.equal((await auth.loginWithPassword({ id: 'jeonju', password: '' })).ok, false);
     const r = await auth.loginWithPassword({ id: 'nobody', password: '1234' });
-    assert.equal(r.ok, false);
+    assert.deepEqual(r, { ok: false, message: '아이디 또는 비밀번호가 올바르지 않습니다.' });
     assert.equal(auth.getLocalAuth(), null);
   });
 
@@ -55,11 +63,11 @@ describe('로컬 회원·로그인 (authHandlers)', () => {
     assert.equal(auth.getLocalAuth()?.displayName, '홍길동');
     g.window.sessionStorage = makeStorage();
     const bad = await auth.loginWithPassword({ id: 'hong', password: '1234' });
-    assert.deepEqual(bad, { ok: false, message: '비밀번호가 일치하지 않습니다.' });
+    assert.deepEqual(bad, { ok: false, message: '아이디 또는 비밀번호가 올바르지 않습니다.' });
   });
 
   it('중복 아이디 가입과 너무 짧은 값은 거부된다', async () => {
-    assert.deepEqual(await auth.registerWithPassword({ id: 'test', password: 'zzzz' }), {
+    assert.deepEqual(await auth.registerWithPassword({ id: 'jeonju', password: 'zzzz' }), {
       ok: false,
       message: '이미 사용 중인 아이디입니다.',
     });

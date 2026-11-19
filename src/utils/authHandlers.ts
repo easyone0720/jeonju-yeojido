@@ -80,6 +80,9 @@ export function clearLocalAuth(): void {
   }
 }
 
+/** 미등록 아이디 · 틀린 비밀번호 공통 안내 */
+export const LOGIN_FAILED_MESSAGE = '아이디 또는 비밀번호가 올바르지 않습니다.';
+
 const NOT_READY_MESSAGE = '로그인 연동 준비 중입니다. 게스트 로그인으로 이용해 주세요.';
 
 // ---------------------------------------------------------------------------------------------
@@ -88,7 +91,7 @@ const NOT_READY_MESSAGE = '로그인 연동 준비 중입니다. 게스트 로�
 export const AUTH_USERS_KEY = 'jeonju_auth_users';
 
 /** 처음 실행 시 자동 등록되는 시연 계정 */
-export const DEFAULT_DEMO_ACCOUNT = { id: 'test', password: '1234', name: '전주여행자' } as const;
+export const DEFAULT_DEMO_ACCOUNT = { id: 'jeonju', password: '1234', name: '전주여행자' } as const;
 
 interface StoredUser {
   /** 소문자로 정규화한 아이디 */
@@ -109,8 +112,10 @@ function readUsers(): StoredUser[] {
       const parsed = JSON.parse(raw) as unknown;
       if (Array.isArray(parsed)) return parsed as StoredUser[];
     }
-    return memoryUsers ?? [];
+    // localStorage 는 쓸 수 있는데 목록이 없다 = 처음이거나 사용자가 지운 상태 → 빈 목록
+    return [];
   } catch {
+    // localStorage 를 쓸 수 없는 환경에서만 메모리 보관분을 쓴다
     return memoryUsers ?? [];
   }
 }
@@ -143,7 +148,7 @@ async function hashPassword(id: string, password: string): Promise<string> {
   return 'djb2:' + (h >>> 0).toString(16);
 }
 
-/** 기본 시연 계정(test / 1234)이 없으면 자동 등록한다. 여러 번 호출해도 안전하다. */
+/** 기본 시연 계정(jeonju / 1234)이 없으면 자동 등록한다. 여러 번 호출해도 안전하다. */
 export async function ensureDefaultAccount(): Promise<void> {
   const users = readUsers();
   if (users.some((u) => u.id === DEFAULT_DEMO_ACCOUNT.id)) return;
@@ -171,11 +176,9 @@ export async function loginWithPassword({
 
   await ensureDefaultAccount();
   const user = readUsers().find((u) => u.id === normalizeId(id));
-  if (!user) {
-    return { ok: false, message: '등록되지 않은 아이디입니다. 간편 회원가입으로 먼저 가입해 주세요.' };
-  }
-  if (user.passwordHash !== (await hashPassword(id, password))) {
-    return { ok: false, message: '비밀번호가 일치하지 않습니다.' };
+  // 아이디 존재 여부가 드러나지 않도록 미등록 아이디와 틀린 비밀번호에 같은 문구를 쓴다
+  if (!user || user.passwordHash !== (await hashPassword(id, password))) {
+    return { ok: false, message: LOGIN_FAILED_MESSAGE };
   }
   saveLocalAuth({ method: 'password', displayName: user.name, id: user.id });
   return { ok: true, method: 'password' };
