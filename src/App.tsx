@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { BottomNav } from './components/BottomNav';
+import { GoodsCheckoutPage } from './components/GoodsCheckoutPage';
+import { GoodsStorePage } from './components/GoodsStorePage';
+import type { GoodsItem } from './data/goods';
 import { AdminDashboardPage } from './components/AdminDashboardPage';
 import { HomeWorkspace, type QrCompletionBanner } from './components/HomeWorkspace';
 import { MediaWallPage } from './components/MediaWallPage';
@@ -62,6 +65,8 @@ export default function App() {
   const [scene, setScene] = useState<SceneId>(1);
 
   const [homeTab, setHomeTab] = useState<HomeTab>('map');
+  // 굿즈 스토어/결제 화면 (진행 단계(scene)와 별개의 오버레이 화면, 저장하지 않는다)
+  const [goodsView, setGoodsView] = useState<{ page: 'store' } | { page: 'checkout'; item: GoodsItem } | null>(null);
   const [selectedSpotId, setSelectedSpotId] = useState<SpotId>('gyeonggijeon');
   const [activeClaimSpotId, setActiveClaimSpotId] = useState<SpotId>('gyeonggijeon');
   const [lastVerifiedQrCode, setLastVerifiedQrCode] = useState<string | null>(null);
@@ -505,6 +510,33 @@ export default function App() {
     return <AdminDashboardPage onBackToApp={() => navigateRoute('/')} />;
   }
 
+  const closeGoodsToResult = () => {
+    setGoodsView(null);
+    setScene(10);
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    void persistProgressMilestone({ ...session, currentScene: 10 });
+  };
+
+  if (goodsView && session.pastLifeResult) {
+    return goodsView.page === 'checkout' ? (
+      <GoodsCheckoutPage
+        key={goodsView.item.id}
+        item={goodsView.item}
+        onBackToList={() => setGoodsView({ page: 'store' })}
+        onClose={closeGoodsToResult}
+        onFinish={closeGoodsToResult}
+      />
+    ) : (
+      <GoodsStorePage
+        onClose={closeGoodsToResult}
+        onSelectGoods={(item) => {
+          setGoodsView({ page: 'checkout', item });
+          window.scrollTo({ top: 0, behavior: 'auto' });
+        }}
+      />
+    );
+  }
+
   const clueCount = getCollectedClueCount(session);
   const restoreSummary = restoreModalSession
     ? getResumeNavigationState(restoreModalSession).stepSummary
@@ -758,6 +790,10 @@ export default function App() {
         }}
         onSubmitConsent={handleMediaConsentSubmit}
         onOpenWall={() => navigateRoute('/wall')}
+        onOpenGoods={() => {
+          setGoodsView({ page: 'store' });
+          window.scrollTo({ top: 0, behavior: 'auto' });
+        }}
         onGoToCoupons={() => {
           setHomeTab('coupons');
           setScene(5);

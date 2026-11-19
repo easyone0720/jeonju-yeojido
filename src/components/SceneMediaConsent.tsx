@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, CheckCircle2, Info, Tv, X } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Info, ShoppingBag, Tv, X } from 'lucide-react';
 import { PastLifeResult } from '../types/jeonju';
 
 interface SceneMediaConsentProps {
@@ -10,6 +10,7 @@ interface SceneMediaConsentProps {
   onSubmitConsent: (consent: 'accepted' | 'declined') => Promise<void>;
   onOpenWall: () => void;
   onGoToCoupons: () => void;
+  onOpenGoods: () => void;
 }
 
 export function SceneMediaConsent({
@@ -20,6 +21,7 @@ export function SceneMediaConsent({
   onSubmitConsent,
   onOpenWall,
   onGoToCoupons,
+  onOpenGoods,
 }: SceneMediaConsentProps) {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -199,6 +201,18 @@ export function SceneMediaConsent({
                     >
                       동의 철회
                     </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPopup(null);
+                      onOpenGoods();
+                    }}
+                    disabled={submitting}
+                    className="w-full min-h-[44px] px-4 py-2 rounded-xl border border-[#C7B596] bg-white text-sm font-semibold text-[#9A3412] inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
+                  >
+                    <ShoppingBag className="w-4 h-4" aria-hidden="true" />
+                    <span>전생 기념 굿즈 보러가기</span>
+                  </button>
                   </div>
                 </div>
               ) : (
@@ -216,6 +230,18 @@ export function SceneMediaConsent({
                     className="w-full min-h-[48px] px-4 py-2 rounded-xl bg-[#1C1917] text-white text-sm font-semibold"
                   >
                     혜택 쿠폰함 확인하기
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setPopup(null);
+                      onOpenGoods();
+                    }}
+                    disabled={submitting}
+                    className="w-full min-h-[44px] px-4 py-2 rounded-xl border border-[#C7B596] bg-white text-sm font-semibold text-[#9A3412] inline-flex items-center justify-center gap-1.5 disabled:opacity-60"
+                  >
+                    <ShoppingBag className="w-4 h-4" aria-hidden="true" />
+                    <span>전생 기념 굿즈 보러가기</span>
                   </button>
                 </div>
               )}
