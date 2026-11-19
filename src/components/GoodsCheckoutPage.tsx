@@ -99,13 +99,13 @@ export function GoodsCheckoutPage({
   if (stage === 'done') {
     return (
       <div className="min-h-app hanji-texture">
-        <div className={`w-full max-w-[430px] mx-auto min-h-app flex flex-col px-4 py-6 safe-pb ${withBottomNav ? 'pb-24' : 'pb-10'}`}>
+        <div className={`w-full max-w-5xl mx-auto min-h-app flex flex-col px-4 sm:px-6 py-6 safe-pb ${withBottomNav ? 'pb-[calc(7rem+env(safe-area-inset-bottom))]' : 'pb-10'}`}>
           <div className="text-center space-y-2 pt-2">
             <CheckCircle2 className="w-12 h-12 mx-auto text-[#14532D]" aria-hidden="true" />
             <h1 className="font-serif-kr text-xl font-bold text-[#14532D]">
               결제 완료 및 굿즈 교환권
             </h1>
-            <p className="text-xs text-[#78716C]">시연용 결제입니다. 실제 결제·청구는 이루어지지 않았습니다.</p>
+            <p className="text-xs text-[#5C5349]">시연용 결제입니다. 실제 결제·청구는 이루어지지 않았습니다.</p>
           </div>
 
           <section
@@ -116,21 +116,21 @@ export function GoodsCheckoutPage({
               <img
                 src={item.imageUrl}
                 alt={item.name}
-                className="w-24 aspect-video rounded-lg object-cover border border-[#E5DDD0] shrink-0"
+                className="w-24 aspect-video rounded-lg object-cover border border-[#D8CEBE] shrink-0"
               />
               <div className="min-w-0">
-                <p className="text-sm font-bold text-[#1C1917] leading-snug">{item.name}</p>
-                <p className="mt-0.5 text-xs text-[#57534E]">
+                <p className="text-sm font-bold text-[#26201B] leading-snug">{item.name}</p>
+                <p className="mt-0.5 text-xs text-[#5C5349]">
                   수량 {qty}개 · {formatWon(total)}
                 </p>
-                <p className="text-xs text-[#57534E]">결제수단 {payLabel}</p>
+                <p className="text-xs text-[#5C5349]">결제수단 {payLabel}</p>
               </div>
             </div>
 
-            <div className="rounded-xl bg-[#FBF8F2] border border-[#E5DDD0] p-3 text-center">
-              <p className="text-[11px] text-[#78716C]">주문번호</p>
+            <div className="rounded-xl bg-[#FBF8F1] border border-[#D8CEBE] p-3 text-center">
+              <p className="text-[11px] text-[#5C5349]">주문번호</p>
               <p
-                className="mt-0.5 font-mono-tabular text-sm font-bold text-[#1C1917] break-all"
+                className="mt-0.5 font-mono-tabular text-sm font-bold text-[#26201B] break-all"
                 data-testid="order-number"
               >
                 {orderNumber}
@@ -138,29 +138,29 @@ export function GoodsCheckoutPage({
               <div className="mt-3 flex justify-center bg-white rounded-lg p-2">
                 <svg ref={svgRef} role="img" aria-label="굿즈 교환권 시연 바코드" className="max-w-full" />
               </div>
-              <p className="mt-2 text-[11px] text-[#9A3412] font-medium">시연용 바코드 (DEMO)</p>
+              <p className="mt-2 text-[11px] text-[#8E3524] font-medium">시연용 바코드 (DEMO)</p>
             </div>
 
             <div className="text-xs text-[#44403C] leading-relaxed space-y-1">
               {delivery === 'pickup' ? (
                 <>
-                  <p className="font-semibold text-[#1C1917]">현장 수령 안내</p>
+                  <p className="font-semibold text-[#26201B]">현장 수령 안내</p>
                   <p>국립전주박물관 굿즈샵에서 이 화면의 주문번호 또는 바코드를 보여 주세요.</p>
                 </>
               ) : (
                 <>
-                  <p className="font-semibold text-[#1C1917]">택배 배송 안내</p>
+                  <p className="font-semibold text-[#26201B]">택배 배송 안내</p>
                   <p>배송 접수 후 안내가 발송되는 흐름을 시연한 화면입니다. 실제 배송은 진행되지 않습니다.</p>
                 </>
               )}
-              <p className="text-[#78716C]">본 굿즈 스토어는 시연용이며, 실제 상품 판매·배송은 이루어지지 않습니다.</p>
+              <p className="text-[#5C5349]">본 굿즈 스토어는 시연용이며, 실제 상품 판매·배송은 이루어지지 않습니다.</p>
             </div>
           </section>
 
           <button
             type="button"
             onClick={onFinish}
-            className="mt-6 w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#9A3412] text-white font-semibold text-base hover:bg-[#7C2D12]"
+            className="mt-6 w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#8E3524] text-[#FBF8F1] font-semibold text-base hover:bg-[#762A1C]"
           >
             결과 화면으로 돌아가기
           </button>
@@ -173,54 +173,54 @@ export function GoodsCheckoutPage({
 
   return (
     <div className="min-h-app hanji-texture">
-      <div className="w-full max-w-[430px] mx-auto min-h-app flex flex-col">
-        <header className="sticky top-0 z-30 flex items-center justify-between border-b border-[#E5DDD0] bg-[#FBF8F2]/95 backdrop-blur-md px-3 h-14">
-          <button
-            type="button"
-            onClick={onBackToList}
-            disabled={busy}
-            className="inline-flex items-center gap-1 text-sm font-medium text-[#57534E] hover:text-[#1C1917] min-h-[44px] disabled:opacity-50"
-          >
-            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-            <span>굿즈 목록으로</span>
-          </button>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={busy}
-            aria-label="결제창 닫기"
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-[#57534E] hover:bg-[#EFE8DC] disabled:opacity-50"
-          >
-            <X className="w-5 h-5" aria-hidden="true" />
-          </button>
-        </header>
+      <div className="w-full min-h-app flex flex-col">
+        <main className={`flex-1 mx-auto w-full max-w-5xl px-4 sm:px-6 py-4 grid grid-cols-1 lg:grid-cols-2 gap-5 content-start ${withBottomNav ? 'pb-[calc(10.5rem+env(safe-area-inset-bottom))]' : 'pb-32'}`}>
+          {/* 서브 헤더: 공통 상단 배너 바로 아래 */}
+          <div className="lg:col-span-2 flex items-center justify-between gap-3 rounded-2xl border border-[#D8CEBE] bg-[#FBF8F1]/95 px-4 py-1.5">
+            <button
+              type="button"
+              onClick={onBackToList}
+              disabled={busy}
+              className="inline-flex items-center gap-1 text-sm font-medium text-[#5C5349] hover:text-[#26201B] min-h-[44px] disabled:opacity-50"
+            >
+              <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+              <span>굿즈 목록으로</span>
+            </button>
+            <h1 className="font-serif-kr text-[clamp(1rem,2.4vw,1.25rem)] font-bold text-[#26201B]">주문 · 결제</h1>
+            <button
+              type="button"
+              onClick={onClose}
+              disabled={busy}
+              aria-label="결제창 닫기"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-[#5C5349] hover:bg-[#F3ECE0] disabled:opacity-50"
+            >
+              <X className="w-5 h-5" aria-hidden="true" />
+            </button>
+          </div>
 
-        <main className={`flex-1 px-4 py-4 space-y-5 ${withBottomNav ? 'pb-48' : 'pb-32'}`}>
-          <h1 className="font-serif-kr text-lg font-bold text-[#1C1917]">주문 · 결제</h1>
-
-          <section aria-label="주문 상품" className="rounded-2xl border border-[#D6CEBE] bg-white p-3.5 space-y-3">
+          <section aria-label="주문 상품" className="rounded-2xl border border-[#D6CBB9] bg-white p-3.5 space-y-3">
             <div className="flex gap-3">
               <img
                 src={item.imageUrl}
                 alt={item.name}
-                className="w-28 aspect-video rounded-lg object-cover border border-[#E5DDD0] shrink-0"
+                className="w-28 aspect-video rounded-lg object-cover border border-[#D8CEBE] shrink-0"
               />
               <div className="min-w-0">
-                <p className="text-sm font-bold text-[#1C1917] leading-snug">{item.name}</p>
-                <p className="mt-1 text-xs text-[#57534E]">
+                <p className="text-sm font-bold text-[#26201B] leading-snug">{item.name}</p>
+                <p className="mt-1 text-xs text-[#5C5349]">
                   단가 <span className="font-mono-tabular">{formatWon(item.price)}</span>
                 </p>
               </div>
             </div>
-            <div className="flex items-center justify-between border-t border-[#E5DDD0] pt-3">
-              <span className="text-sm font-medium text-[#1C1917]">수량</span>
+            <div className="flex items-center justify-between border-t border-[#D8CEBE] pt-3">
+              <span className="text-sm font-medium text-[#26201B]">수량</span>
               <div className="inline-flex items-center gap-1">
                 <button
                   type="button"
                   aria-label="수량 줄이기"
                   disabled={busy || qty <= 1}
                   onClick={() => setQty((q) => Math.max(1, q - 1))}
-                  className="w-11 h-11 rounded-lg border border-[#D6CEBE] bg-white flex items-center justify-center disabled:opacity-40"
+                  className="w-11 h-11 rounded-lg border border-[#D6CBB9] bg-white flex items-center justify-center disabled:opacity-40"
                 >
                   <Minus className="w-4 h-4" aria-hidden="true" />
                 </button>
@@ -236,22 +236,22 @@ export function GoodsCheckoutPage({
                   aria-label="수량 늘리기"
                   disabled={busy || qty >= MAX_QTY}
                   onClick={() => setQty((q) => Math.min(MAX_QTY, q + 1))}
-                  className="w-11 h-11 rounded-lg border border-[#D6CEBE] bg-white flex items-center justify-center disabled:opacity-40"
+                  className="w-11 h-11 rounded-lg border border-[#D6CBB9] bg-white flex items-center justify-center disabled:opacity-40"
                 >
                   <Plus className="w-4 h-4" aria-hidden="true" />
                 </button>
               </div>
             </div>
-            <div className="flex items-center justify-between border-t border-[#E5DDD0] pt-3">
-              <span className="text-sm font-medium text-[#1C1917]">총 결제 금액</span>
-              <span className="text-lg font-bold text-[#9A3412] font-mono-tabular" data-testid="total">
+            <div className="flex items-center justify-between border-t border-[#D8CEBE] pt-3">
+              <span className="text-sm font-medium text-[#26201B]">총 결제 금액</span>
+              <span className="text-lg font-bold text-[#8E3524] font-mono-tabular" data-testid="total">
                 {formatWon(total)}
               </span>
             </div>
           </section>
 
           <section aria-label="수령 방식" className="space-y-2">
-            <h2 className="text-sm font-bold text-[#1C1917]">수령 방식</h2>
+            <h2 className="text-sm font-bold text-[#26201B]">수령 방식</h2>
             <div role="radiogroup" aria-label="수령 방식 선택" className="grid gap-2">
               {DELIVERY_OPTIONS.map((opt) => {
                 const active = delivery === opt.id;
@@ -265,8 +265,8 @@ export function GoodsCheckoutPage({
                     onClick={() => setDelivery(opt.id)}
                     className={`min-h-[48px] px-4 py-2.5 rounded-xl border text-left text-sm font-medium transition-colors ${
                       active
-                        ? 'border-[#9A3412] bg-[#FFF7ED] text-[#9A3412] font-bold'
-                        : 'border-[#D6CEBE] bg-white text-[#1C1917]'
+                        ? 'border-[#8E3524] bg-[#FFF7ED] text-[#8E3524] font-bold'
+                        : 'border-[#D6CBB9] bg-white text-[#26201B]'
                     }`}
                   >
                     {opt.label}
@@ -275,14 +275,14 @@ export function GoodsCheckoutPage({
               })}
             </div>
             {delivery === 'parcel' && (
-              <p className="text-[11px] text-[#78716C]">
+              <p className="text-[11px] text-[#5C5349]">
                 시연에서는 배송지 입력 없이 진행됩니다. 실제 배송은 이루어지지 않습니다.
               </p>
             )}
           </section>
 
           <section aria-label="결제 수단" className="space-y-2">
-            <h2 className="text-sm font-bold text-[#1C1917]">결제 수단</h2>
+            <h2 className="text-sm font-bold text-[#26201B]">결제 수단</h2>
             <div role="radiogroup" aria-label="결제 수단 선택" className="grid grid-cols-2 gap-2">
               {PAY_OPTIONS.map((opt) => {
                 const active = payMethod === opt.id;
@@ -296,8 +296,8 @@ export function GoodsCheckoutPage({
                     onClick={() => setPayMethod(opt.id)}
                     className={`min-h-[48px] px-3 py-2 rounded-xl border text-sm font-medium inline-flex items-center justify-center gap-1.5 transition-colors ${
                       active
-                        ? 'border-[#9A3412] bg-[#FFF7ED] text-[#9A3412] font-bold'
-                        : 'border-[#D6CEBE] bg-white text-[#1C1917]'
+                        ? 'border-[#8E3524] bg-[#FFF7ED] text-[#8E3524] font-bold'
+                        : 'border-[#D6CBB9] bg-white text-[#26201B]'
                     }`}
                   >
                     {opt.id === 'card' && <CreditCard className="w-4 h-4" aria-hidden="true" />}
@@ -306,39 +306,41 @@ export function GoodsCheckoutPage({
                 );
               })}
             </div>
-            <p className="text-[11px] text-[#78716C]">
+            <p className="text-[11px] text-[#5C5349]">
               시연용 결제입니다. 외부 결제 서버와 연결되지 않으며 실제 청구는 이루어지지 않습니다.
             </p>
           </section>
         </main>
 
         <div
-          className={`fixed left-0 right-0 max-w-[430px] mx-auto z-40 border-t border-[#E5DDD0] bg-[#FBF8F2]/95 backdrop-blur-md p-3 safe-pb ${
+          className={`fixed left-0 right-0 z-40 border-t border-[#D8CEBE] bg-[#FBF8F1]/95 backdrop-blur-md py-3 safe-pb ${
             withBottomNav ? 'bottom-[58px]' : 'bottom-0'
           }`}
         >
+          <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
           <button
             type="button"
             onClick={handlePay}
             disabled={busy}
-            className="w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#9A3412] text-white font-semibold text-base hover:bg-[#7C2D12] disabled:opacity-70"
+            className="w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#8E3524] text-[#FBF8F1] font-semibold text-base hover:bg-[#762A1C] disabled:opacity-70"
           >
             {busy ? '결제 진행 중...' : `${formatWon(total)} 바로 결제하기`}
           </button>
+          </div>
         </div>
 
         {busy && (
           <div
             role="status"
             aria-live="polite"
-            className="fixed inset-0 z-50 bg-[#1C1917]/55 backdrop-blur-xs flex items-center justify-center"
+            className="fixed inset-0 z-50 bg-[#26201B]/55 backdrop-blur-xs flex items-center justify-center"
           >
-            <div className="rounded-2xl bg-[#FBF8F2] px-8 py-6 text-center shadow-2xl space-y-3">
+            <div className="rounded-2xl bg-[#FBF8F1] px-8 py-6 text-center shadow-2xl space-y-3">
               <div
-                className="w-9 h-9 mx-auto rounded-full border-4 border-[#E5DDD0] border-t-[#9A3412] animate-spin"
+                className="w-9 h-9 mx-auto rounded-full border-4 border-[#D8CEBE] border-t-[#8E3524] animate-spin"
                 aria-hidden="true"
               />
-              <p className="text-sm font-semibold text-[#1C1917]">{payLabel}로 결제 진행 중...</p>
+              <p className="text-sm font-semibold text-[#26201B]">{payLabel}로 결제 진행 중...</p>
             </div>
           </div>
         )}
