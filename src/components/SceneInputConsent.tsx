@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { ArrowLeft, CheckSquare, KeyRound, Square, UserPlus } from 'lucide-react';
 import { CompanionType } from '../types/jeonju';
+import { KoreanDatePicker } from './KoreanDatePicker';
 import { getLocalAuth } from '../utils/authHandlers';
 import { validateBirthDate } from '../utils/pastLifeEngine';
 
@@ -114,7 +115,10 @@ export function SceneInputConsent({
     }
   };
 
-  const todayIso = new Date().toISOString().split('T')[0];
+  const todayIso = (() => {
+    const n = new Date();
+    return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+  })();
 
   return (
     <div className="min-h-app hanji-texture flex flex-col">
@@ -166,15 +170,14 @@ export function SceneInputConsent({
                 >
                   생년월일
                 </label>
-                <input
+                <KoreanDatePicker
                   id="jeonsaeng-birthdate"
-                  type="date"
                   required
                   min="1910-01-01"
                   max={todayIso}
                   value={birthDate}
-                  onChange={(e) => {
-                    setBirthDate(e.target.value);
+                  onChange={(v) => {
+                    setBirthDate(v);
                     if (errorMsg) setErrorMsg(null);
                   }}
                   aria-describedby="birthdate-hint"
@@ -251,7 +254,7 @@ export function SceneInputConsent({
               {errorMsg && (
                 <div
                   role="alert"
-                  className="rounded-xl border border-[#9A3412]/40 bg-[#9A3412]/10 px-4 py-2.5 text-xs font-medium text-[#7C2D12]"
+                  className="rounded-xl border border-[#9A3412]/40 bg-[#8E3524]/10 px-4 py-2.5 text-xs font-medium text-[#7C2D12]"
                 >
                   {errorMsg}
                 </div>
@@ -260,7 +263,7 @@ export function SceneInputConsent({
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#9A3412] text-white font-semibold text-base hover:bg-[#7C2D12] disabled:opacity-60 active:scale-[0.99] transition-all"
+                className="w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#8E3524] text-[#FBF8F1] font-semibold text-base hover:bg-[#762A1C] disabled:opacity-60 active:scale-[0.99] transition-all"
               >
                 {submitting ? '기록 생성 중...' : '다음'}
               </button>
@@ -323,15 +326,14 @@ export function SceneInputConsent({
                 >
                   생년월일
                 </label>
-                <input
+                <KoreanDatePicker
                   id="recover-birthdate"
-                  type="date"
                   required
                   min="1910-01-01"
                   max={todayIso}
                   value={recoverBirthDate}
-                  onChange={(e) => {
-                    setRecoverBirthDate(e.target.value);
+                  onChange={(v) => {
+                    setRecoverBirthDate(v);
                     if (recoverError) setRecoverError(null);
                   }}
                   className="w-full min-h-[48px] px-4 py-2.5 rounded-xl border border-[#D6CEBE] bg-[#FBF8F2] text-base text-[#1C1917] font-mono-tabular focus:border-[#9A3412] focus:bg-white transition-colors"
@@ -364,7 +366,7 @@ export function SceneInputConsent({
               {recoverError && (
                 <div
                   role="alert"
-                  className="rounded-xl border border-[#9A3412]/40 bg-[#9A3412]/10 px-4 py-2.5 text-xs font-medium text-[#7C2D12]"
+                  className="rounded-xl border border-[#9A3412]/40 bg-[#8E3524]/10 px-4 py-2.5 text-xs font-medium text-[#7C2D12]"
                 >
                   {recoverError}
                 </div>
@@ -373,7 +375,7 @@ export function SceneInputConsent({
               <button
                 type="submit"
                 disabled={recovering}
-                className="w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#9A3412] text-white font-semibold text-base hover:bg-[#7C2D12] disabled:opacity-60 transition-all"
+                className="w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#8E3524] text-[#FBF8F1] font-semibold text-base hover:bg-[#762A1C] disabled:opacity-60 transition-all"
               >
                 {recovering ? '기록 확인 중...' : '기록 불러오기'}
               </button>
