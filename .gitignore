@@ -5,6 +5,7 @@ coverage/
 .DS_Store
 *.log
 .env*
+.env
 !.env.example
 
 # 생성된 전생 초상 이미지 (Gemini 생성 기능을 켠 경우에만 생성됨)
