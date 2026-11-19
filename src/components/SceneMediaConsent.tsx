@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, CheckCircle2, Tv, XCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Info, Tv, X } from 'lucide-react';
 import { PastLifeResult } from '../types/jeonju';
 
 interface SceneMediaConsentProps {
@@ -23,12 +23,20 @@ export function SceneMediaConsent({
 }: SceneMediaConsentProps) {
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [popup, setPopup] = useState<'accepted' | 'declined' | null>(null);
 
   const handleChoice = async (choice: 'accepted' | 'declined') => {
+    // 이미 선택된 값을 다시 누르면 저장 없이 해당 안내 팝업만 다시 연다
+    if (currentConsent === choice) {
+      setErrorMsg(null);
+      setPopup(choice);
+      return;
+    }
     setSubmitting(true);
     setErrorMsg(null);
     try {
       await onSubmitConsent(choice);
+      setPopup(choice);
     } catch (err) {
       setErrorMsg(
         err instanceof Error ? err.message : '미디어월 동의 저장에 실패했습니다.'
@@ -38,8 +46,23 @@ export function SceneMediaConsent({
     }
   };
 
+  const handleWithdraw = async () => {
+    setSubmitting(true);
+    setErrorMsg(null);
+    try {
+      await onSubmitConsent('declined');
+      setPopup(null);
+    } catch (err) {
+      setErrorMsg(
+        err instanceof Error ? err.message : '동의 철회 처리에 실패했습니다.'
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <div className="min-h-app hanji-texture flex flex-col">
+    <div className="min-h-app hanji-texture flex flex-col pb-24">
       <header className="w-full px-4 h-12 flex items-center justify-between max-w-md sm:max-w-lg mx-auto">
         <button
           type="button"
@@ -111,51 +134,104 @@ export function SceneMediaConsent({
               {errorMsg}
             </div>
           )}
-
-          {currentConsent === 'accepted' && (
-            <div className="rounded-xl border border-[#16A34A]/40 bg-[#F0FDF4] p-4 space-y-2.5 text-left">
-              <div className="flex items-center gap-2 text-xs font-semibold text-[#14532D]">
-                <CheckCircle2 className="w-4 h-4" aria-hidden="true" />
-                <span>미디어월 전시 등록이 완료되었습니다!</span>
-              </div>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={onOpenWall}
-                  className="flex-1 min-h-[44px] px-3 py-2 rounded-lg bg-[#14532D] text-white text-xs font-semibold inline-flex items-center justify-center gap-1.5"
-                >
-                  <Tv className="w-4 h-4" aria-hidden="true" />
-                  <span>박물관 미디어월 보기</span>
-                </button>
-                <button
-                  type="button"
-                  disabled={submitting}
-                  onClick={() => handleChoice('declined')}
-                  className="min-h-[44px] px-3 py-2 rounded-lg border border-[#14532D]/30 bg-white text-xs font-medium text-[#14532D]"
-                >
-                  동의 철회
-                </button>
-              </div>
-            </div>
-          )}
-
-          {currentConsent === 'declined' && (
-            <div className="rounded-xl border border-[#D6CEBE] bg-white p-4 space-y-2.5 text-left">
-              <div className="flex items-center gap-2 text-xs font-semibold text-[#44403C]">
-                <XCircle className="w-4 h-4" aria-hidden="true" />
-                <span>비공개로 설정되었습니다. 생성된 결과와 쿠폰은 그대로 유지됩니다.</span>
-              </div>
-              <button
-                type="button"
-                onClick={onGoToCoupons}
-                className="w-full min-h-[44px] px-4 py-2 rounded-lg bg-[#1C1917] text-white text-xs font-semibold"
-              >
-                혜택 쿠폰함 확인하기
-              </button>
-            </div>
-          )}
         </div>
       </main>
+      {popup && (
+        <div
+          className="fixed inset-0 z-50 bg-[#1C1917]/55 backdrop-blur-xs flex justify-center"
+          role="presentation"
+          onClick={() => {
+            if (!submitting) setPopup(null);
+          }}
+        >
+          <div className="relative w-full max-w-[430px] mx-auto flex items-center justify-center p-4 pointer-events-none">
+            <div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="media-consent-popup-title"
+              onClick={(e) => e.stopPropagation()}
+              className="pointer-events-auto w-full rounded-2xl border-2 border-[#C7B596] bg-[#FBF8F2] p-5 shadow-2xl"
+            >
+              <div className="flex items-center justify-between -mt-1 mb-3">
+                <button
+                  type="button"
+                  onClick={() => setPopup(null)}
+                  disabled={submitting}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-[#57534E] hover:text-[#1C1917] min-h-[44px]"
+                >
+                  <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+                  <span>이전으로 돌아가기</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPopup(null)}
+                  disabled={submitting}
+                  aria-label="닫기"
+                  className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-lg text-[#57534E] hover:bg-[#EFE8DC]"
+                >
+                  <X className="w-5 h-5" aria-hidden="true" />
+                </button>
+              </div>
+
+              {popup === 'accepted' ? (
+                <div className="space-y-4 text-center">
+                  <CheckCircle2 className="w-10 h-10 mx-auto text-[#14532D]" aria-hidden="true" />
+                  <h2
+                    id="media-consent-popup-title"
+                    className="font-serif-kr text-base font-bold text-[#14532D]"
+                  >
+                    미디어월 전시 등록이 완료되었습니다!
+                  </h2>
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={onOpenWall}
+                      className="w-full min-h-[48px] px-4 py-2 rounded-xl bg-[#14532D] text-white text-sm font-semibold inline-flex items-center justify-center gap-1.5"
+                    >
+                      <Tv className="w-4 h-4" aria-hidden="true" />
+                      <span>박물관 미디어월 보기</span>
+                    </button>
+                    <button
+                      type="button"
+                      disabled={submitting}
+                      onClick={() => void handleWithdraw()}
+                      className="w-full min-h-[44px] px-4 py-2 rounded-xl border border-[#14532D]/30 bg-white text-sm font-medium text-[#14532D] disabled:opacity-60"
+                    >
+                      동의 철회
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4 text-center">
+                  <Info className="w-10 h-10 mx-auto text-[#57534E]" aria-hidden="true" />
+                  <h2
+                    id="media-consent-popup-title"
+                    className="font-serif-kr text-base font-bold text-[#1C1917] leading-relaxed"
+                  >
+                    비공개로 설정되었습니다. 생성된 결과와 쿠폰은 그대로 유지됩니다.
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={onGoToCoupons}
+                    className="w-full min-h-[48px] px-4 py-2 rounded-xl bg-[#1C1917] text-white text-sm font-semibold"
+                  >
+                    혜택 쿠폰함 확인하기
+                  </button>
+                </div>
+              )}
+
+              {errorMsg && (
+                <div
+                  role="alert"
+                  className="mt-3 rounded-xl border border-[#9A3412]/40 bg-[#9A3412]/10 px-3 py-2 text-xs text-[#7C2D12]"
+                >
+                  {errorMsg}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
