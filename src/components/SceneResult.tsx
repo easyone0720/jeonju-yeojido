@@ -252,7 +252,7 @@ export function SceneResult({
   };
 
   return (
-    <div className="min-h-app hanji-texture flex flex-col pb-28">
+    <div className="min-h-app hanji-texture flex flex-col pb-24">
       <header className="w-full px-4 h-12 flex items-center justify-between max-w-[430px] mx-auto">
         <button
           type="button"
@@ -434,7 +434,7 @@ export function SceneResult({
               <div className="rounded-xl bg-white border border-[#E5DDD0] p-4 space-y-2.5">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-[#1C1917]">
                   <Gift className="w-4 h-4 text-[#9A3412]" aria-hidden="true" />
-                  <span>{character.title} 맞춤 전생 굿즈 (시연용 안내)</span>
+                  <span>{character.title} 맞춤 전생 굿즈</span>
                 </div>
                 {result.recommendedGoods.map((g) => (
                   <div key={g.id} className="text-xs border-t border-[#F0EAE0] pt-2">

@@ -99,7 +99,7 @@ export function GoodsCheckoutPage({
   if (stage === 'done') {
     return (
       <div className="min-h-app hanji-texture">
-        <div className={`w-full max-w-[430px] mx-auto min-h-app flex flex-col px-4 py-6 safe-pb ${withBottomNav ? 'pb-28' : 'pb-10'}`}>
+        <div className={`w-full max-w-[430px] mx-auto min-h-app flex flex-col px-4 py-6 safe-pb ${withBottomNav ? 'pb-24' : 'pb-10'}`}>
           <div className="text-center space-y-2 pt-2">
             <CheckCircle2 className="w-12 h-12 mx-auto text-[#14532D]" aria-hidden="true" />
             <h1 className="font-serif-kr text-xl font-bold text-[#14532D]">
@@ -314,7 +314,7 @@ export function GoodsCheckoutPage({
 
         <div
           className={`fixed left-0 right-0 max-w-[430px] mx-auto z-40 border-t border-[#E5DDD0] bg-[#FBF8F2]/95 backdrop-blur-md p-3 safe-pb ${
-            withBottomNav ? 'bottom-[72px]' : 'bottom-0'
+            withBottomNav ? 'bottom-[58px]' : 'bottom-0'
           }`}
         >
           <button

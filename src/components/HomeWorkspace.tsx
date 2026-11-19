@@ -59,6 +59,8 @@ interface HomeWorkspaceProps {
   onDismissQrBanner?: () => void;
   onOpenClueScroll?: (spotId: ClueSpotId) => void;
   onChangeTab: (tab: NavTab) => void;
+  /** 도장 4개 미만이면 하단 바 '기념품' 탭에 자물쇠 배지 표시 */
+  goodsLocked?: boolean;
   onSelectSpot: (spotId: SpotId) => void;
   onOpenQrScan: (spotId: SpotId) => void;
   onContinueSpotVerify: (spotId: SpotId) => void;
@@ -77,10 +79,10 @@ interface HomeWorkspaceProps {
 
 /** 추천 관람 순서 (참고용 — 실제 인증 순서는 자유) */
 const RECOMMENDED_ORDER: SpotId[] = [
-  'gyeonggijeon',
-  'jeollagamyeong',
   'wanpanbon',
+  'gyeonggijeon',
   'nambu_market',
+  'jeollagamyeong',
   'jeonju_museum',
 ];
 const CIRCLED_NUMBERS = ['①', '②', '③', '④', '⑤'];
@@ -101,6 +103,7 @@ export function HomeWorkspace({
   onDismissQrBanner,
   onOpenClueScroll,
   onChangeTab,
+  goodsLocked,
   onSelectSpot,
   onOpenQrScan,
   onContinueSpotVerify,
@@ -404,7 +407,7 @@ export function HomeWorkspace({
     : null;
 
   return (
-    <div className="min-h-app hanji-texture flex flex-col pb-28">
+    <div className="min-h-app hanji-texture flex flex-col pb-24">
       {/* Wireframe Top Profile + Progress Header: [Profile Icon] 0 / 4 */}
       <header className="sticky top-0 z-30 border-b border-[#E5DDD0] bg-[#FBF8F2]/95 backdrop-blur-md">
         <div className="mx-auto max-w-5xl px-3 sm:px-6 min-h-14 py-1.5 flex items-center justify-between gap-2 sm:gap-4">
@@ -631,7 +634,7 @@ export function HomeWorkspace({
                   className="absolute inset-0 bg-[#FBF6EB]/10 pointer-events-none ring-1 ring-inset ring-[#6B5439]/30 rounded-2xl"
                   aria-hidden="true"
                 />
-                {/* Percentage-aligned exploration path lines connecting 1->2->3->4->Museum */}
+                {/* Percentage-aligned exploration path lines connecting 1->2->3->4->Museum (완판본→경기전→남부시장→전라감영→박물관) */}
                 <svg
                   viewBox="0 0 100 100"
                   preserveAspectRatio="none"
@@ -639,7 +642,7 @@ export function HomeWorkspace({
                   aria-hidden="true"
                 >
                   <path
-                    d="M 56 54 L 46 33 L 80 68 L 40 74 L 24 18"
+                    d="M 80 68 L 56 54 L 40 74 L 46 33 L 24 18"
                     fill="none"
                     stroke="#FBF8F2"
                     strokeWidth="1.2"
@@ -647,7 +650,7 @@ export function HomeWorkspace({
                     opacity="0.85"
                   />
                   <path
-                    d="M 56 54 L 46 33 L 80 68 L 40 74 L 24 18"
+                    d="M 80 68 L 56 54 L 40 74 L 46 33 L 24 18"
                     fill="none"
                     stroke="#9A3412"
                     strokeWidth="0.65"
@@ -1071,7 +1074,7 @@ export function HomeWorkspace({
         )}
       </main>
 
-      <BottomNav activeTab={activeTab} onChangeTab={onChangeTab} />
+      <BottomNav activeTab={activeTab} onChangeTab={onChangeTab} goodsLocked={goodsLocked} />
 
       {/* Coupon CODE128 Barcode Modal */}
       {(() => {

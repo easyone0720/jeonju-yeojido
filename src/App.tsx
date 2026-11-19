@@ -6,7 +6,6 @@ import { GoodsStorePage } from './components/GoodsStorePage';
 import type { GoodsItem } from './data/goods';
 import { AdminDashboardPage } from './components/AdminDashboardPage';
 import { HomeWorkspace, type QrCompletionBanner } from './components/HomeWorkspace';
-import { MediaWallPage } from './components/MediaWallPage';
 import { RecoveryCodeModal } from './components/RecoveryCodeModal';
 import { RestoreSessionModal } from './components/RestoreSessionModal';
 import { SceneArriveVerify } from './components/SceneArriveVerify';
@@ -534,17 +533,36 @@ export default function App() {
     });
   };
 
+  // 기념품 잠금: 4개 거점(박물관 제외) 방문 도장이 모두 모여야 열린다
+  const stampCount = JEONJU_SPOTS.filter(
+    (s) => s.id !== 'jeonju_museum' && isSpotVisitVerified(session, s.id)
+  ).length;
+  const goodsLocked = stampCount < 4;
+
   const withNav = (node: ReactNode, activeTab: NavTab | null) => (
     <>
       {node}
-      <BottomNav activeTab={activeTab} onChangeTab={handleNavTab} />
-      {mediaVideoOpen && <MediaWallVideo onClose={() => handleNavTab('map')} />}
+      <BottomNav activeTab={activeTab} onChangeTab={handleNavTab} goodsLocked={goodsLocked} />
+      {mediaVideoOpen && <MediaWallVideo onClose={closeMediaWall} />}
     </>
   );
 
-  // Separated Routes: /wall & /admin
+  // 미디어월: 초상화 갤러리 대신 영상 화면을 쓴다. (/wall 로 직접 들어와도 영상, X → '/' 지도 탭)
+  // 모든 '미디어월' 버튼(시작 화면·지도 헤더·박물관 상세·미디어월 동의 완료 화면)이 이 하나의 함수를 쓴다
+  const openMediaWall = () => setMediaVideoOpen(true);
+  const openRoute = (p: RoutePath) => {
+    if (p === '/wall') openMediaWall();
+    else navigateRoute(p);
+  };
+  const closeMediaWall = () => {
+    setMediaVideoOpen(false);
+    if (route === '/wall') navigateRoute('/');
+    // 체험이 시작된 상태면 지도 탭으로, 시작 화면이면 시작 화면으로 돌아간다
+    if (scene !== 1) handleNavTab('map');
+  };
+
   if (route === '/wall') {
-    return <MediaWallPage onBackToApp={() => navigateRoute('/')} />;
+    return <MediaWallVideo onClose={closeMediaWall} />;
   }
 
   if (route === '/admin') {
@@ -577,6 +595,9 @@ export default function App() {
       ) : (
         <GoodsStorePage
           withBottomNav
+          locked={goodsLocked}
+          visitedCount={stampCount}
+          onGoToMap={() => handleNavTab('map')}
           onClose={closeGoodsToResult}
           onSelectGoods={(item) => {
             setGoodsView({ page: 'checkout', item });
@@ -598,8 +619,9 @@ export default function App() {
       <>
         <SceneStart
           onStart={handleStartClick}
-          onNavigateRoute={(p) => navigateRoute(p)}
+          onNavigateRoute={openRoute}
         />
+        {mediaVideoOpen && <MediaWallVideo onClose={closeMediaWall} />}
         <TutorialModal
           open={tutorialOpen}
           onCloseWithoutHide={handleCloseTutorialWithoutHide}
@@ -840,7 +862,7 @@ export default function App() {
           });
         }}
         onSubmitConsent={handleMediaConsentSubmit}
-        onOpenWall={() => navigateRoute('/wall')}
+        onOpenWall={openMediaWall}
         onOpenGoods={() => {
           setGoodsView({ page: 'store' });
           window.scrollTo({ top: 0, behavior: 'auto' });
@@ -881,6 +903,7 @@ export default function App() {
         }
       }}
       onChangeTab={handleNavTab}
+      goodsLocked={goodsLocked}
       onSelectSpot={(spotId) => {
         setJustStampedSpotId(null);
         setSelectedSpotId(spotId);
@@ -935,8 +958,8 @@ export default function App() {
         window.scrollTo({ top: 0, behavior: 'auto' });
       }}
       onUseDemoCoupon={handleUseDemoCoupon}
-      onNavigateRoute={(p) => navigateRoute(p)}
-      onOpenMediaWall={() => setMediaVideoOpen(true)}
+      onNavigateRoute={openRoute}
+      onOpenMediaWall={openMediaWall}
       onGoHome={handleGoHomePreservingRecord}
       onCompleteAllStamps={
         // [QUICK-COMPLETE] 시연·검수용 — features.ts 의 ENABLE_QUICK_COMPLETE_BUTTON 으로 끈다
@@ -949,7 +972,7 @@ export default function App() {
           : undefined
       }
     />
-    {mediaVideoOpen && <MediaWallVideo onClose={() => handleNavTab('map')} />}
+    {mediaVideoOpen && <MediaWallVideo onClose={closeMediaWall} />}
     </>
   );
 }

@@ -262,7 +262,7 @@ export function SceneArriveVerify({
         </div>
       </header>
 
-      <main className="flex-1 mx-auto w-full max-w-md sm:max-w-lg px-4 py-5 flex flex-col justify-between gap-5 pb-28">
+      <main className="flex-1 mx-auto w-full max-w-md sm:max-w-lg px-4 py-5 flex flex-col justify-between gap-5 pb-24">
         <div className="space-y-4">
           {/* Top Status Box with Traditional Red '完' Seal Slam */}
           <section

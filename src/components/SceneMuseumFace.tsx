@@ -138,7 +138,7 @@ export function SceneMuseumFace({ session, onBack, onGenerated }: SceneMuseumFac
   const message = errorMsg ?? (gpsState === 'fail' ? gpsMessage : null);
 
   return (
-    <div className="min-h-app hanji-texture flex flex-col pb-28">
+    <div className="min-h-app hanji-texture flex flex-col pb-24">
       <header className="w-full px-4 h-12 flex items-center justify-between max-w-md sm:max-w-lg mx-auto">
         <button
           type="button"
