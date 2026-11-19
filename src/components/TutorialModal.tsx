@@ -147,7 +147,7 @@ export function TutorialModal({
           {/* Top-Center Visual Header reusing existing Jeonju Hanok illustration */}
           <div className="mx-auto w-full max-w-xs aspect-[16/9] rounded-xl overflow-hidden border border-[#D6CBB9] bg-[#EFE6D4] shadow-xs relative">
             <img
-              src="/assets/aistudio/image_8a6fad13.png"
+              src="/places/hanok_village.jpg"
               alt="전주 경기전과 전통 한옥 풍경"
               className="w-full h-full object-cover"
             />
