@@ -434,6 +434,11 @@ function readCurrentCharacterId(): string | null {
   }
 }
 
+/** 이번 체험(탭)에서 뽑힌 캐릭터 id. 아직 뽑지 않았으면 null (운영자 대시보드 실시간 합산용, 읽기 전용). */
+export function getCurrentCharacterId(): string | null {
+  return getCharacterById(readCurrentCharacterId())?.id ?? null;
+}
+
 function writeCurrentCharacterId(id: string | null): void {
   try {
     if (id) window.sessionStorage.setItem(CURRENT_CHARACTER_KEY, id);

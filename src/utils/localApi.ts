@@ -16,9 +16,10 @@ import {
   Character,
   characterToStory,
   clearCurrentCharacter,
+  getCurrentCharacterId,
   getOrPickCurrentCharacter,
 } from '../data/characters';
-import { DEMO_WALL_SEEDS, HANJI_PRINT_GOODS } from '../data/jeonjuSpots';
+import { DEMO_WALL_SEEDS, HANJI_PRINT_GOODS, JEONJU_SPOTS } from '../data/jeonjuSpots';
 import { canonicalizeSpotId, validateSpotQrCode } from '../data/qrAllowlist';
 import type {
   AppMode,
@@ -183,6 +184,51 @@ export function summarizeCouponsByCategory(sessions: UserSessionState[]): Coupon
 export function getLocalCouponCategoryStats(): CouponCategoryStat[] {
   const s = loadSession('experience');
   return summarizeCouponsByCategory(s ? [s] : []);
+}
+
+/** 운영자 대시보드가 가상 누적 수치에 +1 합산할 '이 브라우저의 현재 체험 기록' */
+export interface AdminLiveSnapshot {
+  /** 체험 세션이 시작되어 있는지 (한옥마을 QR 시작 +1) */
+  hasSession: boolean;
+  /** 방문 인증을 마친 거점 */
+  visitedSpotIds: SpotId[];
+  issuedByCategory: Record<CouponCategory, number>;
+  usedByCategory: Record<CouponCategory, number>;
+  issuedByTemplate: Record<string, number>;
+  usedByTemplate: Record<string, number>;
+  /** 이번 체험에서 뽑힌 전생 캐릭터 id (없으면 null) */
+  characterId: string | null;
+  mediaWallAccepted: boolean;
+  visitorName: string;
+}
+
+/** 현재 탭의 체험 기록을 읽어 운영자 대시보드 합산용 스냅샷으로 만든다. (읽기 전용, 서버 호출 없음) */
+export function getAdminLiveSnapshot(): AdminLiveSnapshot {
+  const s = loadSession('experience');
+  const zero = () => Object.fromEntries(COUPON_CATEGORIES.map((c) => [c, 0])) as Record<CouponCategory, number>;
+  const snap: AdminLiveSnapshot = {
+    hasSession: Boolean(s?.sessionId),
+    visitedSpotIds: [],
+    issuedByCategory: zero(),
+    usedByCategory: zero(),
+    issuedByTemplate: {},
+    usedByTemplate: {},
+    characterId: getCurrentCharacterId(),
+    mediaWallAccepted: s?.mediaWallConsent === 'accepted',
+    visitorName: s?.visitorName ?? '',
+  };
+  if (!s?.sessionId) return snap;
+  snap.visitedSpotIds = JEONJU_SPOTS.filter((spot) => isSpotVisitVerified(s, spot.id)).map((spot) => spot.id);
+  for (const c of s.coupons) {
+    if (!c.unlocked || !c.templateId) continue;
+    snap.issuedByCategory[c.category] += 1;
+    snap.issuedByTemplate[c.templateId] = (snap.issuedByTemplate[c.templateId] ?? 0) + 1;
+    if (c.used) {
+      snap.usedByCategory[c.category] += 1;
+      snap.usedByTemplate[c.templateId] = (snap.usedByTemplate[c.templateId] ?? 0) + 1;
+    }
+  }
+  return snap;
 }
 
 function loadWall(): WallEntry[] {
