@@ -250,7 +250,7 @@ export function createInitialSession(params: {
     mediaWallConsent: 'pending',
     mediaWallEntryId: null,
     currentScene: 3,
-    currentSpotId: 'gyeonggijeon',
+    currentSpotId: 'wanpanbon',
     lastCompletedStep: 'registered',
     spotVerifiedAt: {},
     spotAuthentications: {},
@@ -517,9 +517,13 @@ export function getResumeNavigationState(session: UserSessionState): {
       ? 'jeonju_museum'
       : (JEONJU_SPOTS.find(
           (s) => s.id !== 'jeonju_museum' && !session.visitOrder.includes(s.id as ClueSpotId)
-        )?.id ?? 'gyeonggijeon');
+        )?.id ?? 'wanpanbon');
 
-  const selectedSpotId = session.currentSpotId ?? fallbackSpot;
+  // 아직 아무 거점도 방문하지 않았다면(처음 진입·초기화) 항상 1번 완판본문화관부터 시작한다.
+  const selectedSpotId: SpotId =
+    session.visitOrder.length === 0 && !session.pastLifeResult
+      ? 'wanpanbon'
+      : (session.currentSpotId ?? fallbackSpot);
   const selectedSpotName =
     JEONJU_SPOTS.find((s) => s.id === selectedSpotId)?.name ?? '전주 여지도';
   const tabScene = savedTab === 'clues' ? 4 : savedTab === 'coupons' ? 5 : 3;

@@ -237,7 +237,7 @@ export class JeonsaengDatabase {
         camera: Boolean(params.permissionsAcknowledged.camera),
       },
       currentScene: 3,
-      currentSpotId: 'gyeonggijeon',
+      currentSpotId: 'wanpanbon',
       lastCompletedStep: 'registered',
       recoveryCodeIssued: params.mode === 'experience',
     };

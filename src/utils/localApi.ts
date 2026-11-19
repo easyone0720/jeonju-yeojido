@@ -302,7 +302,7 @@ function handleRegister(body: Record<string, unknown>): Response {
     ...createInitialSession({ sessionId: userId, mode, visitorName, birthDate, companion }),
     permissionsAcknowledged: { location: true, camera: true },
     currentScene: 3,
-    currentSpotId: 'gyeonggijeon',
+    currentSpotId: 'wanpanbon',
     lastCompletedStep: 'registered',
     recoveryCodeIssued: false, // 로컬 모드는 복구 코드를 발급하지 않는다
   };
