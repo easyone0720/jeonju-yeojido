@@ -20,6 +20,7 @@ import {
 import { verifySpotLocation } from '../utils/pastLifeEngine';
 import { getAuthHeaders } from '../utils/storage';
 import { CompleteSealStamp } from './CompleteSealStamp';
+import { apiFetch } from '../utils/localApi';
 
 interface SceneArriveVerifyProps {
   sessionId: string;
@@ -80,7 +81,7 @@ export function SceneArriveVerify({
       setAuthError(null);
 
       try {
-        const res = await fetch(
+        const res = await apiFetch(
           `/api/session/${encodeURIComponent(sessionId)}/verify-spot`,
           {
             method: 'POST',

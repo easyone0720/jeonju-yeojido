@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { JEONJU_SPOTS } from '../data/jeonjuSpots';
 import { AdminDashboardStats } from '../types/jeonju';
+import { apiFetch } from '../utils/localApi';
 
 interface AdminDashboardPageProps {
   onBackToApp: () => void;
@@ -36,7 +37,7 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
     setLoading(true);
     setAuthError(null);
     try {
-      const res = await fetch('/api/admin/stats', {
+      const res = await apiFetch('/api/admin/stats', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ passcode: code }),
@@ -87,7 +88,7 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
     setCouponRedeeming(true);
     setCouponRedeemResult(null);
     try {
-      const res = await fetch('/api/admin/coupons/redeem', {
+      const res = await apiFetch('/api/admin/coupons/redeem', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

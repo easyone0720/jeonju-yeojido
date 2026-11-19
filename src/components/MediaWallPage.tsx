@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, Pause, Play, RefreshCw, ScrollText } from 'lucide-react';
 import { WallEntry } from '../types/jeonju';
 import { synthesizeJoseonPortrait } from '../utils/portraitPainter';
+import { apiFetch } from '../utils/localApi';
 
 interface MediaWallPageProps {
   onBackToApp: () => void;
@@ -17,7 +18,7 @@ export function MediaWallPage({ onBackToApp }: MediaWallPageProps) {
 
   const fetchWallEntries = async () => {
     try {
-      const res = await fetch('/api/wall');
+      const res = await apiFetch('/api/wall');
       if (!res.ok) return;
       const data = (await res.json()) as {
         liveEntries: WallEntry[];

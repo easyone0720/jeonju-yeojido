@@ -39,6 +39,7 @@ import { CompleteSealStamp } from './CompleteSealStamp';
 import { CouponBarcodeModal } from './CouponBarcodeModal';
 import { JeonjuNaverMap, type NaverMapLoadStatus } from './JeonjuNaverMap';
 import { TangramClueBoard, type ClueGridMeta } from './TangramClueBoard';
+import { apiFetch } from '../utils/localApi';
 
 export interface QrCompletionBanner {
   spotId: SpotId;
@@ -121,7 +122,7 @@ export function HomeWorkspace({
       setMapViewMode('naver');
       return;
     }
-    fetch('/api/config/map')
+    apiFetch('/api/config/map')
       .then((res) => (res.ok ? res.json() : null))
       .then((data: { configured?: boolean } | null) => {
         if (data?.configured) {

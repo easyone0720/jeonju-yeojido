@@ -16,7 +16,9 @@ import {
   verifySpotLocation,
 } from '../utils/pastLifeEngine';
 import { getAuthHeaders } from '../utils/storage';
-import { synthesizeJoseonPortrait } from '../utils/portraitPainter';
+import { downscaleImageDataUrl, synthesizeJoseonPortrait } from '../utils/portraitPainter';
+import { ENABLE_AI_GENERATION, USE_LOCAL_BACKEND } from '../config/features';
+import { apiFetch } from '../utils/localApi';
 
 interface SceneMuseumFaceProps {
   session: UserSessionState;
@@ -165,7 +167,11 @@ export function SceneMuseumFace({
       return;
     }
     if (!privacyAgreed) {
-      setErrorMsg('초상화 생성 목적 및 원본 사진 즉시 파기 안내에 동의해 주세요.');
+      setErrorMsg(
+        ENABLE_AI_GENERATION
+          ? 'AI 생성을 위한 사진 전송·미저장 안내에 동의해 주세요.'
+          : '사진 사용 안내에 동의해 주세요.',
+      );
       return;
     }
     if (!museumGpsVerified) {
@@ -187,17 +193,31 @@ export function SceneMuseumFace({
         sessionId: session.sessionId,
       });
 
-      const portraitDataUrl = await synthesizeJoseonPortrait({
-        faceImageDataUrl: useIllustratedFallback ? null : capturedFaceUrl,
-        archetypeId: archetype.id,
-        title: archetype.title,
-        hanjaTitle: archetype.hanjaTitle,
-        visitorName: session.visitorName,
-      });
+      // 로컬 단독 모드는 고정 캐릭터 일러스트를 쓰므로 캔버스 초상화를 만들지 않는다 (서버 모드의 폴백용으로만 생성)
+      const portraitDataUrl = USE_LOCAL_BACKEND
+        ? ''
+        : await synthesizeJoseonPortrait({
+            faceImageDataUrl: useIllustratedFallback ? null : capturedFaceUrl,
+            archetypeId: archetype.id,
+            title: archetype.title,
+            hanjaTitle: archetype.hanjaTitle,
+            visitorName: session.visitorName,
+          });
+
+      // AI 생성이 켜져 있고 동의한 경우에만, 줄인 얼굴 사진을 서버(→ Gemini 참조 이미지)로 보낸다. 서버는 저장하지 않는다.
+      // AI 생성이 꺼져 있으면(기본) 사진은 이 기기 화면 밖으로 나가지 않는다.
+      let faceImageForAi: string | null = null;
+      if (ENABLE_AI_GENERATION && !useIllustratedFallback && capturedFaceUrl) {
+        try {
+          faceImageForAi = await downscaleImageDataUrl(capturedFaceUrl);
+        } catch {
+          faceImageForAi = null; // 사진 처리에 실패해도 얼굴 없이 계속 진행
+        }
+      }
 
       setCapturedFaceUrl(null);
 
-      const response = await fetch('/api/past-life/generate', {
+      const response = await apiFetch('/api/past-life/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -207,6 +227,8 @@ export function SceneMuseumFace({
         body: JSON.stringify({
           sessionId: session.sessionId,
           portraitDataUrl,
+          faceImageDataUrl: faceImageForAi,
+          faceConsent: Boolean(faceImageForAi) && privacyAgreed,
           coords: museumCoords,
           mode: session.mode,
         }),
@@ -338,7 +360,9 @@ export function SceneMuseumFace({
               <Square className="w-4 h-4 text-[#78716C] shrink-0 mt-0.5" aria-hidden="true" />
             )}
             <span className="text-xs text-[#44403C] leading-snug">
-              AI 초상화 생성에만 사용되며 생성 즉시 원본 사진이 파기됨에 동의합니다.
+              {ENABLE_AI_GENERATION
+                ? 'AI 전생 일러스트 생성을 위해 사진이 Google Gemini API로 전송되며, 우리 서버에는 저장되지 않음에 동의합니다.'
+                : '촬영한 사진은 이 기기 화면에서만 사용되며 서버나 외부로 전송·저장되지 않음을 확인했습니다.'}
             </span>
           </button>
 
@@ -359,7 +383,9 @@ export function SceneMuseumFace({
             className="w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#9A3412] text-white font-semibold text-base hover:bg-[#7C2D12] disabled:opacity-60 transition-colors"
           >
             {generating
-              ? '전생 초상화 생성 중...'
+              ? ENABLE_AI_GENERATION
+                ? 'AI가 전생을 그리는 중... (최대 1분)'
+                : '전생을 확인하는 중...'
               : capturedFaceUrl
                 ? '전생 확인하기'
                 : cameraActive

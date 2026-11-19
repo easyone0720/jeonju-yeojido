@@ -71,6 +71,10 @@ export interface CouponRecord {
   isDemoCoupon: boolean;
   unlocked: boolean;
   unlockedAt?: string;
+  /** 발급 시 계산되는 유효기간 (ISO). 없으면 expiresLabel 안내 문구를 쓴다 */
+  expiresAt?: string;
+  /** 발급 시 생성되는 바코드 번호 (시연용은 JSYJ-DEMO-… 형식) */
+  barcodeNumber?: string;
   used: boolean;
   usedAt?: string;
 }
@@ -98,6 +102,30 @@ export interface PastLifeArchetype {
   goods: GoodsItem;
 }
 
+/** 그날의 대화 한 줄. speaker가 빈 문자열이면 지문(괄호 연출)으로 렌더링한다. */
+export interface StoryDialogueLine {
+  speaker: string;
+  text: string;
+}
+
+/** 결과 화면의 4개 섹션(전생 설정 / 그날의 대화 / 전생 결과 / 인생 마무리) 본문 */
+export interface PastLifeStory {
+  /** 전생 직업 타이틀 (예: 몰락 직전 양반가 주막 사장) */
+  jobTitle: string;
+  /** 📜 전생 설정 */
+  setting: string;
+  /** 🎬 그날의 대화 */
+  dialogue: StoryDialogueLine[];
+  /** 🏆 전생 결과 */
+  outcome: {
+    job: string;
+    reputation: string;
+    achievement: string;
+  };
+  /** ⚰️ 인생 마무리 */
+  ending: string;
+}
+
 export interface PastLifeResult {
   sessionId: string;
   archetypeId: ArchetypeId;
@@ -113,6 +141,10 @@ export interface PastLifeResult {
   portraitDataUrl: string;
   generatedAt: string;
   generationSource: 'gemini-ai' | 'curated-demo';
+  /** 4개 섹션 구조의 전생 스토리. 이 필드가 없는 이전 기록은 기본 샘플로 표시한다. */
+  story?: PastLifeStory;
+  /** 초상 이미지 출처: Gemini 이미지 모델 / 브라우저 캔버스 전통 초상화(폴백) */
+  portraitSource?: 'gemini-image' | 'canvas-painter';
   historicalDisclaimer: string;
   recommendedGoods: GoodsItem[];
 }

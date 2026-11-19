@@ -1,3 +1,4 @@
+import { CHARACTERS, characterToStory } from '../data/characters';
 import { ArchetypeId, PastLifeResult } from '../types/jeonju';
 
 interface AttireColors {
@@ -60,6 +61,28 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     img.onerror = () => reject(new Error('이미지 로드에 실패했습니다.'));
     img.src = src;
   });
+}
+
+/**
+ * 얼굴 사진을 Gemini 참조 이미지로 보내기 전에 줄이고 JPEG로 재인코딩한다.
+ * (전송 용량 절감 + HEIC 등 비표준 포맷 정규화 + EXIF 위치 정보 제거: canvas를 거치면 메타데이터가 남지 않는다)
+ */
+export async function downscaleImageDataUrl(
+  dataUrl: string,
+  maxSide = 768,
+  quality = 0.82
+): Promise<string> {
+  const img = await loadImage(dataUrl);
+  const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight));
+  const width = Math.max(1, Math.round(img.naturalWidth * scale));
+  const height = Math.max(1, Math.round(img.naturalHeight * scale));
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('캔버스 렌더링을 지원하지 않는 브라우저입니다.');
+  ctx.drawImage(img, 0, 0, width, height);
+  return canvas.toDataURL('image/jpeg', quality);
 }
 
 /**
@@ -441,16 +464,58 @@ function drawHeadgear(
   ctx.restore();
 }
 
+/** 캔버스 텍스트 줄바꿈 (글자 단위, 한국어용). 그린 마지막 줄의 다음 y 좌표를 돌려준다. */
+function drawWrappedText(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  maxWidth: number,
+  lineHeight: number,
+  maxLines: number
+): number {
+  let line = '';
+  let lines = 0;
+  let cursorY = y;
+  const flush = () => {
+    ctx.fillText(line, x, cursorY);
+    cursorY += lineHeight;
+    lines += 1;
+  };
+  for (const paragraph of text.split('\n')) {
+    line = '';
+    for (const ch of paragraph) {
+      if (ctx.measureText(line + ch).width > maxWidth) {
+        if (lines >= maxLines - 1) {
+          line = `${line.slice(0, -1)}…`;
+          flush();
+          return cursorY;
+        }
+        flush();
+        line = ch;
+      } else {
+        line += ch;
+      }
+    }
+    if (line) {
+      if (lines >= maxLines) return cursorY;
+      flush();
+    }
+  }
+  return cursorY;
+}
+
 /**
- * Exports a complete archival record card PNG combining the portrait + title + one-line summary
- * so the user can download and keep their full result from Scene 10 ("저장하기").
+ * Exports a complete archival record card PNG combining the portrait + job title + the 4-section story
+ * (전생 설정 / 전생 결과 / 인생 마무리) so the user can download and keep their full result ("저장하기").
  */
 export async function buildDownloadableResultCard(
   result: PastLifeResult,
   visitorName: string
 ): Promise<string> {
+  const story = result.story ?? characterToStory(CHARACTERS[0]);
   const width = 900;
-  const height = 1320;
+  const height = 1700;
   const canvas = document.createElement('canvas');
   canvas.width = width;
   canvas.height = height;
@@ -470,68 +535,78 @@ export async function buildDownloadableResultCard(
   ctx.textAlign = 'center';
   ctx.fillText('전생여지도 · 국립전주박물관 체험 기록', width / 2, 76);
 
-  // Portrait
+  // Portrait (3:4)
   try {
     const portraitImg = await loadImage(result.portraitDataUrl);
-    ctx.drawImage(portraitImg, 180, 108, 540, 720);
+    // 9:16 등 어떤 비율이든 3:4 칸에 중앙 크롭(cover)으로 채운다
+    const targetRatio = 540 / 720;
+    const srcRatio = portraitImg.width / portraitImg.height;
+    let sx = 0;
+    let sy = 0;
+    let sw = portraitImg.width;
+    let sh = portraitImg.height;
+    if (srcRatio < targetRatio) {
+      sh = sw / targetRatio;
+      sy = (portraitImg.height - sh) / 2;
+    } else {
+      sw = sh * targetRatio;
+      sx = (portraitImg.width - sw) / 2;
+    }
+    ctx.drawImage(portraitImg, sx, sy, sw, sh, 180, 108, 540, 720);
   } catch {
     ctx.fillStyle = '#EBE6DF';
     ctx.fillRect(180, 108, 540, 720);
   }
 
-  // Title
-  ctx.fillStyle = '#1C1917';
-  ctx.font = '700 44px "Noto Serif KR", serif';
-  ctx.fillText(`${result.title} (${result.hanjaTitle})`, width / 2, 895);
-
-  ctx.fillStyle = '#57534E';
+  // Title: [이름] 님의 전생 기록 + 직업
+  ctx.fillStyle = '#78716C';
   ctx.font = '500 22px "Noto Sans KR", sans-serif';
-  ctx.fillText(
-    `${visitorName ? `${visitorName} 님의 전생 · ` : ''}${result.era}`,
-    width / 2,
-    938
-  );
+  ctx.fillText(`${visitorName.trim() || '전주 나그네'} 님의 전생 기록`, width / 2, 874);
+
+  ctx.fillStyle = '#1C1917';
+  ctx.font = '700 42px "Noto Serif KR", serif';
+  const titleBottom = drawWrappedText(ctx, story.jobTitle, width / 2, 928, 760, 54, 2);
 
   // Divider
+  let y = titleBottom + 6;
   ctx.strokeStyle = '#D6CEBE';
   ctx.lineWidth = 1.5;
   ctx.beginPath();
-  ctx.moveTo(110, 968);
-  ctx.lineTo(width - 110, 968);
+  ctx.moveTo(110, y);
+  ctx.lineTo(width - 110, y);
   ctx.stroke();
+  y += 50;
 
-  // Wrapped biography text
-  ctx.fillStyle = '#292524';
-  ctx.font = '400 22px "Noto Sans KR", sans-serif';
-  ctx.textAlign = 'left';
-  const maxWidth = 680;
   const startX = 110;
-  let lineY = 1018;
-  const chars = result.biography.split('');
-  let line = '';
-  for (const ch of chars) {
-    const testLine = line + ch;
-    if (ctx.measureText(testLine).width > maxWidth) {
-      ctx.fillText(line, startX, lineY);
-      line = ch;
-      lineY += 36;
-      if (lineY > 1230) break;
-    } else {
-      line = testLine;
-    }
-  }
-  if (line && lineY <= 1230) {
-    ctx.fillText(line, startX, lineY);
-  }
+  const maxWidth = 680;
+  ctx.textAlign = 'left';
+
+  const drawSection = (label: string, body: string, maxLines: number) => {
+    ctx.fillStyle = '#9A3412';
+    ctx.font = '700 24px "Noto Sans KR", sans-serif';
+    ctx.fillText(label, startX, y);
+    y += 36;
+    ctx.fillStyle = '#292524';
+    ctx.font = '400 22px "Noto Sans KR", sans-serif';
+    y = drawWrappedText(ctx, body, startX, y, maxWidth, 34, maxLines) + 18;
+  };
+
+  drawSection('전생 설정', story.setting, 4);
+  drawSection(
+    '전생 결과',
+    `직업  ${story.outcome.job}\n평판  ${story.outcome.reputation}\n업적  ${story.outcome.achievement}`,
+    6
+  );
+  drawSection('인생 마무리', story.ending, 4);
 
   // Footer disclaimer
   ctx.fillStyle = '#78716C';
   ctx.font = '400 16px "Noto Sans KR", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(
-    '전주의 역사적 배경을 바탕으로 구성된 가상 체험 서사입니다 · 전생여지도',
+    '전주의 역사적 배경을 바탕으로 AI가 구성한 가상 체험 서사입니다 · 전생여지도',
     width / 2,
-    1274
+    height - 52
   );
 
   return canvas.toDataURL('image/png');

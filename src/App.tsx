@@ -43,6 +43,7 @@ import {
   hideTutorialForToday,
   shouldShowTutorial,
 } from './utils/tutorialStorage';
+import { apiFetch } from './utils/localApi';
 
 type RoutePath = '/' | '/wall' | '/admin';
 
@@ -90,7 +91,7 @@ export default function App() {
     const params = new URLSearchParams(window.location.search);
     if (params.get('autostart') === '1') {
       // Quick automated test entry using demo mode without polluting experience records
-      fetch('/api/auth/register', {
+      apiFetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'same-origin',
@@ -134,7 +135,7 @@ export default function App() {
     setSession(next);
     if (!next.sessionId) return;
     try {
-      const res = await fetch(`/api/session/${encodeURIComponent(next.sessionId)}`, {
+      const res = await apiFetch(`/api/session/${encodeURIComponent(next.sessionId)}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -181,7 +182,7 @@ export default function App() {
 
   const checkExistingAuthOrGoToInput = useCallback(async (chosenMode: AppMode) => {
     try {
-      const res = await fetch(`/api/auth/me?mode=${encodeURIComponent(chosenMode)}`, {
+      const res = await apiFetch(`/api/auth/me?mode=${encodeURIComponent(chosenMode)}`, {
         headers: getAuthHeaders(chosenMode),
         credentials: 'same-origin',
       });
@@ -235,7 +236,7 @@ export default function App() {
     companion: CompanionType;
     permissionsAcknowledged: { location: boolean; camera: boolean };
   }) => {
-    const res = await fetch('/api/auth/register', {
+    const res = await apiFetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
@@ -282,7 +283,7 @@ export default function App() {
     birthDate: string;
     recoveryCode: string;
   }) => {
-    const res = await fetch('/api/auth/recover', {
+    const res = await apiFetch('/api/auth/recover', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
@@ -313,7 +314,7 @@ export default function App() {
     qrCodeValue: string,
     options?: { demoSimulated?: boolean }
   ) => {
-    const res = await fetch(
+    const res = await apiFetch(
       `/api/session/${encodeURIComponent(session.sessionId)}/verify-qr`,
       {
         method: 'POST',
@@ -402,7 +403,7 @@ export default function App() {
     spotPhotoCaptured: boolean;
     qrCodeValue?: string | null;
   }) => {
-    const res = await fetch(
+    const res = await apiFetch(
       `/api/session/${encodeURIComponent(session.sessionId)}/claim`,
       {
         method: 'POST',
@@ -447,7 +448,7 @@ export default function App() {
   };
 
   const handleUseDemoCoupon = async (couponId: string) => {
-    const res = await fetch(
+    const res = await apiFetch(
       `/api/session/${encodeURIComponent(session.sessionId)}/coupons/${encodeURIComponent(couponId)}/use`,
       {
         method: 'POST',
@@ -483,7 +484,7 @@ export default function App() {
 
   // Scene 11 Consent Submit
   const handleMediaConsentSubmit = async (consent: 'accepted' | 'declined') => {
-    const res = await fetch('/api/wall/consent', {
+    const res = await apiFetch('/api/wall/consent', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -514,7 +515,7 @@ export default function App() {
 
   // Explicit User-Confirmed Record Deletion
   const handleDeleteCurrentRecord = async () => {
-    const res = await fetch(
+    const res = await apiFetch(
       `/api/auth/record?mode=${encodeURIComponent(session.mode)}`,
       {
         method: 'DELETE',
@@ -585,7 +586,7 @@ export default function App() {
             const modeToClear = restoreModalSession?.mode ?? 'experience';
             setRestoreModalSession(null);
             try {
-              await fetch('/api/auth/logout', {
+              await apiFetch('/api/auth/logout', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',

@@ -13,6 +13,7 @@ import {
   isSpotClueOrPastLifeCompleted,
   isSpotVisitVerified,
 } from '../utils/pastLifeEngine';
+import { apiFetch } from '../utils/localApi';
 
 interface NaverLatLng {
   lat(): number;
@@ -217,7 +218,7 @@ export function JeonjuNaverMap({
       return;
     }
 
-    fetch('/api/config/map')
+    apiFetch('/api/config/map')
       .then((res) => (res.ok ? res.json() : null))
       .then((data: { naverMapClientId?: string } | null) => {
         if (cancelled) return;
