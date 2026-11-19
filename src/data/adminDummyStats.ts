@@ -24,6 +24,8 @@ export interface AdminKpi {
   value: string;
   unit?: string;
   description: string;
+  /** description 안에서 강조색으로 보여줄 부분 문자열 */
+  highlight?: string;
 }
 
 export const ADMIN_KPIS: AdminKpi[] = [
@@ -33,6 +35,7 @@ export const ADMIN_KPIS: AdminKpi[] = [
     value: '68.4',
     unit: '%',
     description: '한옥마을 외 거점 이동률 · 박물관 유입 기존 3% → 34.2% 상승',
+    highlight: '3% → 34.2% 상승',
   },
   {
     id: 'completion',

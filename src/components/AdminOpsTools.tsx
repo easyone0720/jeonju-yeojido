@@ -25,7 +25,7 @@ export function AdminOpsTools({ showCouponRedeem, passcode }: AdminOpsToolsProps
         map[spot.id] = await QRCode.toDataURL(spot.qrCodeValue, {
           width: 220,
           margin: 2,
-          color: { dark: '#1C1917', light: '#FBF8F2' },
+          color: { dark: '#1B2632', light: '#EEE9DF' },
         });
       }
       if (!cancelled) setQrImages(map);
@@ -75,33 +75,33 @@ export function AdminOpsTools({ showCouponRedeem, passcode }: AdminOpsToolsProps
 
   return (
     <div className="space-y-6">
-      <section className="rounded-2xl border border-[#E5DDD0] bg-white p-5 space-y-4">
-        <div className="flex items-center gap-2 border-b border-[#F0EAE0] pb-3">
-          <QrCode className="w-4 h-4 text-[#9A3412]" aria-hidden="true" />
-          <h2 className="font-serif-kr text-lg font-bold text-[#1C1917]">현장 안내판 설치용 장소 QR코드</h2>
+      <section className="rounded-xl border border-[#C9C1B1] bg-[#EEE9DF] p-5 space-y-4">
+        <div className="flex items-center gap-2 border-b border-[#C9C1B1] pb-3">
+          <QrCode className="w-4 h-4 text-[#A35139]" aria-hidden="true" />
+          <h2 className="text-lg font-bold tracking-tight text-[#1B2632]">현장 안내판 설치용 장소 QR코드</h2>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           {JEONJU_SPOTS.map((spot) => (
             <div
               key={spot.id}
-              className="rounded-xl border border-[#E5DDD0] bg-[#FBF8F2] p-3 flex flex-col items-center text-center space-y-2"
+              className="rounded-xl border border-[#C9C1B1] bg-[#E5DEC9] p-3 flex flex-col items-center text-center space-y-2"
             >
               {qrImages[spot.id] && (
                 <img
                   src={qrImages[spot.id]}
                   alt={`${spot.name} 공식 QR코드`}
-                  className="w-32 h-32 rounded-lg border border-[#E5DDD0]"
+                  className="w-32 h-32 rounded-lg border border-[#C9C1B1]"
                 />
               )}
               <div>
-                <p className="text-sm font-bold text-[#1C1917]">{spot.name}</p>
-                <p className="text-xs font-mono-tabular text-[#57534E] break-all">{spot.qrCodeValue}</p>
+                <p className="text-sm font-bold text-[#1B2632]">{spot.name}</p>
+                <p className="text-xs tabular-nums text-[#2C3B4D] break-all">{spot.qrCodeValue}</p>
               </div>
               {qrImages[spot.id] && (
                 <a
                   href={qrImages[spot.id]}
                   download={`QR_${spot.name}.png`}
-                  className="min-h-[36px] px-3 py-1 rounded-lg border border-[#D6CEBE] bg-white text-xs font-medium text-[#1C1917] hover:bg-[#F2ECE1] inline-flex items-center gap-1"
+                  className="min-h-[36px] px-3 py-1 rounded-lg border border-[#C9C1B1] bg-[#EEE9DF] text-xs font-medium text-[#1B2632] hover:bg-[#C9C1B1] inline-flex items-center gap-1"
                 >
                   <Download className="w-3.5 h-3.5" aria-hidden="true" />
                   <span>저장</span>
@@ -113,14 +113,14 @@ export function AdminOpsTools({ showCouponRedeem, passcode }: AdminOpsToolsProps
       </section>
 
       {showCouponRedeem && (
-        <section className="rounded-2xl border-2 bg-white p-5 space-y-4" style={{ borderColor: 'var(--coupon-primary)' }}>
-          <div className="flex items-center gap-2 border-b border-[#F0EAE0] pb-3">
+        <section className="rounded-xl border-2 bg-[#EEE9DF] p-5 space-y-4" style={{ borderColor: '#A35139' }}>
+          <div className="flex items-center gap-2 border-b border-[#C9C1B1] pb-3">
             <Ticket className="w-4 h-4 text-[#A35139]" aria-hidden="true" />
-            <h2 className="section-heading text-lg font-bold text-[#1C1917]">
+            <h2 className="text-lg font-bold tracking-tight text-[#1B2632]">
               제휴 매장 · 운영자 쿠폰 바코드 검증 및 사용 확정
             </h2>
           </div>
-          <p className="text-xs text-[#44403C]">
+          <p className="text-xs text-[#2C3B4D]">
             발급된 쿠폰 바코드(JSYJ-LV-...)를 검증하여 중복 사용 없이 단 1회만 사용 확정 처리합니다. 시연용(DEMO) 바코드는 실제 매장 사용이 차단됩니다.
           </p>
           <form onSubmit={handleRedeemCouponCode} className="flex flex-col sm:flex-row gap-2.5">
@@ -130,13 +130,13 @@ export function AdminOpsTools({ showCouponRedeem, passcode }: AdminOpsToolsProps
               onChange={(e) => setCouponCodeInput(e.target.value)}
               placeholder="예: JSYJ-LV-GJ-XXXXXXXX-XXXX"
               aria-label="쿠폰 바코드 번호 입력"
-              className="flex-1 min-h-[48px] px-4 py-2 rounded-xl border border-[#D6CEBE] bg-[#FBF8F2] text-sm font-mono-tabular uppercase text-[#1C1917]"
+              className="flex-1 min-h-[48px] px-4 py-2 rounded-xl border border-[#C9C1B1] bg-[#EEE9DF] text-sm tabular-nums uppercase text-[#1B2632]"
             />
             <button
               type="submit"
               disabled={couponRedeeming}
-              className="min-h-[48px] px-5 py-2 rounded-xl text-white text-sm font-bold whitespace-nowrap disabled:opacity-60"
-              style={{ backgroundColor: 'var(--coupon-primary)' }}
+              className="min-h-[48px] px-5 py-2 rounded-xl text-[#EEE9DF] text-sm font-bold whitespace-nowrap disabled:opacity-60"
+              style={{ backgroundColor: '#A35139' }}
             >
               {couponRedeeming ? '검증 중...' : '바코드 검증 · 사용 확정'}
             </button>
@@ -146,8 +146,8 @@ export function AdminOpsTools({ showCouponRedeem, passcode }: AdminOpsToolsProps
               role="status"
               className={`rounded-xl border px-4 py-3 flex items-center gap-2 text-xs font-semibold ${
                 couponRedeemResult.ok
-                  ? 'border-[#16A34A] bg-[#F0FDF4] text-[#14532D]'
-                  : 'border-[#B91C1C] bg-[#FEF2F2] text-[#B91C1C]'
+                  ? 'border-[#2C3B4D] bg-[#EEE9DF] text-[#1B2632]'
+                  : 'border-[#A35139] bg-[#EEE9DF] text-[#A35139]'
               }`}
             >
               {couponRedeemResult.ok ? (

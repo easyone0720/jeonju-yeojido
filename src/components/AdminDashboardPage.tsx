@@ -1,5 +1,5 @@
 import { FormEvent, ReactNode, useMemo, useState } from 'react';
-import { ArrowLeft, ArrowRight, Check, Lock, RefreshCw, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, Lock, RefreshCw } from 'lucide-react';
 import { USE_LOCAL_BACKEND } from '../config/features';
 import { CHARACTERS } from '../data/characters';
 import {
@@ -23,19 +23,24 @@ interface AdminDashboardPageProps {
   onBackToApp: () => void;
 }
 
-const NAVY = '#14213D';
-const BURGUNDY = '#7F1D1D';
+// 디자인 팔레트 (6색만 사용)
+const PALLADIAN = '#EEE9DF'; // 카드 표면 · 밝은 버튼
+const OATMEAL = '#C9C1B1'; // 테두리 · 구분선 · 막대 빈 트랙
+const ABYSS = '#1B2632'; // 헤더 · KPI 숫자 · 핵심 제목
+const BLUE = '#2C3B4D'; // 1순위 데이터 · 퍼널 메인 · 보조 제목
+const TRUFFLE = '#A35139'; // 핵심 강조 · 배지
+const FLAME = '#FFB162'; // 2순위 비교 · 활성 토글 · 인사이트
+const PAGE_BG = '#E5DEC9'; // Oatmeal 계열 톤다운 바탕
+const FUNNEL_COLORS = [ABYSS, BLUE, TRUFFLE, FLAME];
+const SANS = "'Pretendard', 'Noto Sans KR', 'Malgun Gothic', 'Apple SD Gothic Neo', system-ui, sans-serif";
 
 const fmt = (n: number) => n.toLocaleString('ko-KR');
 const pct = (part: number, whole: number) => (whole > 0 ? (part / whole) * 100 : 0);
 
 function LiveBadge({ children }: { children: ReactNode }) {
   return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold text-white whitespace-nowrap"
-      style={{ backgroundColor: BURGUNDY }}
-    >
-      <Sparkles className="w-3 h-3" aria-hidden="true" />
+    <span className="inline-flex items-center gap-1 rounded-md bg-[#A35139] px-2 py-0.5 text-xs font-medium text-[#EEE9DF] whitespace-nowrap">
+      <span aria-hidden="true">•</span>
       {children}
     </span>
   );
@@ -43,12 +48,12 @@ function LiveBadge({ children }: { children: ReactNode }) {
 
 function SectionCard({ title, subtitle, children }: { title: string; subtitle?: string; children: ReactNode }) {
   return (
-    <section className="rounded-2xl border border-[#E5DDD0] bg-white p-5 sm:p-6 space-y-4 shadow-sm">
-      <div className="border-b border-[#F0EAE0] pb-3">
-        <h2 className="font-serif-kr text-lg font-bold" style={{ color: NAVY }}>
+    <section className="rounded-xl border border-[#C9C1B1] bg-[#EEE9DF] p-5 sm:p-6 space-y-4 shadow-sm">
+      <div className="border-b border-[#C9C1B1] pb-3">
+        <h2 className="text-lg font-bold tracking-tight text-[#1B2632]" style={{ fontFamily: SANS }}>
           {title}
         </h2>
-        {subtitle && <p className="text-xs text-[#57534E] mt-0.5">{subtitle}</p>}
+        {subtitle && <p className="text-xs text-[#2C3B4D] mt-0.5">{subtitle}</p>}
       </div>
       {children}
     </section>
@@ -168,17 +173,17 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
   // ---- 서버 모드 인증 화면 ---------------------------------------------------------------
   if (!authenticated) {
     return (
-      <div className="min-h-app hanji-texture flex items-center justify-center px-4 py-10">
+      <div className="min-h-app flex items-center justify-center px-4 py-10" style={{ backgroundColor: PAGE_BG, color: ABYSS, fontFamily: SANS }}>
         <form
           onSubmit={handleLogin}
-          className="w-full max-w-md rounded-2xl border border-[#E5DDD0] bg-white p-6 sm:p-8 shadow-sm space-y-5"
+          className="w-full max-w-md rounded-xl border border-[#C9C1B1] bg-[#EEE9DF] p-6 sm:p-8 shadow-sm space-y-5"
         >
           <div className="space-y-1.5">
-            <div className="flex items-center gap-2 text-xs font-semibold text-[#9A3412]">
+            <div className="flex items-center gap-2 text-xs font-semibold text-[#A35139]">
               <Lock className="w-4 h-4" aria-hidden="true" />
               <span>관리자 전용 접근</span>
             </div>
-            <h1 className="font-serif-kr text-2xl font-bold text-[#1C1917]">전생여지도 운영 현황</h1>
+            <h1 className="font-serif-kr text-2xl font-bold text-[#1B2632]">전생여지도 운영 현황</h1>
           </div>
           <input
             id="admin-passcode"
@@ -187,10 +192,10 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
             value={passcode}
             onChange={(e) => setPasscode(e.target.value)}
             placeholder="인증 코드를 입력하세요"
-            className="w-full min-h-[48px] px-4 py-2.5 rounded-xl border border-[#D6CEBE] bg-[#FBF8F2] text-base"
+            className="w-full min-h-[48px] px-4 py-2.5 rounded-xl border border-[#C9C1B1] bg-[#C9C1B1] text-base"
           />
           {authError && (
-            <p role="alert" className="text-xs font-medium text-[#9A3412]">
+            <p role="alert" className="text-xs font-medium text-[#A35139]">
               {authError}
             </p>
           )}
@@ -198,15 +203,15 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
             <button
               type="submit"
               disabled={authLoading}
-              className="w-full min-h-[48px] rounded-xl text-white font-semibold text-sm"
-              style={{ backgroundColor: NAVY }}
+              className="w-full min-h-[48px] rounded-xl text-[#EEE9DF] font-semibold text-sm"
+              style={{ backgroundColor: ABYSS }}
             >
               {authLoading ? '확인 중...' : '운영 대시보드 열기'}
             </button>
             <button
               type="button"
               onClick={onBackToApp}
-              className="w-full min-h-[44px] rounded-xl border border-[#D6CEBE] bg-[#FBF8F2] text-xs font-semibold text-[#1C1917]"
+              className="w-full min-h-[44px] rounded-xl border border-[#C9C1B1] bg-[#C9C1B1] text-xs font-semibold text-[#1B2632]"
             >
               체험 화면으로 돌아가기
             </button>
@@ -224,16 +229,16 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
   const half = Math.ceil(view.characters.length / 2);
 
   return (
-    <div className="min-h-app hanji-texture flex flex-col">
-      <header className="sticky top-0 z-20 border-b border-[#0B1426] shadow-sm" style={{ backgroundColor: NAVY }}>
+    <div className="min-h-app flex flex-col" style={{ backgroundColor: PAGE_BG, color: ABYSS, fontFamily: SANS }}>
+      <header className="sticky top-0 z-50 border-b border-[#2C3B4D] shadow-sm" style={{ backgroundColor: ABYSS }}>
         <div className="mx-auto w-full max-w-6xl px-6 py-3 flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[11px] tracking-widest text-[#E8D9B5]">JEONJU YEOJIDO · OPERATIONS</p>
-            <h1 className="font-serif-kr text-xl font-bold text-white">전생여지도 운영자 대시보드</h1>
+            <p className="text-[11px] tracking-widest text-[#C9C1B1]">JEONJU YEOJIDO · OPERATIONS</p>
+            <h1 className="font-serif-kr text-xl font-bold text-[#EEE9DF]">전생여지도 운영자 대시보드</h1>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2">
-              <span id="live-toggle-label" className="text-xs font-semibold text-[#F5EFE6] whitespace-nowrap">
+              <span id="live-toggle-label" className="text-xs font-semibold text-[#EEE9DF] whitespace-nowrap">
                 내 시연 기록 실시간 합산 {liveOn ? 'ON' : 'OFF'}
               </span>
               <button
@@ -245,10 +250,10 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
                   if (!liveOn) refresh();
                   setLiveOn((v) => !v);
                 }}
-                className={`relative h-7 w-12 rounded-full transition-colors ${liveOn ? 'bg-[#B45309]' : 'bg-[#57534E]'}`}
+                className={`relative h-7 w-12 rounded-full transition-colors ${liveOn ? 'bg-[#FFB162]' : 'bg-[#2C3B4D]'}`}
               >
                 <span
-                  className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-white shadow transition-transform ${
+                  className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-[#EEE9DF] shadow transition-transform ${
                     liveOn ? 'translate-x-5' : ''
                   }`}
                 />
@@ -257,7 +262,7 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
             <button
               type="button"
               onClick={refresh}
-              className="min-h-[40px] px-3 rounded-lg border border-white/30 text-xs font-semibold text-white hover:bg-white/10 inline-flex items-center gap-1.5"
+              className="min-h-[40px] px-3 rounded-lg border border-[#C9C1B1] text-xs font-semibold text-[#EEE9DF] hover:bg-[#2C3B4D] inline-flex items-center gap-1.5"
             >
               <RefreshCw className="w-3.5 h-3.5" aria-hidden="true" />
               <span>다시 읽기</span>
@@ -265,7 +270,7 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
             <button
               type="button"
               onClick={onBackToApp}
-              className="min-h-[40px] px-4 rounded-lg bg-[#F5EFE6] text-xs font-bold text-[#14213D] hover:bg-white inline-flex items-center gap-1.5"
+              className="min-h-[40px] px-4 rounded-lg bg-[#EEE9DF] text-xs font-bold text-[#1B2632] hover:bg-[#C9C1B1] inline-flex items-center gap-1.5"
             >
               <ArrowLeft className="w-3.5 h-3.5" aria-hidden="true" />
               <span>체험 화면으로 돌아가기</span>
@@ -274,8 +279,8 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
         </div>
       </header>
 
-      <main className="flex-1 mx-auto w-full max-w-6xl px-6 py-8 space-y-6">
-        <p className="rounded-xl border border-[#D6CEBE] bg-[#F5EFE6] px-4 py-3 text-xs text-[#44403C]">
+      <main className="flex-1 mx-auto w-full max-w-6xl px-6 pt-6 pb-10 space-y-6">
+        <p className="rounded-xl border border-[#C9C1B1] bg-[#EEE9DF] px-4 py-3 text-xs text-[#2C3B4D]">
           발표·시연용 <strong>가상 누적 데이터</strong>(기준 참여자 {fmt(ADMIN_BASE_PARTICIPANTS)}명)입니다.
           {liveOn
             ? snapshot.hasSession
@@ -289,15 +294,24 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
           {ADMIN_KPIS.map((k) => (
             <div
               key={k.id}
-              className="rounded-2xl border border-[#E5DDD0] border-t-4 bg-white p-5 space-y-2 shadow-sm"
-              style={{ borderTopColor: k.id === 'coupon-use' || k.id === 'satisfaction' ? BURGUNDY : NAVY }}
+              className="rounded-xl border border-[#C9C1B1] bg-[#EEE9DF] p-5 space-y-2 shadow-sm"
             >
-              <p className="text-xs font-semibold text-[#44403C]">{k.label}</p>
-              <p className="font-mono-tabular text-3xl font-bold" style={{ color: NAVY }}>
+              <p className="text-xs font-semibold text-[#2C3B4D]">{k.label}</p>
+              <p className="tabular-nums text-3xl font-bold tracking-tight text-[#1B2632]">
                 {k.value}
-                <span className="text-base font-semibold text-[#57534E]">{k.unit}</span>
+                <span className="text-base font-semibold text-[#2C3B4D]">{k.unit}</span>
               </p>
-              <p className="text-xs leading-relaxed text-[#57534E]">{k.description}</p>
+              <p className="text-xs leading-relaxed text-[#2C3B4D]">
+                {k.highlight && k.description.includes(k.highlight) ? (
+                  <>
+                    {k.description.split(k.highlight)[0]}
+                    <strong className="font-bold text-[#A35139]">{k.highlight}</strong>
+                    {k.description.split(k.highlight)[1]}
+                  </>
+                ) : (
+                  k.description
+                )}
+              </p>
             </div>
           ))}
         </section>
@@ -312,21 +326,21 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
               {view.spots.map((s) => (
                 <li key={s.key} className="space-y-1">
                   <div className="flex items-center justify-between gap-2 text-sm">
-                    <span className="font-semibold text-[#1C1917] flex items-center gap-1.5 flex-wrap">
+                    <span className="font-semibold text-[#1B2632] flex items-center gap-1.5 flex-wrap">
                       {s.name}
-                      {s.tag && <span className="text-[11px] font-medium text-[#78716C]">({s.tag})</span>}
+                      {s.tag && <span className="text-[11px] font-medium text-[#2C3B4D]">({s.tag})</span>}
                       {s.justVisited && <LiveBadge>방금 방문</LiveBadge>}
                     </span>
-                    <span className="font-mono-tabular text-xs text-[#44403C] whitespace-nowrap">
+                    <span className="tabular-nums text-xs text-[#2C3B4D] whitespace-nowrap">
                       {fmt(s.count)}명 · {pct(s.count, view.participants).toFixed(1)}%
                     </span>
                   </div>
-                  <div className="h-3 w-full rounded-full bg-[#EFE8DC] overflow-hidden">
+                  <div className="h-2.5 w-full rounded-md bg-[#C9C1B1] overflow-hidden">
                     <div
-                      className="h-full rounded-full"
+                      className="h-full rounded-md"
                       style={{
                         width: `${(s.count / maxSpot) * 100}%`,
-                        backgroundColor: s.key === 'jeonju_museum' ? BURGUNDY : NAVY,
+                        backgroundColor: s.key === 'jeonju_museum' ? TRUFFLE : BLUE,
                       }}
                     />
                   </div>
@@ -340,20 +354,20 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
               {ADMIN_FUNNEL.map((f, i) => (
                 <li key={f.step}>
                   <div
-                    className="rounded-xl px-4 py-3 flex items-center justify-between gap-3 text-white"
+                    className="rounded-md px-4 py-3 flex items-center justify-between gap-3"
                     style={{
-                      backgroundColor: i === ADMIN_FUNNEL.length - 1 ? BURGUNDY : NAVY,
+                      backgroundColor: FUNNEL_COLORS[i] ?? BLUE,
+                      color: i === ADMIN_FUNNEL.length - 1 ? ABYSS : PALLADIAN,
                       width: `${Math.max(60, 100 - i * 11)}%`,
-                      opacity: 1 - i * 0.07,
                     }}
                   >
                     <span className="text-sm font-semibold">
                       {f.step}단계: {f.title}
                     </span>
-                    <span className="font-mono-tabular text-base font-bold">{f.percent}%</span>
+                    <span className="tabular-nums text-base font-bold">{f.percent}%</span>
                   </div>
                   {i < ADMIN_FUNNEL.length - 1 && (
-                    <div className="py-1 pl-4 text-[#78716C]" aria-hidden="true">
+                    <div className="py-1 pl-4 text-[#2C3B4D]" aria-hidden="true">
                       <ArrowRight className="w-4 h-4 rotate-90" />
                     </div>
                   )}
@@ -361,10 +375,9 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
               ))}
             </ol>
             <p
-              className="rounded-xl border px-4 py-3 text-sm font-semibold"
-              style={{ borderColor: BURGUNDY, color: BURGUNDY, backgroundColor: '#FDF2F2' }}
+              className="rounded-xl border border-[#A35139] bg-[#FFB162] px-4 py-3 text-sm font-bold text-[#1B2632]"
             >
-              💡 “{ADMIN_FUNNEL_INSIGHT}”
+              “{ADMIN_FUNNEL_INSIGHT}”
             </p>
           </SectionCard>
         </div>
@@ -372,28 +385,26 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
         {/* 3단: 쿠폰 */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <SectionCard title="4대 카테고리별 쿠폰 발급·사용" subtitle={`총 발급 ${fmt(view.issuedTotal)}건 · 사용 ${fmt(view.usedTotal)}건`}>
-            <div className="flex items-center gap-4 rounded-xl bg-[#F5EFE6] p-3">
+            <div className="flex items-center gap-4 rounded-xl border border-[#C9C1B1] p-3">
               <svg viewBox="0 0 100 100" className="w-20 h-20 shrink-0" role="img" aria-label={`비식음료 비중 ${Math.round(view.nonFnbShare)}%`}>
-                <circle cx="50" cy="50" r={donutR} fill="none" stroke={NAVY} strokeWidth="16" opacity="0.85" />
+                <circle cx="50" cy="50" r={donutR} fill="none" stroke={BLUE} strokeWidth="14" />
                 <circle
                   cx="50"
                   cy="50"
                   r={donutR}
                   fill="none"
-                  stroke={BURGUNDY}
-                  strokeWidth="16"
+                  stroke={TRUFFLE}
+                  strokeWidth="14"
                   strokeDasharray={`${(view.nonFnbShare / 100) * donutC} ${donutC}`}
                   transform="rotate(-90 50 50)"
                 />
-                <text x="50" y="55" textAnchor="middle" fontSize="18" fontWeight="700" fill={NAVY}>
+                <circle cx="50" cy="50" r="29" fill="none" stroke={FLAME} strokeWidth="1.5" />
+                <text x="50" y="55" textAnchor="middle" fontSize="16" fontWeight="700" fill={ABYSS}>
                   {Math.round(view.nonFnbShare)}%
                 </text>
               </svg>
-              <div className="space-y-1.5 text-xs text-[#44403C]">
-                <span
-                  className="inline-block rounded-full px-3 py-1 text-xs font-bold text-white"
-                  style={{ backgroundColor: BURGUNDY }}
-                >
+              <div className="space-y-1.5 text-xs text-[#2C3B4D]">
+                <span className="inline-block rounded-md bg-[#A35139] px-2.5 py-1 text-xs font-semibold text-[#EEE9DF]">
                   비식음료 소비 비중 {100 - ADMIN_FNB_SHARE_BEFORE}% → {Math.round(view.nonFnbShare)}% 확대
                 </span>
                 <p>
@@ -405,33 +416,33 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
               {view.categories.map((c) => (
                 <li key={c.category} className="space-y-1">
                   <div className="flex items-center justify-between text-sm">
-                    <span className="font-semibold text-[#1C1917]">{c.category}</span>
-                    <span className="font-mono-tabular text-xs text-[#44403C]">
+                    <span className="font-semibold text-[#1B2632]">{c.category}</span>
+                    <span className="tabular-nums text-xs text-[#2C3B4D]">
                       발급 {fmt(c.issued)} · 사용 {fmt(c.used)} ({pct(c.used, c.issued).toFixed(1)}%)
                     </span>
                   </div>
-                  <div className="relative h-3 w-full rounded-full bg-[#EFE8DC] overflow-hidden">
+                  <div className="relative h-2.5 w-full rounded-md bg-[#C9C1B1] overflow-hidden">
                     <div
-                      className="absolute inset-y-0 left-0 rounded-full bg-[#9AA7C2]"
+                      className="absolute inset-y-0 left-0 rounded-md bg-[#FFB162]"
                       style={{ width: `${(c.issued / maxCategoryIssued) * 100}%` }}
                     />
                     <div
-                      className="absolute inset-y-0 left-0 rounded-full"
-                      style={{ width: `${(c.used / maxCategoryIssued) * 100}%`, backgroundColor: NAVY }}
+                      className="absolute inset-y-0 left-0 rounded-md"
+                      style={{ width: `${(c.used / maxCategoryIssued) * 100}%`, backgroundColor: BLUE }}
                     />
                   </div>
                   {c.liveIssued > 0 && <LiveBadge>내 쿠폰 +{c.liveIssued}</LiveBadge>}
                 </li>
               ))}
             </ul>
-            <p className="text-[11px] text-[#78716C]">연한 막대 = 발급, 진한 막대 = 실사용</p>
+            <p className="text-[11px] text-[#2C3B4D]">주황 막대 = 발급, 진한 막대 = 실사용</p>
           </SectionCard>
 
           <SectionCard title="박물관 방면 제휴 상점 TOP 5" subtitle="발급 수 기준 · 쿠폰 마스터(coupons.ts) 제휴 예정 모델">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-[#E5DDD0] text-xs text-[#78716C]">
+                  <tr className="border-b border-[#C9C1B1] text-xs font-semibold text-[#2C3B4D]">
                     <th className="py-2 pr-2">#</th>
                     <th className="py-2 pr-2">제휴 상점</th>
                     <th className="py-2 px-2">위치 권역</th>
@@ -439,18 +450,18 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
                     <th className="py-2 pl-2 text-right">사용률</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#F0EAE0]">
+                <tbody className="divide-y divide-[#C9C1B1]">
                   {view.stores.map((s, i) => (
                     <tr key={s.templateId}>
-                      <td className="py-2.5 pr-2 font-mono-tabular text-[#78716C]">{i + 1}</td>
-                      <td className="py-2.5 pr-2 font-semibold text-[#1C1917]">
+                      <td className="py-2.5 pr-2 tabular-nums text-[#2C3B4D]">{i + 1}</td>
+                      <td className="py-2.5 pr-2 font-semibold text-[#1B2632]">
                         {s.name}
-                        <span className="block text-[11px] font-normal text-[#78716C]">{s.category}</span>
+                        <span className="block text-[11px] font-normal text-[#2C3B4D]">{s.category}</span>
                         {s.liveIssued > 0 && <LiveBadge>내 쿠폰 +{s.liveIssued}</LiveBadge>}
                       </td>
-                      <td className="py-2.5 px-2 text-xs text-[#57534E]">{s.area}</td>
-                      <td className="py-2.5 px-2 text-right font-mono-tabular">{fmt(s.issued)}</td>
-                      <td className="py-2.5 pl-2 text-right font-mono-tabular font-bold" style={{ color: NAVY }}>
+                      <td className="py-2.5 px-2 text-xs text-[#2C3B4D]">{s.area}</td>
+                      <td className="py-2.5 px-2 text-right tabular-nums">{fmt(s.issued)}</td>
+                      <td className="py-2.5 pl-2 text-right tabular-nums font-bold" style={{ color: BLUE }}>
                         {pct(s.used, s.issued).toFixed(1)}%
                       </td>
                     </tr>
@@ -472,21 +483,21 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
                 {col.map((c) => (
                   <li key={c.id} className="space-y-1">
                     <div className="flex items-center justify-between gap-2 text-sm">
-                      <span className="font-semibold text-[#1C1917] flex items-center gap-1.5 flex-wrap">
-                        <span className="font-mono-tabular text-xs text-[#78716C]">{c.id}.</span>
+                      <span className="font-semibold text-[#1B2632] flex items-center gap-1.5 flex-wrap">
+                        <span className="tabular-nums text-xs text-[#2C3B4D]">{c.id}.</span>
                         {c.title}
                         {c.isMine && <LiveBadge>현재 내 전생 +1</LiveBadge>}
                       </span>
-                      <span className="font-mono-tabular text-xs text-[#44403C] whitespace-nowrap">
+                      <span className="tabular-nums text-xs text-[#2C3B4D] whitespace-nowrap">
                         {fmt(c.count)}명 · {pct(c.count, view.characterTotal).toFixed(1)}%
                       </span>
                     </div>
-                    <div className="h-2.5 w-full rounded-full bg-[#EFE8DC] overflow-hidden">
+                    <div className="h-2.5 w-full rounded-md bg-[#C9C1B1] overflow-hidden">
                       <div
-                        className="h-full rounded-full"
+                        className="h-full rounded-md"
                         style={{
                           width: `${pct(c.count, view.characterTotal) * 5}%`,
-                          backgroundColor: c.isMine ? BURGUNDY : NAVY,
+                          backgroundColor: c.isMine ? TRUFFLE : BLUE,
                         }}
                       />
                     </div>
@@ -495,7 +506,7 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
               </ul>
             ))}
           </div>
-          <p className="text-[11px] text-[#78716C]">막대 길이 = 점유율 × 5 (최대 20% 기준)</p>
+          <p className="text-[11px] text-[#2C3B4D]">막대 길이 = 점유율 × 5 (최대 20% 기준)</p>
         </SectionCard>
 
         {/* 5단: 키워드 / 미디어월 */}
@@ -504,24 +515,23 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
             {ADMIN_POSITIVE_KEYWORDS.map((k) => (
               <span
                 key={k}
-                className="rounded-full border border-[#D6CEBE] bg-[#F5EFE6] px-3 py-1.5 text-sm font-semibold"
-                style={{ color: NAVY }}
+                className="rounded-md border border-[#C9C1B1] bg-[#C9C1B1] px-3 py-1.5 text-sm font-semibold text-[#1B2632]"
               >
                 {k}
               </span>
             ))}
           </div>
-          <ul className="divide-y divide-[#F0EAE0] rounded-xl border border-[#E5DDD0]">
+          <ul className="divide-y divide-[#C9C1B1] rounded-xl border border-[#C9C1B1]">
             {wallItems.map((w) => {
               const approved = wallApproved[w.id] ?? w.approved;
               return (
                 <li key={w.id} className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
                   <div className="min-w-0">
-                    <p className="text-sm font-semibold text-[#1C1917] flex items-center gap-1.5 flex-wrap">
+                    <p className="text-sm font-semibold text-[#1B2632] flex items-center gap-1.5 flex-wrap">
                       {w.alias}
                       {w.isLive && <LiveBadge>방금 등록</LiveBadge>}
                     </p>
-                    <p className="text-xs text-[#57534E]">
+                    <p className="text-xs text-[#2C3B4D]">
                       {w.characterTitle} · {w.submittedLabel}
                     </p>
                   </div>
@@ -531,10 +541,10 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
                     onClick={() => setWallApproved((prev) => ({ ...prev, [w.id]: !approved }))}
                     className={`min-h-[38px] px-4 rounded-lg text-xs font-bold inline-flex items-center gap-1.5 border ${
                       approved
-                        ? 'text-white border-transparent'
-                        : 'bg-white text-[#44403C] border-[#D6CEBE] hover:bg-[#F5EFE6]'
+                        ? 'text-[#EEE9DF] border-transparent'
+                        : 'bg-[#EEE9DF] text-[#2C3B4D] border-[#C9C1B1] hover:bg-[#C9C1B1]'
                     }`}
-                    style={approved ? { backgroundColor: NAVY } : undefined}
+                    style={approved ? { backgroundColor: BLUE } : undefined}
                   >
                     {approved && <Check className="w-3.5 h-3.5" aria-hidden="true" />}
                     {approved ? '송출 승인됨' : '승인 대기 · 승인하기'}
@@ -543,11 +553,11 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
               );
             })}
           </ul>
-          <p className="text-[11px] text-[#78716C]">승인 토글은 발표용 화면 표시이며, 실제 /wall 송출 목록에는 반영되지 않습니다.</p>
+          <p className="text-[11px] text-[#2C3B4D]">승인 토글은 발표용 화면 표시이며, 실제 /wall 송출 목록에는 반영되지 않습니다.</p>
         </SectionCard>
 
-        <details className="rounded-2xl border border-[#E5DDD0] bg-white/70 p-4">
-          <summary className="cursor-pointer text-sm font-bold" style={{ color: NAVY }}>
+        <details className="rounded-xl border border-[#C9C1B1] bg-[#EEE9DF] p-4">
+          <summary className="cursor-pointer text-sm font-bold text-[#1B2632]">
             현장 운영 도구 (QR코드 발급{USE_LOCAL_BACKEND ? '' : ' · 쿠폰 바코드 검증'})
           </summary>
           <div className="pt-4">

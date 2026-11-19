@@ -1,6 +1,7 @@
 import { FormEvent, useState } from 'react';
 import { ArrowLeft, CheckSquare, KeyRound, Square, UserPlus } from 'lucide-react';
 import { CompanionType } from '../types/jeonju';
+import { getLocalAuth } from '../utils/authHandlers';
 import { validateBirthDate } from '../utils/pastLifeEngine';
 
 interface SceneInputConsentProps {
@@ -34,7 +35,8 @@ export function SceneInputConsent({
   const [panelMode, setPanelMode] = useState<'register' | 'recover'>('register');
 
   // Register state
-  const [visitorName, setVisitorName] = useState(initialVisitorName);
+  // 이름 칸 기본값: 진행 중인 값이 있으면 그것, 없으면 로그인한 사용자 이름
+  const [visitorName, setVisitorName] = useState(() => initialVisitorName || getLocalAuth()?.displayName || '');
   const [birthDate, setBirthDate] = useState(initialBirthDate);
   const [locationAck, setLocationAck] = useState(initialPermissions.location);
   const [cameraAck, setCameraAck] = useState(initialPermissions.camera);
