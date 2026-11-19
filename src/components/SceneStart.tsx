@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { HahoeDanceCharacter } from './HahoeDanceCharacter';
 import { InteractiveNorigae } from './InteractiveNorigae';
 import { SceneStartBackdrop } from './SceneStartBackdrop';
 import { START_HERO_IMAGE } from '../data/spotImages';
+import { LoginModal } from './LoginModal';
 
 interface SceneStartProps {
   onStart: () => void;
@@ -12,8 +14,10 @@ export function SceneStart({
   onStart,
   onNavigateRoute,
 }: SceneStartProps) {
+  const [loginOpen, setLoginOpen] = useState(false);
 
   return (
+    <>
     <div className="relative min-h-app hanji-texture flex flex-col overflow-hidden">
       <SceneStartBackdrop />
       <InteractiveNorigae />
@@ -155,7 +159,7 @@ export function SceneStart({
         <div className="w-full max-w-xs sm:max-w-sm space-y-3 pb-4 safe-pb">
           <button
             type="button"
-            onClick={onStart}
+            onClick={() => setLoginOpen(true)}
             className="hover-scale w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#9A3412] text-white font-semibold text-base hover:bg-[#7C2D12] active:scale-[0.99] shadow-sm"
           >
             시작하기
@@ -164,5 +168,14 @@ export function SceneStart({
       </main>
       </div>
     </div>
+    <LoginModal
+      open={loginOpen}
+      onClose={() => setLoginOpen(false)}
+      onSuccess={() => {
+        setLoginOpen(false);
+        onStart();
+      }}
+    />
+    </>
   );
 }
