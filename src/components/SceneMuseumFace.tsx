@@ -40,15 +40,11 @@ export function SceneMuseumFace({
   const [privacyAgreed, setPrivacyAgreed] = useState(session.facePrivacyConsent);
   const [museumCoords, setMuseumCoords] = useState<GeoCoordinates | null>(null);
   const museumQrVerified = isSpotVisitVerified(session, 'jeonju_museum');
-  const [museumGpsVerified, setMuseumGpsVerified] = useState(
-    session.mode === 'demo' || museumQrVerified
-  );
+  const [museumGpsVerified, setMuseumGpsVerified] = useState(museumQrVerified);
   const [museumGpsMessage, setMuseumGpsMessage] = useState<string>(
-    session.mode === 'demo'
-      ? '시연 모드 국립전주박물관 도착이 확인되었습니다.'
-      : museumQrVerified
-        ? '국립전주박물관 QR 방문 인증이 완료되었습니다.'
-        : '국립전주박물관 위치 확인 중...'
+    museumQrVerified
+      ? '국립전주박물관 QR 방문 인증이 완료되었습니다.'
+      : '국립전주박물관 위치 확인 중...'
   );
   const [generating, setGenerating] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -57,7 +53,7 @@ export function SceneMuseumFace({
   const clueCount = getCollectedClueCount(session);
 
   useEffect(() => {
-    if (session.mode === 'demo' || museumQrVerified) {
+    if (museumQrVerified) {
       setMuseumGpsVerified(true);
       return;
     }
@@ -86,7 +82,7 @@ export function SceneMuseumFace({
       },
       { enableHighAccuracy: true, timeout: 10000 }
     );
-  }, [museumQrVerified, session.mode]);
+  }, [museumQrVerified]);
 
   useEffect(() => {
     return () => {
@@ -161,7 +157,7 @@ export function SceneMuseumFace({
     e.target.value = '';
   };
 
-  const handleGeneratePastLife = async (useIllustratedFallback = false) => {
+  const handleGeneratePastLife = async () => {
     if (clueCount < 4) {
       setErrorMsg('4개의 전생 조각을 모두 모아야 진행할 수 있습니다.');
       return;
@@ -178,7 +174,7 @@ export function SceneMuseumFace({
       setErrorMsg(museumGpsMessage);
       return;
     }
-    if (!useIllustratedFallback && !capturedFaceUrl) {
+    if (!capturedFaceUrl) {
       setErrorMsg('먼저 얼굴을 촬영하거나 사진을 업로드해 주세요.');
       return;
     }
@@ -197,7 +193,7 @@ export function SceneMuseumFace({
       const portraitDataUrl = USE_LOCAL_BACKEND
         ? ''
         : await synthesizeJoseonPortrait({
-            faceImageDataUrl: useIllustratedFallback ? null : capturedFaceUrl,
+            faceImageDataUrl: capturedFaceUrl,
             archetypeId: archetype.id,
             title: archetype.title,
             hanjaTitle: archetype.hanjaTitle,
@@ -207,7 +203,7 @@ export function SceneMuseumFace({
       // AI 생성이 켜져 있고 동의한 경우에만, 줄인 얼굴 사진을 서버(→ Gemini 참조 이미지)로 보낸다. 서버는 저장하지 않는다.
       // AI 생성이 꺼져 있으면(기본) 사진은 이 기기 화면 밖으로 나가지 않는다.
       let faceImageForAi: string | null = null;
-      if (ENABLE_AI_GENERATION && !useIllustratedFallback && capturedFaceUrl) {
+      if (ENABLE_AI_GENERATION && capturedFaceUrl) {
         try {
           faceImageForAi = await downscaleImageDataUrl(capturedFaceUrl);
         } catch {
@@ -256,7 +252,7 @@ export function SceneMuseumFace({
 
   const handlePrimaryShootAction = () => {
     if (capturedFaceUrl) {
-      handleGeneratePastLife(false);
+      handleGeneratePastLife();
       return;
     }
     if (cameraActive) {
@@ -267,7 +263,7 @@ export function SceneMuseumFace({
   };
 
   return (
-    <div className="min-h-app hanji-texture flex flex-col">
+    <div className="min-h-app hanji-texture flex flex-col pb-24">
       <header className="w-full px-4 h-12 flex items-center justify-between max-w-md sm:max-w-lg mx-auto">
         <button
           type="button"
@@ -412,17 +408,6 @@ export function SceneMuseumFace({
                 className="min-h-[36px] underline underline-offset-2 hover:text-[#1C1917]"
               >
                 다시 찍기
-              </button>
-            )}
-
-            {session.mode === 'demo' && !capturedFaceUrl && (
-              <button
-                type="button"
-                disabled={generating}
-                onClick={() => handleGeneratePastLife(true)}
-                className="min-h-[36px] font-semibold text-[#1E3A8A] hover:underline"
-              >
-                [시연 모드] 사진 없이 전통 초상화 생성
               </button>
             )}
           </div>

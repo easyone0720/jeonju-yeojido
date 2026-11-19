@@ -95,11 +95,8 @@ function persistSession(session: UserSessionState): UserSessionState {
 }
 
 function findSessionById(sessionId: string): UserSessionState | null {
-  for (const mode of ['experience', 'demo'] as const) {
-    const s = loadSession(mode);
-    if (s && s.sessionId === sessionId) return s;
-  }
-  return null;
+  const s = loadSession('experience');
+  return s && s.sessionId === sessionId ? s : null;
 }
 
 /** 새로 잠금 해제된 쿠폰에 유효기간·시연용 바코드 번호를 채운다 (로컬 모드는 모두 시연용 쿠폰). */
@@ -172,7 +169,7 @@ function parseBody(init?: RequestInit): Record<string, unknown> {
 // 라우트 핸들러 (server.ts 와 같은 규칙)
 // ---------------------------------------------------------------------------------------------
 function handleRegister(body: Record<string, unknown>): Response {
-  const mode: AppMode = body.mode === 'demo' ? 'demo' : 'experience';
+  const mode: AppMode = 'experience';
   const birthDate = typeof body.birthDate === 'string' ? body.birthDate.trim() : '';
   const dateCheck = validateBirthDate(birthDate);
   if (!dateCheck.valid) {
@@ -231,12 +228,9 @@ function handleVerifyQr(sessionId: string, body: Record<string, unknown>): Respo
   if (!spotId) return json(400, { error: '유효하지 않은 장소입니다.' });
 
   const qrCodeValue = typeof body.qrCodeValue === 'string' ? body.qrCodeValue : '';
-  const isAllowedDemoSimulated = existing.mode === 'demo' && body.demoSimulated === true && !qrCodeValue;
-  if (!isAllowedDemoSimulated) {
-    const qr = validateSpotQrCode(qrCodeValue, spotId);
-    if (!qr.valid) {
-      return json(400, { error: qr.error || '이 장소의 QR코드가 아닙니다. 다시 확인해 주세요.' });
-    }
+  const qr = validateSpotQrCode(qrCodeValue, spotId);
+  if (!qr.valid) {
+    return json(400, { error: qr.error || '이 장소의 QR코드가 아닙니다. 다시 확인해 주세요.' });
   }
 
   if (spotId === 'jeonju_museum') {
@@ -268,12 +262,9 @@ function handleVerifySpot(sessionId: string, body: Record<string, unknown>): Res
   if (!spotId) return json(400, { error: '유효하지 않은 장소입니다.' });
 
   const qrCodeValue = typeof body.qrCodeValue === 'string' ? body.qrCodeValue : '';
-  const isAllowedDemoSimulated = existing.mode === 'demo' && body.demoSimulated === true && !qrCodeValue;
-  if (!isAllowedDemoSimulated) {
-    const qr = validateSpotQrCode(qrCodeValue, spotId);
-    if (!qr.valid) {
-      return json(400, { error: qr.error || '이 장소의 QR코드가 아닙니다. 다시 확인해 주세요.' });
-    }
+  const qr = validateSpotQrCode(qrCodeValue, spotId);
+  if (!qr.valid) {
+    return json(400, { error: qr.error || '이 장소의 QR코드가 아닙니다. 다시 확인해 주세요.' });
   }
 
   const { nextSession, alreadyVerified } = recordSpotVisitAuthentication(existing, spotId);
@@ -454,15 +445,6 @@ function handleWallConsent(body: Record<string, unknown>): Response {
   return json(200, { session: persistSession(next), entry });
 }
 
-function handleDeleteRecord(mode: AppMode): Response {
-  const session = loadSession(mode);
-  if (!session) return json(401, { error: '삭제할 활성 기록 인증이 없습니다.' });
-  saveWall(loadWall().filter((e) => e.sessionId !== session.sessionId));
-  writeStore('session', SESSION_KEY_PREFIX + mode, null);
-  clearCurrentCharacter();
-  return json(200, { deleted: true });
-}
-
 function routeLocal(url: URL, init?: RequestInit): Response {
   const method = (init?.method ?? 'GET').toUpperCase();
   const path = url.pathname;
@@ -474,18 +456,14 @@ function routeLocal(url: URL, init?: RequestInit): Response {
   }
 
   if (path === '/api/auth/me' && method === 'GET') {
-    const mode: AppMode = url.searchParams.get('mode') === 'demo' ? 'demo' : 'experience';
-    const session = loadSession(mode);
+    const session = loadSession('experience');
     return json(200, session ? { authenticated: true, session } : { authenticated: false, session: null });
   }
   if (path === '/api/auth/register' && method === 'POST') return handleRegister(body);
   if (path === '/api/auth/recover' && method === 'POST') {
-    return json(404, { error: '로컬 시연 모드에서는 복구 코드를 사용할 수 없습니다. 같은 탭에서는 기록이 유지됩니다.' });
+    return json(404, { error: '로컬 모드에서는 복구 코드를 사용할 수 없습니다. 같은 탭에서는 기록이 유지됩니다.' });
   }
   if (path === '/api/auth/logout' && method === 'POST') return json(200, { ok: true });
-  if (path === '/api/auth/record' && method === 'DELETE') {
-    return handleDeleteRecord(url.searchParams.get('mode') === 'demo' ? 'demo' : 'experience');
-  }
 
   if (path === '/api/past-life/generate' && method === 'POST') return handleGenerate(body);
   if (path === '/api/wall/consent' && method === 'POST') return handleWallConsent(body);
@@ -511,7 +489,7 @@ function routeLocal(url: URL, init?: RequestInit): Response {
   }
 
   if (path.startsWith('/api/admin/')) {
-    return json(503, { error: '로컬 시연 모드에서는 관리자 통계를 사용할 수 없습니다.' });
+    return json(503, { error: '로컬 모드에서는 관리자 통계를 사용할 수 없습니다.' });
   }
 
   return json(404, { error: '로컬 모드에서 지원하지 않는 요청입니다.' });

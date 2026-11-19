@@ -10,7 +10,6 @@ import {
   Navigation,
   Sparkles,
   RotateCcw,
-  Trash2,
   UserCircle2,
   X,
 } from 'lucide-react';
@@ -35,6 +34,7 @@ import {
   isSpotClueOrPastLifeCompleted,
   isSpotVisitVerified,
 } from '../utils/pastLifeEngine';
+import { BottomNav } from './BottomNav';
 import { CompleteSealStamp } from './CompleteSealStamp';
 import { CouponBarcodeModal } from './CouponBarcodeModal';
 import { JeonjuNaverMap, type NaverMapLoadStatus } from './JeonjuNaverMap';
@@ -66,7 +66,6 @@ interface HomeWorkspaceProps {
   onUseDemoCoupon: (couponId: string) => Promise<void>;
   onNavigateRoute: (path: '/wall' | '/admin') => void;
   onGoHome: () => void;
-  onDeleteRecord: () => Promise<void>;
   saveError?: string | null;
   onRetrySync?: () => void;
 }
@@ -95,16 +94,12 @@ export function HomeWorkspace({
   onUseDemoCoupon,
   onNavigateRoute,
   onGoHome,
-  onDeleteRecord,
   saveError,
   onRetrySync,
 }: HomeWorkspaceProps) {
   const [spotImgErrors, setSpotImgErrors] = useState<Record<string, boolean>>({});
   const [inspectedClue, setInspectedClue] = useState<ClueCategory | null>(null);
   const [spotSheetOpen, setSpotSheetOpen] = useState<boolean>(false);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
-  const [deleting, setDeleting] = useState<boolean>(false);
-  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Interactive Map View Mode (official NAVER Maps JS v3 vs Traditional 여지도)
   const [mapViewMode, setMapViewMode] = useState<'naver' | 'traditional'>('traditional');
@@ -352,11 +347,7 @@ export function HomeWorkspace({
             className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#9A3412] text-white font-semibold text-sm hover:bg-[#7C2D12] flex items-center justify-center gap-2"
           >
             <QrCode className="w-4 h-4" aria-hidden="true" />
-            <span>
-              {session.mode === 'demo'
-                ? '박물관 QR 스캔으로 이동 (시연 가능)'
-                : '박물관 현장 QR 스캔하기'}
-            </span>
+            <span>박물관 현장 QR 스캔하기</span>
           </button>
         )
       ) : stage2Done ? (
@@ -394,9 +385,7 @@ export function HomeWorkspace({
           className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#9A3412] text-white font-semibold text-sm hover:bg-[#7C2D12] flex items-center justify-center gap-2"
         >
           <QrCode className="w-4 h-4" aria-hidden="true" />
-          <span>
-            {session.mode === 'demo' ? 'QR 스캔으로 이동 (시연 가능)' : '현장 QR 스캔하기'}
-          </span>
+          <span>현장 QR 스캔하기</span>
         </button>
       )}
       </div>
@@ -429,7 +418,7 @@ export function HomeWorkspace({
               </span>
             )}
             <span className="text-xs text-[#9A3412] font-medium whitespace-nowrap">
-              · {session.mode === 'demo' ? '시연 모드' : '현장 체험'}
+              · 현장 체험
             </span>
           </div>
 
@@ -449,18 +438,6 @@ export function HomeWorkspace({
               className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg text-[#57534E] hover:bg-[#EFE8DC] hover:text-[#1C1917]"
             >
               <RotateCcw className="w-4 h-4" aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              onClick={() => {
-                setDeleteError(null);
-                setDeleteDialogOpen(true);
-              }}
-              title="저장된 기록 삭제"
-              aria-label="진행 기록 삭제"
-              className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg text-[#78716C] hover:bg-[#9A3412]/10 hover:text-[#9A3412]"
-            >
-              <Trash2 className="w-4 h-4" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -958,16 +935,12 @@ export function HomeWorkspace({
                 </span>
               </div>
               <div className="px-5 py-3 flex flex-wrap items-center justify-between gap-2 text-xs text-[#44403C]">
-                <span>
-                  {session.mode === 'demo'
-                    ? '시연 모드: 발급된 쿠폰에서 시연용 가상 바코드(DEMO)를 확인할 수 있습니다.'
-                    : '장소 QR 인증 시 제휴 매장 할인 바코드가 자동 발급됩니다.'}
-                </span>
+                <span>장소 QR 인증 시 제휴 매장 할인 바코드가 자동 발급됩니다.</span>
                 <span
                   className="font-bold whitespace-nowrap"
                   style={{ color: 'var(--coupon-primary)' }}
                 >
-                  {session.mode === 'demo' ? '시연용 가상 쿠폰' : '현장 검증 쿠폰'}
+                  현장 검증 쿠폰
                 </span>
               </div>
             </div>
@@ -1085,122 +1058,7 @@ export function HomeWorkspace({
         )}
       </main>
 
-      {/* Unified Bottom 3-Tab Navigation across all devices matching Scenes 3, 4, 5 wireframes */}
-      <nav
-        aria-label="홈 하단 내비게이션"
-        className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#E5DDD0] bg-[#FBF8F2]/95 backdrop-blur-md safe-pb"
-      >
-        <div className="grid grid-cols-3 min-h-[58px] h-auto max-w-3xl mx-auto">
-          <button
-            type="button"
-            onClick={() => onChangeTab('map')}
-            aria-current={activeTab === 'map' ? 'page' : undefined}
-            className={`min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-xs border-t-2 transition-colors ${
-              activeTab === 'map'
-                ? 'border-[#9A3412] text-[#9A3412] font-bold'
-                : 'border-transparent text-[#57534E] font-medium hover:text-[#1C1917]'
-            }`}
-          >
-            <MapIcon className="w-4 h-4" aria-hidden="true" />
-            <span>지도</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onChangeTab('clues')}
-            aria-current={activeTab === 'clues' ? 'page' : undefined}
-            className={`min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-xs border-t-2 transition-colors ${
-              activeTab === 'clues'
-                ? 'border-[#9A3412] text-[#9A3412] font-bold'
-                : 'border-transparent text-[#57534E] font-medium hover:text-[#1C1917]'
-            }`}
-          >
-            <ScrollText className="w-4 h-4" aria-hidden="true" />
-            <span>내 조각</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => onChangeTab('coupons')}
-            aria-current={activeTab === 'coupons' ? 'page' : undefined}
-            className={`min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-xs border-t-2 transition-colors ${
-              activeTab === 'coupons'
-                ? 'border-[#9A3412] text-[#9A3412] font-bold'
-                : 'border-transparent text-[#57534E] font-medium hover:text-[#1C1917]'
-            }`}
-          >
-            <Ticket className="w-4 h-4" aria-hidden="true" />
-            <span>쿠폰</span>
-          </button>
-        </div>
-      </nav>
-
-      {/* Explicit Confirmation Modal for Permanent Record Deletion */}
-      {deleteDialogOpen && (
-        <div
-          className="fixed inset-0 z-50 bg-[#1C1917]/55 backdrop-blur-xs flex items-center justify-center p-4"
-          role="presentation"
-          onClick={(e) => {
-            if (e.target === e.currentTarget && !deleting) {
-              setDeleteDialogOpen(false);
-            }
-          }}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="delete-record-title"
-            className="w-full max-w-sm rounded-2xl border-2 border-[#C7B596] bg-[#FBF8F2] p-6 shadow-2xl space-y-4"
-          >
-            <h2
-              id="delete-record-title"
-              className="font-serif-kr text-lg font-bold text-[#1C1917]"
-            >
-              전생 진행 기록을 삭제할까요?
-            </h2>
-            <p className="text-xs sm:text-sm text-[#44403C] leading-relaxed">
-              지금까지 수집한 전생 조각, 쿠폰, 생성된 전생 결과가 영구적으로 삭제됩니다. 삭제한 기록은 복구 코드로도 다시 불러올 수 없습니다.
-            </p>
-            {deleteError && (
-              <div
-                role="alert"
-                className="rounded-xl border border-[#9A3412]/40 bg-[#9A3412]/10 px-3 py-2 text-xs text-[#7C2D12]"
-              >
-                {deleteError}
-              </div>
-            )}
-            <div className="flex gap-2.5 pt-1">
-              <button
-                type="button"
-                disabled={deleting}
-                onClick={() => setDeleteDialogOpen(false)}
-                className="flex-1 min-h-[44px] px-4 py-2 rounded-xl border border-[#D6CEBE] bg-white text-sm font-semibold text-[#1C1917] hover:bg-[#F5EFE6]"
-              >
-                취소
-              </button>
-              <button
-                type="button"
-                disabled={deleting}
-                onClick={async () => {
-                  setDeleting(true);
-                  setDeleteError(null);
-                  try {
-                    await onDeleteRecord();
-                    setDeleteDialogOpen(false);
-                  } catch (err) {
-                    setDeleteError(
-                      err instanceof Error ? err.message : '기록 삭제 중 오류가 발생했습니다.'
-                    );
-                  } finally {
-                    setDeleting(false);
-                  }
-                }}
-                className="flex-1 min-h-[44px] px-4 py-2 rounded-xl bg-[#9A3412] text-white text-sm font-semibold hover:bg-[#7C2D12] disabled:opacity-60"
-              >
-                {deleting ? '삭제 중...' : '영구 삭제'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <BottomNav activeTab={activeTab} onChangeTab={onChangeTab} />
 
       {/* Coupon CODE128 Barcode Modal */}
       {(() => {
@@ -1213,7 +1071,6 @@ export function HomeWorkspace({
           <CouponBarcodeModal
             coupon={activeCoupon}
             spotName={activeSpotName}
-            isDemoMode={session.mode === 'demo'}
             redeeming={redeemingCoupon}
             redeemError={redeemCouponError}
             onConfirmDemoUse={async (couponId) => {

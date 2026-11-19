@@ -39,6 +39,7 @@ const {
   pickAnotherCharacter,
   pickRandomCharacter,
 } = await import('../data/characters.ts');
+const { SPOT_QR_ALLOWLIST } = await import('../data/qrAllowlist.ts');
 const { ENABLE_AI_GENERATION, USE_LOCAL_BACKEND } = await import('../config/features.ts');
 
 async function call(method: string, url: string, body?: unknown) {
@@ -50,10 +51,9 @@ async function call(method: string, url: string, body?: unknown) {
   return { status: res.status, data: (await res.json()) as any };
 }
 
-async function registerDemo() {
+async function registerUser() {
   const r = await call('POST', '/api/auth/register', {
-    mode: 'demo',
-    visitorName: '시연 탐험가',
+    visitorName: '테스트 탐험가',
     birthDate: '1998-05-15',
     companion: 'alone',
     permissionsAcknowledged: { location: true, camera: true },
@@ -110,21 +110,21 @@ describe('characters', () => {
 });
 
 describe('localApi: 서버 없이 전체 플로우', () => {
-  it('등록 → 조각 4개 → 박물관 → 결과 → 미디어월 → 쿠폰 → 삭제', async () => {
-    const session = await registerDemo();
+  it('등록 → 조각 4개 → 박물관 → 결과 → 미디어월 → 쿠폰', async () => {
+    const session = await registerUser();
     const id = session.sessionId;
 
     for (const spotId of SPOTS) {
-      const r = await call('POST', `/api/session/${id}/verify-qr`, { spotId, demoSimulated: true });
+      const r = await call('POST', `/api/session/${id}/verify-qr`, { spotId, qrCodeValue: SPOT_QR_ALLOWLIST[spotId] });
       assert.equal(r.status, 200, `${spotId} ${JSON.stringify(r.data)}`);
       assert.ok(r.data.claimedClue);
     }
 
     // 같은 장소 재인증은 409
-    const dup = await call('POST', `/api/session/${id}/verify-qr`, { spotId: 'gyeonggijeon', demoSimulated: true });
+    const dup = await call('POST', `/api/session/${id}/verify-qr`, { spotId: 'gyeonggijeon', qrCodeValue: SPOT_QR_ALLOWLIST.gyeonggijeon });
     assert.equal(dup.status, 409);
 
-    const museum = await call('POST', `/api/session/${id}/verify-qr`, { spotId: 'jeonju_museum', demoSimulated: true });
+    const museum = await call('POST', `/api/session/${id}/verify-qr`, { spotId: 'jeonju_museum', qrCodeValue: SPOT_QR_ALLOWLIST.jeonju_museum });
     assert.equal(museum.status, 200);
 
     const gen = await call('POST', '/api/past-life/generate', { sessionId: id, portraitDataUrl: '' });
@@ -164,27 +164,29 @@ describe('localApi: 서버 없이 전체 플로우', () => {
     assert.equal(declined.status, 200);
     assert.equal((await call('GET', '/api/wall')).data.liveEntries.length, 0);
 
-    // 기록 삭제 → 세션·고정 캐릭터 해제
-    const del = await call('DELETE', '/api/auth/record?mode=demo');
-    assert.equal(del.status, 200);
-    assert.equal((await call('GET', '/api/auth/me?mode=demo')).data.authenticated, false);
-    assert.equal(sessionStorage.getItem('jeonsaeng:currentCharacterId'), null);
+    // 진행 기록은 같은 탭에서 유지된다
+    assert.equal((await call('GET', '/api/auth/me?mode=experience')).data.authenticated, true);
+  });
+
+  it('QR 없이(시연 우회) 인증하면 거절한다', async () => {
+    const session = await registerUser();
+    const r = await call('POST', `/api/session/${session.sessionId}/verify-qr`, { spotId: 'gyeonggijeon', demoSimulated: true });
+    assert.equal(r.status, 400);
   });
 
   it('조각이 부족하면 결과를 만들 수 없다', async () => {
-    const session = await registerDemo();
+    const session = await registerUser();
     const r = await call('POST', '/api/past-life/generate', { sessionId: session.sessionId });
     assert.equal(r.status, 400);
   });
 
   it('잘못된 요청은 에러 응답으로 끝나고 예외를 던지지 않는다', async () => {
-    assert.equal((await call('POST', '/api/auth/register', { mode: 'demo', birthDate: 'x' })).status, 400);
+    assert.equal((await call('POST', '/api/auth/register', { birthDate: 'x' })).status, 400);
     assert.equal((await call('POST', '/api/session/nope/claim', { spotId: 'gyeonggijeon' })).status, 401);
     assert.equal((await call('POST', '/api/auth/recover', {})).status, 404);
     assert.equal((await call('POST', '/api/admin/stats', {})).status, 503);
     assert.equal((await call('GET', '/api/unknown')).status, 404);
     assert.equal((await call('GET', '/api/config/map')).data.configured, false);
-    assert.equal((await call('GET', '/api/auth/me?mode=experience')).data.authenticated, false);
   });
 
   it('세션 저장소를 쓸 수 없어도 메모리로 동작한다', async () => {
@@ -196,8 +198,8 @@ describe('localApi: 서버 없이 전체 플로우', () => {
       removeItem() { throw new Error('blocked'); },
     };
     try {
-      const s = await registerDemo();
-      const me = await call('GET', '/api/auth/me?mode=demo');
+      const s = await registerUser();
+      const me = await call('GET', '/api/auth/me?mode=experience');
       assert.equal(me.data.session.sessionId, s.sessionId);
     } finally {
       w.sessionStorage = original;

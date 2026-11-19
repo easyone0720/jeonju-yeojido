@@ -11,7 +11,6 @@ import {
 import { JEONJU_SPOTS } from '../data/jeonjuSpots';
 import { SPOT_IMAGES } from '../data/spotImages';
 import {
-  AppMode,
   ClueSpotId,
   GeoCoordinates,
   SpotId,
@@ -25,7 +24,6 @@ import { apiFetch } from '../utils/localApi';
 interface SceneArriveVerifyProps {
   sessionId: string;
   spotId: SpotId;
-  mode: AppMode;
   qrCodeValue: string | null;
   alreadyVisitVerified: boolean;
   alreadyCompleted: boolean;
@@ -43,7 +41,6 @@ interface SceneArriveVerifyProps {
 export function SceneArriveVerify({
   sessionId,
   spotId,
-  mode,
   qrCodeValue,
   alreadyVisitVerified,
   alreadyCompleted,
@@ -87,14 +84,13 @@ export function SceneArriveVerify({
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              ...getAuthHeaders(mode),
+              ...getAuthHeaders('experience'),
             },
             credentials: 'same-origin',
             body: JSON.stringify({
               spotId,
               qrCodeValue,
               coords: verifiedCoords,
-              demoSimulated: mode === 'demo' && !qrCodeValue,
             }),
           }
         );
@@ -134,7 +130,7 @@ export function SceneArriveVerify({
         );
       }
     },
-    [alreadyVisitVerified, mode, onSpotAuthenticated, qrCodeValue, sessionId, spotId]
+    [alreadyVisitVerified, onSpotAuthenticated, qrCodeValue, sessionId, spotId]
   );
 
   const runGpsCheck = useCallback(() => {
@@ -143,15 +139,11 @@ export function SceneArriveVerify({
     setAuthError(null);
     authStartedRef.current = false;
 
-    if (mode === 'demo' || qrCodeValue || alreadyVisitVerified) {
+    if (qrCodeValue || alreadyVisitVerified) {
       const virtualCoords = { lat: spot.coordinates.lat, lng: spot.coordinates.lng };
       setCoords(virtualCoords);
       setDistanceMeters(null);
-      setGpsMessage(
-        qrCodeValue || alreadyVisitVerified
-          ? 'QR코드 현장 방문 인증이 확인되었습니다.'
-          : '시연 모드 방문 인증이 확인되었습니다.'
-      );
+      setGpsMessage('QR코드 현장 방문 인증이 확인되었습니다.');
       setGpsStatus('verified');
       if (!alreadyVisitVerified) {
         void persistVisitAuthentication(virtualCoords);
@@ -200,14 +192,14 @@ export function SceneArriveVerify({
       },
       { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
     );
-  }, [alreadyVisitVerified, mode, persistVisitAuthentication, spot.coordinates.lat, spot.coordinates.lng, spot.name, spotId]);
+  }, [alreadyVisitVerified, persistVisitAuthentication, spot.coordinates.lat, spot.coordinates.lng, spot.name, spotId]);
 
   const runGpsCheckRef = useRef(runGpsCheck);
   runGpsCheckRef.current = runGpsCheck;
 
   useEffect(() => {
     runGpsCheckRef.current();
-  }, [spotId, mode]);
+  }, [spotId]);
 
   const handleSpotPhoto = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
@@ -252,7 +244,7 @@ export function SceneArriveVerify({
   };
 
   return (
-    <div className="min-h-app hanji-texture flex flex-col">
+    <div className="min-h-app hanji-texture flex flex-col pb-44">
       <header className="sticky top-0 z-20 border-b border-[#E5DDD0] bg-[#FBF8F2]/95 backdrop-blur-md">
         <div className="mx-auto max-w-md sm:max-w-lg px-4 h-14 flex items-center justify-between gap-4">
           <button
@@ -425,7 +417,7 @@ export function SceneArriveVerify({
       </main>
 
       {/* Bottom Sticky CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-30 border-t border-[#E5DDD0] bg-[#FBF8F2]/95 backdrop-blur-md p-4 safe-pb">
+      <div className="fixed bottom-[4.75rem] left-0 right-0 z-30 border-t border-[#E5DDD0] bg-[#FBF8F2]/95 backdrop-blur-md p-3">
         <div className="mx-auto max-w-md sm:max-w-lg">
           <button
             type="button"

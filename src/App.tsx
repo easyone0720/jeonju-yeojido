@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { BottomNav } from './components/BottomNav';
 import { AdminDashboardPage } from './components/AdminDashboardPage';
 import { HomeWorkspace, type QrCompletionBanner } from './components/HomeWorkspace';
 import { MediaWallPage } from './components/MediaWallPage';
@@ -15,7 +16,6 @@ import { SceneStart } from './components/SceneStart';
 import { TutorialModal } from './components/TutorialModal';
 import { JEONJU_SPOTS } from './data/jeonjuSpots';
 import {
-  AppMode,
   ClueRecord,
   ClueSpotId,
   CompanionType,
@@ -60,7 +60,6 @@ export default function App() {
     createInitialSession({ sessionId: '' })
   );
   const [scene, setScene] = useState<SceneId>(1);
-  const [activeInputMode, setActiveInputMode] = useState<AppMode>('experience');
 
   const [homeTab, setHomeTab] = useState<HomeTab>('map');
   const [selectedSpotId, setSelectedSpotId] = useState<SpotId>('gyeonggijeon');
@@ -87,38 +86,6 @@ export default function App() {
       setRoute(readRouteFromLocation());
     };
     window.addEventListener('popstate', onPopState);
-
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('autostart') === '1') {
-      // Quick automated test entry using demo mode without polluting experience records
-      apiFetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        credentials: 'same-origin',
-        body: JSON.stringify({
-          mode: 'demo',
-          visitorName: '시연 탐험가',
-          birthDate: '1998-05-15',
-          companion: 'alone',
-          permissionsAcknowledged: { location: true, camera: true },
-        }),
-      })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data: { session?: UserSessionState; authToken?: string } | null) => {
-          if (data?.session) {
-            if (data.authToken) {
-              setMemoryAuthToken('demo', data.authToken);
-            }
-            setSession(data.session);
-            setActiveInputMode('demo');
-            setHomeTab('map');
-            setScene(3);
-          }
-        })
-        .catch(() => {
-          // Ignore autostart network error
-        });
-    }
 
     return () => window.removeEventListener('popstate', onPopState);
   }, []);
@@ -168,7 +135,6 @@ export default function App() {
   const applyRestoredSession = useCallback((restored: UserSessionState) => {
     const target = getResumeNavigationState(restored);
     setSession(restored);
-    setActiveInputMode(restored.mode);
     setHomeTab(target.homeTab);
     setSelectedSpotId(target.selectedSpotId);
     setJustStampedSpotId(null);
@@ -180,10 +146,10 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, []);
 
-  const checkExistingAuthOrGoToInput = useCallback(async (chosenMode: AppMode) => {
+  const checkExistingAuthOrGoToInput = useCallback(async () => {
     try {
-      const res = await apiFetch(`/api/auth/me?mode=${encodeURIComponent(chosenMode)}`, {
-        headers: getAuthHeaders(chosenMode),
+      const res = await apiFetch(`/api/auth/me?mode=experience`, {
+        headers: getAuthHeaders('experience'),
         credentials: 'same-origin',
       });
       if (res.ok) {
@@ -200,36 +166,32 @@ export default function App() {
       // Fallback safely to new registration/recovery view if auth check fails transiently
     }
 
-    setActiveInputMode(chosenMode);
-    setSession(createInitialSession({ sessionId: '', mode: chosenMode }));
+    setSession(createInitialSession({ sessionId: '', mode: 'experience' }));
     setScene(2);
     window.scrollTo({ top: 0, behavior: 'auto' });
   }, []);
 
   // Scene 1 CTA clicks
-  const handleStartClick = (chosenMode: AppMode) => {
-    setActiveInputMode(chosenMode);
-    if (chosenMode === 'experience') {
-      if (shouldShowTutorial(new Date())) {
-        setTutorialOpen(true);
-        return;
-      }
+  const handleStartClick = () => {
+    if (shouldShowTutorial(new Date())) {
+      setTutorialOpen(true);
+      return;
     }
-    void checkExistingAuthOrGoToInput(chosenMode);
+    void checkExistingAuthOrGoToInput();
   };
 
   const handleCloseTutorialWithoutHide = () => {
     setTutorialOpen(false);
-    void checkExistingAuthOrGoToInput('experience');
+    void checkExistingAuthOrGoToInput();
   };
 
   const handleHideTutorialTodayAndProceed = () => {
     hideTutorialForToday(new Date());
     setTutorialOpen(false);
-    void checkExistingAuthOrGoToInput('experience');
+    void checkExistingAuthOrGoToInput();
   };
 
-  // Scene 2: Register new non-member experience/demo user
+  // Scene 2: Register new non-member experience user
   const handleSubmitInputConsent = async (data: {
     visitorName: string;
     birthDate: string;
@@ -241,7 +203,7 @@ export default function App() {
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
       body: JSON.stringify({
-        mode: activeInputMode,
+        mode: 'experience',
         visitorName: data.visitorName,
         birthDate: data.birthDate,
         companion: data.companion,
@@ -311,8 +273,7 @@ export default function App() {
   // Scene 6 -> Atomic QR Verification + Auto Clue/Coupon Save (GPS-free)
   const handleQrVerified = async (
     recognizedSpotId: SpotId,
-    qrCodeValue: string,
-    options?: { demoSimulated?: boolean }
+    qrCodeValue: string
   ) => {
     const res = await apiFetch(
       `/api/session/${encodeURIComponent(session.sessionId)}/verify-qr`,
@@ -326,7 +287,6 @@ export default function App() {
         body: JSON.stringify({
           spotId: recognizedSpotId,
           qrCodeValue,
-          demoSimulated: Boolean(options?.demoSimulated),
         }),
       }
     );
@@ -513,35 +473,28 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: 'auto' });
   };
 
-  // Explicit User-Confirmed Record Deletion
-  const handleDeleteCurrentRecord = async () => {
-    const res = await apiFetch(
-      `/api/auth/record?mode=${encodeURIComponent(session.mode)}`,
-      {
-        method: 'DELETE',
-        headers: getAuthHeaders(session.mode),
-        credentials: 'same-origin',
-      }
-    );
-    if (!res.ok) {
-      const payload = (await res.json().catch(() => ({}))) as { error?: string };
-      throw new Error(payload.error || '기록 삭제에 실패했습니다.');
-    }
-
-    clearMemoryAuthToken(session.mode);
-
-    setSession(createInitialSession({ sessionId: '' }));
-    setRevealedClue(null);
+  // 하단 내비게이션(지도/내 조각/쿠폰): 어느 체험 화면에서든 즉시 해당 탭으로 이동한다.
+  // 결과 캐릭터는 sessionStorage에 고정되어 있고 진행 상태는 session에 있으므로 이동 후 돌아와도 유지된다.
+  const handleNavTab = (tab: HomeTab) => {
+    const nextScene: SceneId = tab === 'map' ? 3 : tab === 'clues' ? 4 : 5;
     setJustStampedSpotId(null);
     setQrCompletionBanner(null);
-    setLastVerifiedQrCode(null);
-    setSelectedSpotId('gyeonggijeon');
-    setHomeTab('map');
-    setSaveError(null);
-    setPendingRetryPayload(null);
-    setScene(1);
+    setHomeTab(tab);
+    setScene(nextScene);
     window.scrollTo({ top: 0, behavior: 'auto' });
+    void persistProgressMilestone({
+      ...session,
+      currentScene: nextScene,
+      currentSpotId: selectedSpotId,
+    });
   };
+
+  const withNav = (node: ReactNode, activeTab: HomeTab | null) => (
+    <>
+      {node}
+      <BottomNav activeTab={activeTab} onChangeTab={handleNavTab} />
+    </>
+  );
 
   // Separated Routes: /wall & /admin
   if (route === '/wall') {
@@ -599,7 +552,6 @@ export default function App() {
               // Ignore transient logout issue; UI still proceeds safely to new/recover form
             }
             clearMemoryAuthToken(modeToClear);
-            setActiveInputMode(modeToClear);
             setSession(createInitialSession({ sessionId: '', mode: modeToClear }));
             setScene(2);
             window.scrollTo({ top: 0, behavior: 'auto' });
@@ -613,7 +565,6 @@ export default function App() {
     return (
       <>
         <SceneInputConsent
-          mode={activeInputMode}
           initialVisitorName={session.visitorName}
           initialBirthDate={session.birthDate}
           initialCompanion={session.companion}
@@ -637,10 +588,9 @@ export default function App() {
   }
 
   if (scene === 6) {
-    return (
+    return withNav(
       <SceneQrScan
         expectedSpotId={selectedSpotId}
-        mode={session.mode}
         alreadyVerified={isSpotVisitVerified(session, selectedSpotId)}
         collectedClueCount={clueCount}
         onBack={() => {
@@ -654,15 +604,16 @@ export default function App() {
         }}
         onQrVerified={handleQrVerified}
       />
+      ,
+      'map'
     );
   }
 
   if (scene === 7) {
-    return (
+    return withNav(
       <SceneArriveVerify
         sessionId={session.sessionId}
         spotId={activeClaimSpotId}
-        mode={session.mode}
         qrCodeValue={lastVerifiedQrCode}
         alreadyVisitVerified={isSpotVisitVerified(session, activeClaimSpotId)}
         alreadyCompleted={isSpotClueOrPastLifeCompleted(session, activeClaimSpotId)}
@@ -690,6 +641,8 @@ export default function App() {
           });
         }}
       />
+      ,
+      'map'
     );
   }
 
@@ -697,7 +650,7 @@ export default function App() {
     const linkedCoupon = session.coupons.find(
       (c) => c.spotId === revealedClue.spotId
     );
-    return (
+    return withNav(
       <SceneClueReveal
         clue={revealedClue}
         coupon={linkedCoupon}
@@ -731,11 +684,13 @@ export default function App() {
           });
         }}
       />
+      ,
+      'clues'
     );
   }
 
   if (scene === 9) {
-    return (
+    return withNav(
       <SceneMuseumFace
         session={session}
         onBack={() => {
@@ -749,11 +704,13 @@ export default function App() {
         }}
         onGenerated={handlePastLifeGenerated}
       />
+      ,
+      'map'
     );
   }
 
   if (scene === 10 && session.pastLifeResult) {
-    return (
+    return withNav(
       <SceneResult
         result={session.pastLifeResult}
         visitorName={session.visitorName}
@@ -781,11 +738,13 @@ export default function App() {
           });
         }}
       />
+      ,
+      null
     );
   }
 
   if (scene === 11 && session.pastLifeResult) {
-    return (
+    return withNav(
       <SceneMediaConsent
         result={session.pastLifeResult}
         visitorName={session.visitorName}
@@ -808,6 +767,8 @@ export default function App() {
           });
         }}
       />
+      ,
+      null
     );
   }
 
@@ -898,7 +859,6 @@ export default function App() {
       onUseDemoCoupon={handleUseDemoCoupon}
       onNavigateRoute={(p) => navigateRoute(p)}
       onGoHome={handleGoHomePreservingRecord}
-      onDeleteRecord={handleDeleteCurrentRecord}
       saveError={saveError}
       onRetrySync={
         pendingRetryPayload

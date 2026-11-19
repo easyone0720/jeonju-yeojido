@@ -13,7 +13,6 @@ import {
 interface CouponBarcodeModalProps {
   coupon: CouponRecord | null;
   spotName: string;
-  isDemoMode: boolean;
   redeeming?: boolean;
   redeemError?: string | null;
   onConfirmDemoUse?: (couponId: string) => Promise<void>;
@@ -23,7 +22,6 @@ interface CouponBarcodeModalProps {
 export function CouponBarcodeModal({
   coupon,
   spotName,
-  isDemoMode,
   redeeming = false,
   redeemError = null,
   onConfirmDemoUse,
@@ -37,7 +35,7 @@ export function CouponBarcodeModal({
   const open = Boolean(coupon);
   const barcodeValue = coupon?.barcodeNumber ?? '';
   const isDemo = Boolean(
-    coupon && (isDemoMode || coupon.isDemoCoupon || isDemoBarcodeNumber(barcodeValue))
+    coupon && (coupon.isDemoCoupon || isDemoBarcodeNumber(barcodeValue))
   );
   const baseStatus = coupon ? resolveCouponBaseStatus(coupon) : 'locked';
 

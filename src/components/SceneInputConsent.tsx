@@ -1,10 +1,9 @@
 import { FormEvent, useState } from 'react';
 import { ArrowLeft, CheckSquare, KeyRound, Square, UserPlus } from 'lucide-react';
-import { AppMode, CompanionType } from '../types/jeonju';
+import { CompanionType } from '../types/jeonju';
 import { validateBirthDate } from '../utils/pastLifeEngine';
 
 interface SceneInputConsentProps {
-  mode: AppMode;
   initialVisitorName: string;
   initialBirthDate: string;
   initialCompanion: CompanionType;
@@ -24,7 +23,6 @@ interface SceneInputConsentProps {
 }
 
 export function SceneInputConsent({
-  mode,
   initialVisitorName,
   initialBirthDate,
   initialCompanion,
@@ -37,9 +35,7 @@ export function SceneInputConsent({
 
   // Register state
   const [visitorName, setVisitorName] = useState(initialVisitorName);
-  const [birthDate, setBirthDate] = useState(
-    initialBirthDate || (mode === 'demo' ? '1998-05-15' : '')
-  );
+  const [birthDate, setBirthDate] = useState(initialBirthDate);
   const [locationAck, setLocationAck] = useState(initialPermissions.location);
   const [cameraAck, setCameraAck] = useState(initialPermissions.camera);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -130,9 +126,7 @@ export function SceneInputConsent({
           <ArrowLeft className="w-4 h-4" aria-hidden="true" />
           <span>이전</span>
         </button>
-        <span className="text-xs font-medium text-[#9A3412]">
-          {mode === 'demo' ? '시연 모드' : '현장 체험'}
-        </span>
+        <span className="text-xs font-medium text-[#9A3412]">현장 체험</span>
       </header>
 
       <main className="flex-1 mx-auto w-full max-w-md sm:max-w-lg px-5 py-4 sm:py-8 flex flex-col">
@@ -269,20 +263,18 @@ export function SceneInputConsent({
                 {submitting ? '기록 생성 중...' : '다음'}
               </button>
 
-              {mode === 'experience' && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setErrorMsg(null);
-                    setRecoverError(null);
-                    setPanelMode('recover');
-                  }}
-                  className="w-full min-h-[44px] px-4 py-2 rounded-xl border border-[#D6CEBE] bg-[#FBF8F2] text-xs sm:text-sm font-semibold text-[#1C1917] hover:bg-[#EFE8DC] flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <KeyRound className="w-4 h-4 text-[#9A3412]" aria-hidden="true" />
-                  <span>이전 기록 불러오기</span>
-                </button>
-              )}
+              <button
+                type="button"
+                onClick={() => {
+                  setErrorMsg(null);
+                  setRecoverError(null);
+                  setPanelMode('recover');
+                }}
+                className="w-full min-h-[44px] px-4 py-2 rounded-xl border border-[#D6CEBE] bg-[#FBF8F2] text-xs sm:text-sm font-semibold text-[#1C1917] hover:bg-[#EFE8DC] flex items-center justify-center gap-1.5 transition-colors"
+              >
+                <KeyRound className="w-4 h-4 text-[#9A3412]" aria-hidden="true" />
+                <span>이전 기록 불러오기</span>
+              </button>
             </div>
           </form>
         ) : (

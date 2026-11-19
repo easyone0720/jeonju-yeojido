@@ -11,21 +11,15 @@ import {
   Loader2,
 } from 'lucide-react';
 import { JEONJU_SPOTS } from '../data/jeonjuSpots';
-import { SPOT_QR_ALLOWLIST } from '../data/qrAllowlist';
-import { AppMode, SpotId } from '../types/jeonju';
+import { SpotId } from '../types/jeonju';
 import { parseSpotQrPayload } from '../utils/pastLifeEngine';
 
 interface SceneQrScanProps {
   expectedSpotId: SpotId;
-  mode: AppMode;
   alreadyVerified?: boolean;
   collectedClueCount?: number;
   onBack: () => void;
-  onQrVerified: (
-    recognizedSpotId: SpotId,
-    qrCodeValue: string,
-    options?: { demoSimulated?: boolean }
-  ) => Promise<void>;
+  onQrVerified: (recognizedSpotId: SpotId, qrCodeValue: string) => Promise<void>;
 }
 
 const CAMERA_UNAVAILABLE_MSG =
@@ -69,7 +63,6 @@ function decodeQrFromImageElement(img: HTMLImageElement): string | null {
 
 export function SceneQrScan({
   expectedSpotId,
-  mode,
   alreadyVerified = false,
   collectedClueCount = 0,
   onBack,
@@ -126,11 +119,7 @@ export function SceneQrScan({
   }, []);
 
   const submitVerifiedQr = useCallback(
-    async (
-      spotId: SpotId,
-      qrValue: string,
-      options?: { demoSimulated?: boolean }
-    ) => {
+    async (spotId: SpotId, qrValue: string) => {
       recognizedLockRef.current = true;
       setVerifyingServer(true);
       setScanFeedback(null);
@@ -138,7 +127,7 @@ export function SceneQrScan({
       stopCamera();
 
       try {
-        await onQrVerified(spotId, qrValue, options);
+        await onQrVerified(spotId, qrValue);
       } catch (err) {
         recognizedLockRef.current = false;
         setVerifyingServer(false);
@@ -358,13 +347,6 @@ export function SceneQrScan({
       }
     }
 
-    if (mode === 'demo') {
-      void submitVerifiedQr(expectedSpotId, SPOT_QR_ALLOWLIST[expectedSpotId], {
-        demoSimulated: true,
-      });
-      return;
-    }
-
     setScanFeedback(QR_DECODE_FAIL_MSG);
   };
 
@@ -418,7 +400,7 @@ export function SceneQrScan({
   };
 
   return (
-    <div className="min-h-app hanji-texture text-[#1C1917] flex flex-col justify-between">
+    <div className="min-h-app hanji-texture text-[#1C1917] flex flex-col justify-between pb-24">
       {/* Top Bar with explicit Camera Close & Back trigger */}
       <header className="w-full px-4 h-14 flex items-center justify-between max-w-md mx-auto">
         <button
@@ -432,7 +414,7 @@ export function SceneQrScan({
         </button>
 
         <span className="text-xs text-[#57534E] font-medium truncate px-2">
-          {expectedSpot.name} {mode === 'demo' ? '· 시연 모드' : ''}
+          {expectedSpot.name}
         </span>
 
         <button
@@ -521,7 +503,7 @@ export function SceneQrScan({
           </div>
         )}
 
-        {/* Capture / Upload & Demo Actions */}
+        {/* Capture / Upload Actions */}
         <div className="w-full max-w-[330px] flex flex-col items-center gap-3 pb-6 safe-pb">
           {!scanBlocked && (
             <>
@@ -529,19 +511,13 @@ export function SceneQrScan({
                 type="button"
                 onClick={handleCircleShutterClick}
                 disabled={analyzingImage || verifyingServer}
-                aria-label={mode === 'demo' ? `${expectedSpot.name} 시연 QR 스캔` : '현재 화면 QR 스캔 시도'}
+                aria-label="현재 화면 QR 스캔 시도"
                 className="w-16 h-16 rounded-full border-2 border-[#9A3412] bg-white/90 hover:bg-white active:scale-95 transition-all flex items-center justify-center shadow-md disabled:opacity-60"
               >
                 <span className="w-12 h-12 rounded-full bg-[#9A3412] flex items-center justify-center text-white">
                   <Camera className="w-5 h-5" aria-hidden="true" />
                 </span>
               </button>
-
-              {mode === 'demo' && (
-                <span className="text-xs text-[#9A3412] font-medium text-center">
-                  시연 모드: 원형 버튼을 누르면 {expectedSpot.name} QR이 시연 인식됩니다
-                </span>
-              )}
 
               <div className="w-full grid grid-cols-2 gap-2 pt-1">
                 <label className="min-h-[44px] px-3 py-2 rounded-xl border border-[#C7B596] bg-white hover:bg-[#F5EFE6] text-xs font-semibold text-[#1C1917] inline-flex items-center justify-center gap-1.5 cursor-pointer text-center">

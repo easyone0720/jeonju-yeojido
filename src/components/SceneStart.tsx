@@ -2,10 +2,9 @@ import { HahoeDanceCharacter } from './HahoeDanceCharacter';
 import { InteractiveNorigae } from './InteractiveNorigae';
 import { SceneStartBackdrop } from './SceneStartBackdrop';
 import { START_HERO_IMAGE } from '../data/spotImages';
-import { AppMode } from '../types/jeonju';
 
 interface SceneStartProps {
-  onStart: (mode: AppMode) => void;
+  onStart: () => void;
   onNavigateRoute: (path: '/wall' | '/admin') => void;
 }
 
@@ -152,22 +151,14 @@ export function SceneStart({
           </p>
         </div>
 
-        {/* Bottom Primary CTA ('시작하기') + subtle demo link */}
+        {/* Bottom Primary CTA ('시작하기') */}
         <div className="w-full max-w-xs sm:max-w-sm space-y-3 pb-4 safe-pb">
           <button
             type="button"
-            onClick={() => onStart('experience')}
+            onClick={onStart}
             className="hover-scale w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#9A3412] text-white font-semibold text-base hover:bg-[#7C2D12] active:scale-[0.99] shadow-sm"
           >
             시작하기
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onStart('demo')}
-            className="w-full min-h-[40px] py-1.5 text-xs font-medium text-[#57534E] hover:text-[#1E3A8A] underline underline-offset-4 transition-colors"
-          >
-            시연 모드로 체험하기 (현장 이동 없이 3분 시연)
           </button>
         </div>
       </main>

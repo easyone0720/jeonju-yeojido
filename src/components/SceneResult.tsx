@@ -251,7 +251,7 @@ export function SceneResult({
   };
 
   return (
-    <div className="min-h-app hanji-texture flex flex-col">
+    <div className="min-h-app hanji-texture flex flex-col pb-24">
       <header className="w-full px-4 h-12 flex items-center justify-between max-w-[430px] mx-auto">
         <button
           type="button"
