@@ -3,6 +3,7 @@ import { BottomNav, type NavTab } from './components/BottomNav';
 import { MediaWallVideo } from './components/MediaWallVideo';
 import { GoodsCheckoutPage } from './components/GoodsCheckoutPage';
 import { GoodsStorePage } from './components/GoodsStorePage';
+import { TopExperienceHeader } from './components/TopExperienceHeader';
 import type { GoodsItem } from './data/goods';
 import { AdminDashboardPage } from './components/AdminDashboardPage';
 import { HomeWorkspace, type QrCompletionBanner } from './components/HomeWorkspace';
@@ -69,8 +70,8 @@ export default function App() {
   // 굿즈 스토어/결제 화면 (진행 단계(scene)와 별개의 오버레이 화면, 저장하지 않는다)
   const [mediaVideoOpen, setMediaVideoOpen] = useState(false);
   const [goodsView, setGoodsView] = useState<{ page: 'store' } | { page: 'checkout'; item: GoodsItem } | null>(null);
-  const [selectedSpotId, setSelectedSpotId] = useState<SpotId>('gyeonggijeon');
-  const [activeClaimSpotId, setActiveClaimSpotId] = useState<SpotId>('gyeonggijeon');
+  const [selectedSpotId, setSelectedSpotId] = useState<SpotId>('wanpanbon');
+  const [activeClaimSpotId, setActiveClaimSpotId] = useState<SpotId>('wanpanbon');
   const [lastVerifiedQrCode, setLastVerifiedQrCode] = useState<string | null>(null);
   const [justStampedSpotId, setJustStampedSpotId] = useState<SpotId | null>(null);
   const [qrCompletionBanner, setQrCompletionBanner] = useState<QrCompletionBanner | null>(null);
@@ -234,7 +235,7 @@ export default function App() {
     }
     setSession(payload.session);
     setSaveError(null);
-    setSelectedSpotId('gyeonggijeon');
+    setSelectedSpotId('wanpanbon');
     setHomeTab('map');
 
     if (payload.recoveryCode) {
@@ -539,8 +540,17 @@ export default function App() {
   ).length;
   const goodsLocked = stampCount < 4;
 
-  const withNav = (node: ReactNode, activeTab: NavTab | null) => (
+  const withNav = (node: ReactNode, activeTab: NavTab | null, withHeader = false) => (
     <>
+      {withHeader && (
+        <TopExperienceHeader
+          clueCount={getCollectedClueCount(session)}
+          visitorName={session.visitorName}
+          onOpenMediaWall={openMediaWall}
+          onGoHome={handleGoHomePreservingRecord}
+          onCompleteAllStamps={ENABLE_QUICK_COMPLETE_BUTTON ? handleCompleteAllStamps : undefined}
+        />
+      )}
       {node}
       <BottomNav activeTab={activeTab} onChangeTab={handleNavTab} goodsLocked={goodsLocked} />
       {mediaVideoOpen && <MediaWallVideo onClose={closeMediaWall} />}
@@ -598,7 +608,7 @@ export default function App() {
           locked={goodsLocked}
           visitedCount={stampCount}
           onGoToMap={() => handleNavTab('map')}
-          onClose={closeGoodsToResult}
+          onClose={() => handleNavTab('map')}
           onSelectGoods={(item) => {
             setGoodsView({ page: 'checkout', item });
             window.scrollTo({ top: 0, behavior: 'auto' });
@@ -606,6 +616,7 @@ export default function App() {
         />
       ),
       'goods',
+      true,
     );
   }
 
@@ -844,7 +855,8 @@ export default function App() {
         }}
       />
       ,
-      null
+      null,
+      true,
     );
   }
 

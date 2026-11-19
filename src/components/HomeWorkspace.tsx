@@ -9,8 +9,6 @@ import {
   CheckCircle2,
   Navigation,
   Sparkles,
-  RotateCcw,
-  UserCircle2,
   Tv,
   X,
 } from 'lucide-react';
@@ -36,8 +34,8 @@ import {
   isSpotVisitVerified,
 } from '../utils/pastLifeEngine';
 import { BottomNav, type NavTab } from './BottomNav';
+import { TopExperienceHeader } from './TopExperienceHeader';
 import { CouponCategoryBadge } from './CouponCategoryBadge';
-import { ENABLE_QUICK_COMPLETE_BUTTON } from '../config/features';
 import { CompleteSealStamp } from './CompleteSealStamp';
 import { CouponBarcodeModal } from './CouponBarcodeModal';
 import { TangramClueBoard, type ClueGridMeta } from './TangramClueBoard';
@@ -125,8 +123,6 @@ export function HomeWorkspace({
   const [barcodeCouponId, setBarcodeCouponId] = useState<string | null>(null);
   const [redeemingCoupon, setRedeemingCoupon] = useState<boolean>(false);
   const [redeemCouponError, setRedeemCouponError] = useState<string | null>(null);
-  const [quickCompleting, setQuickCompleting] = useState<boolean>(false);
-  const [quickCompleteError, setQuickCompleteError] = useState<string | null>(null);
 
   const clueCount = getCollectedClueCount(session);
   const museumReady = isMuseumUnlocked(session);
@@ -341,7 +337,7 @@ export function HomeWorkspace({
               setSpotSheetOpen(false);
               onOpenMuseumFace();
             }}
-            className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#9A3412] text-white font-semibold text-sm hover:bg-[#7C2D12] flex items-center justify-center gap-2"
+            className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#8E3524] text-[#FBF8F1] font-semibold text-sm hover:bg-[#762A1C] flex items-center justify-center gap-2"
           >
             <Sparkles className="w-4 h-4" aria-hidden="true" />
             <span>내 전생 결과 확인하기</span>
@@ -353,7 +349,7 @@ export function HomeWorkspace({
               setSpotSheetOpen(false);
               onOpenQrScan('jeonju_museum');
             }}
-            className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#9A3412] text-white font-semibold text-sm hover:bg-[#7C2D12] flex items-center justify-center gap-2"
+            className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#8E3524] text-[#FBF8F1] font-semibold text-sm hover:bg-[#762A1C] flex items-center justify-center gap-2"
           >
             <QrCode className="w-4 h-4" aria-hidden="true" />
             <span>박물관 현장 QR 스캔하기</span>
@@ -379,7 +375,7 @@ export function HomeWorkspace({
             setSpotSheetOpen(false);
             onContinueSpotVerify(spot.id);
           }}
-          className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#9A3412] text-white font-semibold text-sm hover:bg-[#7C2D12] flex items-center justify-center gap-2"
+          className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#8E3524] text-[#FBF8F1] font-semibold text-sm hover:bg-[#762A1C] flex items-center justify-center gap-2"
         >
           <ScrollText className="w-4 h-4" aria-hidden="true" />
           <span>전생 조각 이어받기</span>
@@ -391,7 +387,7 @@ export function HomeWorkspace({
             setSpotSheetOpen(false);
             onOpenQrScan(spot.id);
           }}
-          className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#9A3412] text-white font-semibold text-sm hover:bg-[#7C2D12] flex items-center justify-center gap-2"
+          className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#8E3524] text-[#FBF8F1] font-semibold text-sm hover:bg-[#762A1C] flex items-center justify-center gap-2"
         >
           <QrCode className="w-4 h-4" aria-hidden="true" />
           <span>현장 QR 스캔하기</span>
@@ -407,94 +403,27 @@ export function HomeWorkspace({
     : null;
 
   return (
-    <div className="min-h-app hanji-texture flex flex-col pb-24">
-      {/* Wireframe Top Profile + Progress Header: [Profile Icon] 0 / 4 */}
-      <header className="sticky top-0 z-30 border-b border-[#E5DDD0] bg-[#FBF8F2]/95 backdrop-blur-md">
-        <div className="mx-auto max-w-5xl px-3 sm:px-6 min-h-14 py-1.5 flex items-center justify-between gap-2 sm:gap-4">
-          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-            <div className="flex items-center gap-1.5 sm:gap-2 text-[#1C1917] shrink-0">
-              <UserCircle2 className="w-6 h-6 sm:w-7 sm:h-7 text-[#57534E]" aria-hidden="true" />
-              <span
-                className="font-mono-tabular text-lg font-bold tracking-tight whitespace-nowrap"
-                aria-label={`전생 조각 진행도 ${clueCount} / 4`}
-              >
-                {clueCount} / 4
-              </span>
-            </div>
-            {session.visitorName && (
-              <span className="text-xs text-[#57534E] hidden sm:inline truncate max-w-[140px]">
-                · {session.visitorName}
-              </span>
-            )}
-            <span className="text-xs text-[#9A3412] font-medium whitespace-nowrap">
-              · 현장 체험
-            </span>
-          </div>
-
-          <div className="flex items-center gap-1.5 sm:gap-2">
-            <button
-              type="button"
-              onClick={onOpenMediaWall}
-              className="section-heading text-xs font-bold text-[#1C1917] hover:text-[#9A3412] min-h-[44px] px-2 whitespace-nowrap"
-            >
-              미디어월
-            </button>
-            {/* [QUICK-COMPLETE] 시연자용 초소형 skip — 4개 거점 인증·쿠폰 발급·박물관 단계로 한 번에 이동.
-                ENABLE_QUICK_COMPLETE_BUTTON 을 false 로 바꾸면 사라진다. */}
-            {ENABLE_QUICK_COMPLETE_BUTTON && onCompleteAllStamps && clueCount < 4 && (
-              <button
-                type="button"
-                disabled={quickCompleting}
-                onClick={async () => {
-                  setQuickCompleting(true);
-                  setQuickCompleteError(null);
-                  try {
-                    await onCompleteAllStamps();
-                  } catch (err) {
-                    setQuickCompleteError(
-                      err instanceof Error ? err.message : '스탬프 일괄 완료에 실패했습니다.'
-                    );
-                  } finally {
-                    setQuickCompleting(false);
-                  }
-                }}
-                aria-label="스탬프 4개 완료로 이동"
-                className="px-1.5 min-h-[32px] bg-transparent text-[11px] text-[#2C3B4D]/45 hover:text-[#1B2632] disabled:opacity-50 transition-colors"
-              >
-                {quickCompleting ? '…' : 'skip'}
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={onGoHome}
-              title="처음 화면으로 (기록은 안전하게 보관됩니다)"
-              aria-label="처음으로 돌아가기"
-              className="min-w-[40px] min-h-[40px] flex items-center justify-center rounded-lg text-[#57534E] hover:bg-[#EFE8DC] hover:text-[#1C1917]"
-            >
-              <RotateCcw className="w-4 h-4" aria-hidden="true" />
-            </button>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-app hanji-texture flex flex-col pb-[calc(7rem+env(safe-area-inset-bottom))]">
+      <TopExperienceHeader
+        clueCount={clueCount}
+        visitorName={session.visitorName}
+        onOpenMediaWall={onOpenMediaWall}
+        onGoHome={onGoHome}
+        onCompleteAllStamps={onCompleteAllStamps}
+      />
 
       <main className="flex-1 mx-auto w-full max-w-5xl px-4 sm:px-6 py-4 sm:py-6 flex flex-col gap-4">
-        {quickCompleteError && (
-          <p role="alert" className="text-[11px] text-[#7C2D12] text-right">
-            {quickCompleteError}
-          </p>
-        )}
-
         {saveError && (
           <div
             role="alert"
-            className="rounded-xl border border-[#9A3412]/40 bg-[#9A3412]/10 px-4 py-2.5 flex items-center justify-between gap-3 text-xs text-[#7C2D12]"
+            className="rounded-xl border border-[#9A3412]/40 bg-[#8E3524]/10 px-4 py-2.5 flex items-center justify-between gap-3 text-xs text-[#7C2D12]"
           >
             <span>{saveError}</span>
             {onRetrySync && (
               <button
                 type="button"
                 onClick={onRetrySync}
-                className="min-h-[34px] px-3 rounded-lg bg-[#9A3412] text-white font-semibold whitespace-nowrap shrink-0"
+                className="min-h-[34px] px-3 rounded-lg bg-[#8E3524] text-[#FBF8F1] font-semibold whitespace-nowrap shrink-0"
               >
                 다시 저장 시도
               </button>
@@ -525,7 +454,7 @@ export function HomeWorkspace({
                     onDismissQrBanner?.();
                     onOpenMuseumFace();
                   }}
-                  className="min-h-[36px] px-3.5 py-1.5 rounded-lg bg-[#9A3412] text-white text-xs font-semibold hover:bg-[#7C2D12] whitespace-nowrap"
+                  className="min-h-[36px] px-3.5 py-1.5 rounded-lg bg-[#8E3524] text-[#FBF8F1] text-xs font-semibold hover:bg-[#762A1C] whitespace-nowrap"
                 >
                   내 전생 결과 확인
                 </button>
@@ -538,7 +467,7 @@ export function HomeWorkspace({
                       onDismissQrBanner?.();
                       onOpenClueScroll(targetId);
                     }}
-                    className="min-h-[36px] px-3.5 py-1.5 rounded-lg bg-[#9A3412] text-white text-xs font-semibold hover:bg-[#7C2D12] whitespace-nowrap"
+                    className="min-h-[36px] px-3.5 py-1.5 rounded-lg bg-[#8E3524] text-[#FBF8F1] text-xs font-semibold hover:bg-[#762A1C] whitespace-nowrap"
                   >
                     획득 조각 · 쿠폰 보기
                   </button>
@@ -576,7 +505,7 @@ export function HomeWorkspace({
                     ? onOpenMuseumFace
                     : () => onOpenQrScan('jeonju_museum')
               }
-              className="min-h-[40px] px-4 py-2 rounded-lg bg-[#9A3412] text-white text-xs font-semibold hover:bg-[#7C2D12] whitespace-nowrap shrink-0"
+              className="min-h-[40px] px-4 py-2 rounded-lg bg-[#8E3524] text-[#FBF8F1] text-xs font-semibold hover:bg-[#762A1C] whitespace-nowrap shrink-0"
             >
               {session.pastLifeResult
                 ? '내 전생 결과 보기'
@@ -623,7 +552,7 @@ export function HomeWorkspace({
               </div>
 
               {/* Large Traditional Joseon Map Container matching Scene 3 */}
-              <div className="relative w-full aspect-[4/3] min-h-[340px] max-h-[580px] rounded-2xl border-2 border-[#A8967A] bg-[#EFE4CE] overflow-hidden shadow-md">
+              <div className="relative w-full aspect-[4/3] min-h-[260px] max-h-[580px] rounded-2xl border-2 border-[#A8967A] bg-[#EFE4CE] overflow-hidden shadow-md">
                 <img
                   src={TRADITIONAL_MAP_IMAGE}
                   alt="전주 전통 여지도 고지도 배경"
@@ -704,7 +633,7 @@ export function HomeWorkspace({
                           ) : (
                             <Sparkles className="w-4 h-4 shrink-0" aria-hidden="true" />
                           )}
-                          <span className="text-xs font-bold whitespace-nowrap">
+                          <span className="text-[clamp(0.68rem,1.6vw,0.75rem)] font-bold whitespace-nowrap">
                             박물관
                           </span>
                           {visited && (
@@ -743,7 +672,7 @@ export function HomeWorkspace({
                         <span
                           className={`relative w-11 h-11 rounded-full border-2 flex items-center justify-center font-mono-tabular text-sm font-bold shadow-md ring-2 ring-[#FBF8F2]/95 ${
                             isSelected
-                              ? 'bg-[#9A3412] text-white border-[#FBF8F2]'
+                              ? 'bg-[#8E3524] text-[#FBF8F1] border-[#FBF8F2]'
                               : stage2Done
                                 ? 'bg-[#F0FDF4] text-[#14532D] border-[#16A34A]'
                                 : visited
@@ -765,7 +694,7 @@ export function HomeWorkspace({
                             />
                           )}
                         </span>
-                        <span className="px-2 py-0.5 leading-tight rounded-md bg-[#FBF8F2]/95 border border-[#8C7A62]/70 text-xs font-bold text-[#1C1917] whitespace-nowrap shadow-sm">
+                        <span className="px-2 py-0.5 leading-tight rounded-md bg-[#FBF8F2]/95 border border-[#8C7A62]/70 text-[clamp(0.68rem,1.6vw,0.75rem)] font-bold text-[#1C1917] whitespace-nowrap shadow-sm">
                           {spot.name}
                         </span>
                       </button>
@@ -813,7 +742,7 @@ export function HomeWorkspace({
                             ? onOpenMuseumFace()
                             : onOpenQrScan('jeonju_museum')
                         }
-                        className="min-h-[44px] px-3.5 py-2 rounded-lg bg-[#9A3412] text-white text-xs font-semibold"
+                        className="min-h-[44px] px-3.5 py-2 rounded-lg bg-[#8E3524] text-[#FBF8F1] text-xs font-semibold"
                       >
                         {museumVisitVerified ? '결과 확인' : 'QR 스캔'}
                       </button>
@@ -822,7 +751,7 @@ export function HomeWorkspace({
                     <button
                       type="button"
                       onClick={() => onOpenQrScan(selectedSpot.id)}
-                      className="min-h-[44px] px-3.5 py-2 rounded-lg bg-[#9A3412] text-white text-xs font-semibold"
+                      className="min-h-[44px] px-3.5 py-2 rounded-lg bg-[#8E3524] text-[#FBF8F1] text-xs font-semibold"
                     >
                       QR 스캔
                     </button>
@@ -831,7 +760,7 @@ export function HomeWorkspace({
                       <button
                         type="button"
                         onClick={() => onContinueSpotVerify(selectedSpot.id)}
-                        className="min-h-[44px] px-3.5 py-2 rounded-lg bg-[#9A3412] text-white text-xs font-semibold"
+                        className="min-h-[44px] px-3.5 py-2 rounded-lg bg-[#8E3524] text-[#FBF8F1] text-xs font-semibold"
                       >
                         조각 받기
                       </button>
@@ -925,7 +854,7 @@ export function HomeWorkspace({
 
         {/* SCENE 5: 홈③ 쿠폰 — Pure #A35139 Key Color + CODE128 Barcode Issuance */}
         {activeTab === 'coupons' && (
-          <section aria-labelledby="coupons-section-title" className="mx-auto w-full max-w-2xl space-y-4">
+          <section aria-labelledby="coupons-section-title" className="mx-auto w-full max-w-4xl space-y-4">
             {/* Top Coupon Issuance Banner Box using exact pure #A35139 (zero opacity/gradient) */}
             <div
               className="rounded-2xl border-2 bg-white overflow-hidden shadow-sm"
@@ -956,7 +885,7 @@ export function HomeWorkspace({
               </div>
             </div>
 
-            <div className="flex flex-col gap-3.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
               {session.coupons.map((coupon) => {
                 const spotName =
                   JEONJU_SPOTS.find((s) => s.id === coupon.spotId)?.name ?? '';

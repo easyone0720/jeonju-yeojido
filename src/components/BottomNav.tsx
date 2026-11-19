@@ -25,8 +25,8 @@ export function BottomNav({ activeTab, onChangeTab, goodsLocked = false }: Botto
       aria-label="하단 내비게이션"
       className="fixed bottom-0 left-0 right-0 z-40 border-t border-[#C9C1B1] bg-[#FBF8F2]/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)]"
     >
-      {/* 상단 헤더와 같은 컨테이너 규격 (mx-auto max-w-5xl px-3 sm:px-6) */}
-      <div className="mx-auto max-w-5xl px-3 sm:px-6">
+      {/* 상단 헤더와 같은 컨테이너 규격 (max-w-5xl 동일 규격) */}
+      <div className="mx-auto w-full max-w-5xl px-4 sm:px-6">
         <div className="grid grid-cols-4 min-h-[58px]">
           {TABS.map(({ id, label, Icon }) => {
             const active = activeTab === id;
@@ -38,7 +38,7 @@ export function BottomNav({ activeTab, onChangeTab, goodsLocked = false }: Botto
                 onClick={() => onChangeTab(id)}
                 aria-current={active ? 'page' : undefined}
                 aria-label={showLock ? `${label} (잠김)` : label}
-                className={`min-h-[44px] flex flex-col items-center justify-center gap-0.5 text-xs border-t-2 transition-colors ${
+                className={`min-h-[44px] min-w-0 px-0.5 flex flex-col items-center justify-center gap-0.5 text-xs whitespace-nowrap border-t-2 transition-colors ${
                   active
                     ? 'border-[#9A3412] text-[#9A3412] font-bold'
                     : 'border-transparent text-[#57534E] font-medium hover:text-[#1C1917]'
@@ -55,7 +55,7 @@ export function BottomNav({ activeTab, onChangeTab, goodsLocked = false }: Botto
                     </span>
                   )}
                 </span>
-                <span>{label}</span>
+                <span className="max-w-full truncate">{label}</span>
               </button>
             );
           })}

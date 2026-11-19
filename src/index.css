@@ -35,17 +35,26 @@
     background-color: var(--bg-hanji);
     color: var(--ink-primary);
     -webkit-tap-highlight-color: transparent;
-    overflow-x: clip;
+    /* 루트 rem 유동 스케일링: 14px(좁은 화면) ~ 16px(데스크탑) */
+    font-size: clamp(14px, calc(13px + 0.25vw), 16px);
+    /* 320px 미만에서는 찌그러지는 대신 가로 스크롤로 방어 */
+    min-width: 320px;
+    overflow-x: auto;
   }
 
   body {
     min-height: 100vh;
     min-height: 100dvh;
     font-family: var(--font-trad-base);
+    min-width: 320px;
     overflow-x: clip;
     padding-bottom: env(safe-area-inset-bottom, 0px);
     word-break: keep-all;
     overflow-wrap: break-word;
+  }
+
+  #root {
+    min-width: 320px;
   }
 
   input,
