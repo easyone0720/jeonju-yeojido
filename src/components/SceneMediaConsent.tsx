@@ -85,11 +85,11 @@ export function SceneMediaConsent({
         {/* Top & Center: 내 전생 초상 large rectangle */}
         <div className="w-full flex-1 flex flex-col items-center justify-center space-y-2">
           <p className="text-xs font-medium text-[#78716C]">내 전생 초상</p>
-          <div className="w-full rounded-2xl overflow-hidden border border-[#C7B596] bg-[#EFE5D0] shadow-md">
+          <div className="w-full max-w-[220px] sm:max-w-[250px] aspect-[9/16] mx-auto rounded-2xl overflow-hidden border border-[#D8CEBE] bg-[#F3ECE0] shadow-md">
             <img
               src={resolveCharacterImage(result.characterId, result.portraitDataUrl)}
               alt="내 전생 초상 미리보기"
-              className="w-full aspect-video object-cover object-top block"
+              className="w-full h-full object-contain object-center block"
             />
           </div>
         </div>
@@ -109,7 +109,7 @@ export function SceneMediaConsent({
               className={`min-h-[52px] px-4 py-3 rounded-xl font-semibold text-base transition-colors ${
                 currentConsent === 'accepted'
                   ? 'bg-[#14532D] text-white'
-                  : 'bg-[#9A3412] hover:bg-[#7C2D12] text-white'
+                  : 'bg-[#8E3524] hover:bg-[#762A1C] text-white'
               }`}
             >
               Yes
@@ -132,7 +132,7 @@ export function SceneMediaConsent({
           {errorMsg && (
             <div
               role="alert"
-              className="rounded-xl border border-[#9A3412]/40 bg-[#9A3412]/10 px-4 py-3 text-xs text-[#7C2D12]"
+              className="rounded-xl border border-[#9A3412]/40 bg-[#8E3524]/10 px-4 py-3 text-xs text-[#7C2D12]"
             >
               {errorMsg}
             </div>
@@ -250,7 +250,7 @@ export function SceneMediaConsent({
               {errorMsg && (
                 <div
                   role="alert"
-                  className="mt-3 rounded-xl border border-[#9A3412]/40 bg-[#9A3412]/10 px-3 py-2 text-xs text-[#7C2D12]"
+                  className="mt-3 rounded-xl border border-[#9A3412]/40 bg-[#8E3524]/10 px-3 py-2 text-xs text-[#7C2D12]"
                 >
                   {errorMsg}
                 </div>

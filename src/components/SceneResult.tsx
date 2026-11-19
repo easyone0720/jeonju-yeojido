@@ -32,8 +32,8 @@ function SectionCard({
   className?: string;
 }) {
   return (
-    <section className={`text-left rounded-2xl border border-[#E5DDD0] p-5 space-y-3 shadow-xs ${className}`}>
-      <h3 className="font-serif-kr text-base font-bold text-[#1C1917]">{label}</h3>
+    <section className={`text-left rounded-2xl border border-[#D8CEBE] p-5 space-y-3 shadow-xs ${className}`}>
+      <h3 className="font-serif-kr text-base font-bold text-[#26201B]">{label}</h3>
       {children}
     </section>
   );
@@ -96,7 +96,7 @@ function VoicePlayer({ character }: { character: Character }) {
   const progress = duration > 0 ? Math.min(100, (current / duration) * 100) : 0;
 
   return (
-    <div className="rounded-2xl border border-[#E5DDD0] bg-white p-4 space-y-3 text-left">
+    <div className="rounded-2xl border border-[#D8CEBE] bg-white p-4 space-y-3 text-left">
       <audio
         ref={audioRef}
         src={character.audioUrl}
@@ -117,7 +117,7 @@ function VoicePlayer({ character }: { character: Character }) {
           type="button"
           onClick={toggle}
           aria-label={playing ? '일시정지' : '재생'}
-          className="w-12 h-12 shrink-0 rounded-full bg-[#9A3412] hover:bg-[#7C2D12] text-white flex items-center justify-center transition-colors"
+          className="w-12 h-12 shrink-0 rounded-full bg-[#8E3524] hover:bg-[#762A1C] text-white flex items-center justify-center transition-colors"
         >
           {playing ? (
             <Pause className="w-5 h-5" aria-hidden="true" />
@@ -128,16 +128,16 @@ function VoicePlayer({ character }: { character: Character }) {
 
         <div className="flex-1 min-w-0 space-y-1.5">
           <div
-            className="h-1.5 rounded-full bg-[#E5DDD0] overflow-hidden"
+            className="h-1.5 rounded-full bg-[#D8CEBE] overflow-hidden"
             role="progressbar"
             aria-label="재생 진행률"
             aria-valuemin={0}
             aria-valuemax={100}
             aria-valuenow={Math.round(progress)}
           >
-            <div className="h-full bg-[#9A3412] transition-[width] duration-150" style={{ width: `${progress}%` }} />
+            <div className="h-full bg-[#8E3524] transition-[width] duration-150" style={{ width: `${progress}%` }} />
           </div>
-          <div className="flex justify-between text-[11px] text-[#78716C] font-mono-tabular">
+          <div className="flex justify-between text-[11px] text-[#5C5349] font-mono-tabular">
             <span>{formatTime(current)}</span>
             <span>{formatTime(duration)}</span>
           </div>
@@ -147,22 +147,22 @@ function VoicePlayer({ character }: { character: Character }) {
           type="button"
           onClick={replay}
           aria-label="다시 듣기"
-          className="min-h-[44px] shrink-0 inline-flex items-center gap-1 rounded-full border border-[#D6CEBE] px-3 text-xs font-semibold text-[#57534E] hover:bg-[#F5EFE6] transition-colors"
+          className="min-h-[44px] shrink-0 inline-flex items-center gap-1 rounded-full border border-[#D6CBB9] px-3 text-xs font-semibold text-[#5C5349] hover:bg-[#F5EFE6] transition-colors"
         >
           <RotateCcw className="w-3.5 h-3.5" aria-hidden="true" />
           <span>다시 듣기</span>
         </button>
       </div>
 
-      <blockquote className="rounded-xl bg-[#F5EFE6] border-l-4 border-[#9A3412] px-4 py-3">
-        <p className="flex items-start gap-2 font-serif-kr text-sm font-semibold text-[#1C1917] leading-relaxed">
-          <Volume2 className="w-4 h-4 mt-0.5 shrink-0 text-[#9A3412]" aria-hidden="true" />
+      <blockquote className="rounded-xl bg-[#F5EFE6] border-l-4 border-[#8E3524] px-4 py-3">
+        <p className="flex items-start gap-2 font-serif-kr text-sm font-semibold text-[#26201B] leading-relaxed">
+          <Volume2 className="w-4 h-4 mt-0.5 shrink-0 text-[#8E3524]" aria-hidden="true" />
           <span>“{character.quote}”</span>
         </p>
       </blockquote>
 
       {failed && (
-        <p className="text-xs text-[#9A3412]" role="status">
+        <p className="text-xs text-[#8E3524]" role="status">
           음성을 불러오지 못했어요. 잠시 후 다시 눌러 주세요.
         </p>
       )}
@@ -252,45 +252,51 @@ export function SceneResult({
   };
 
   return (
-    <div className="min-h-app hanji-texture flex flex-col pb-24">
-      <header className="w-full px-4 h-12 flex items-center justify-between max-w-[430px] mx-auto">
-        <button
-          type="button"
-          onClick={onBackToMap}
-          className="inline-flex items-center gap-1 text-sm text-[#57534E] hover:text-[#1C1917] min-h-[44px]"
-        >
-          <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-          <span>지도</span>
-        </button>
-        <span className="text-xs font-medium text-[#9A3412]">{displayName} 님의 전생 기록</span>
-      </header>
+    <div className="min-h-app hanji-texture flex flex-col pb-[calc(7rem+env(safe-area-inset-bottom))]">
+      <main className="flex-1 mx-auto w-full max-w-5xl px-4 sm:px-6 py-4 space-y-5">
+        {/* 서브 헤더: 공통 상단 배너 바로 아래 */}
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-[#D8CEBE] bg-[#FBF8F1]/95 px-4 py-1.5">
+          <button
+            type="button"
+            onClick={onBackToMap}
+            className="inline-flex items-center gap-1 text-sm text-[#5C5349] hover:text-[#26201B] min-h-[44px]"
+          >
+            <ArrowLeft className="w-4 h-4" aria-hidden="true" />
+            <span>지도</span>
+          </button>
+          <span className="text-xs font-medium text-[#8E3524] truncate">{displayName} 님의 전생 기록</span>
+        </div>
 
-      <main className="flex-1 mx-auto w-full max-w-[430px] px-4 py-3 space-y-5 pb-14">
-        <div ref={topRef} className="scroll-mt-2" />
+        <div ref={topRef} className="scroll-mt-16" />
 
-        {/* 1) 상단 카드: 16:9 캐릭터 이미지 + 타이틀 + 음성 플레이어 */}
+        <div className="space-y-5 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
+        <div className="lg:col-span-5 lg:sticky lg:top-20">
+
+        {/* 1) 상단 카드: 9:16 세로 캐릭터 이미지 + 타이틀 + 음성 플레이어 */}
         <section className="space-y-4 text-center">
-          <div className="relative w-full rounded-2xl overflow-hidden border border-[#C7B596] bg-[#EFE5D0] shadow-md">
+          <div className="relative w-full max-w-[270px] sm:max-w-[310px] aspect-[9/16] mx-auto rounded-2xl overflow-hidden border border-[#D8CEBE] bg-[#F3ECE0] shadow-md">
             <img
               key={character.id}
               src={character.imageUrl}
               alt={`${character.title} 전생 캐릭터 일러스트`}
-              className="w-full aspect-video object-cover object-top block"
+              className="w-full h-full object-contain object-center block"
             />
           </div>
-          <h1 className="font-serif-kr text-2xl font-bold text-[#1C1917] leading-snug">
+          <h1 className="font-serif-kr text-[clamp(1.25rem,3.5vw,1.875rem)] font-bold text-[#26201B] leading-snug">
             {character.emoji} {character.title}
           </h1>
           <VoicePlayer character={character} />
         </section>
 
+        </div>
+        <div className="lg:col-span-7 space-y-5">
         {/* 2) 설정 */}
         <SectionCard label="📜 설정" className="bg-white">
           <p className="text-[15px] text-[#292524] leading-[1.85] whitespace-pre-line">{character.setting}</p>
         </SectionCard>
 
         {/* 3) 대화: 대본 느낌 */}
-        <SectionCard label="🎬 대화" className="bg-[#FBF8F2]">
+        <SectionCard label="🎬 대화" className="bg-[#FBF8F1]">
           <div
             className="rounded-xl border border-dashed border-[#C7B596] bg-white/70 px-4 py-4 space-y-2.5"
             aria-label="그날의 대화 대본"
@@ -302,7 +308,7 @@ export function SceneResult({
                 </p>
               ) : (
                 <p key={idx} className="text-[15px] text-[#292524] leading-[1.7]">
-                  {row.speaker && <strong className="font-bold text-[#1C1917]">{row.speaker}: </strong>}
+                  {row.speaker && <strong className="font-bold text-[#26201B]">{row.speaker}: </strong>}
                   <span>{row.text}</span>
                 </p>
               ),
@@ -316,7 +322,7 @@ export function SceneResult({
           aria-label="전생 결과"
         >
           <div className="rounded-xl border border-[#B89B6A]/60 bg-[#F8F0DC] px-5 py-5 space-y-4">
-            <h3 className="font-serif-kr text-base font-bold text-[#1C1917] text-center tracking-wide">
+            <h3 className="font-serif-kr text-base font-bold text-[#26201B] text-center tracking-wide">
               🏆 결과
             </h3>
             <dl className="space-y-3.5">
@@ -326,10 +332,10 @@ export function SceneResult({
                 { label: '업적', value: character.result.achievement },
               ].map((item) => (
                 <div key={item.label} className="border-t border-[#B89B6A]/40 pt-3 first:border-t-0 first:pt-0">
-                  <dt className="inline-block rounded bg-[#9A3412] px-2 py-0.5 text-[11px] font-bold tracking-widest text-white">
+                  <dt className="inline-block rounded bg-[#8E3524] px-2 py-0.5 text-[11px] font-bold tracking-widest text-white">
                     {item.label}
                   </dt>
-                  <dd className="mt-1.5 text-[15px] text-[#1C1917] leading-[1.7] font-medium">{item.value}</dd>
+                  <dd className="mt-1.5 text-[15px] text-[#26201B] leading-[1.7] font-medium">{item.value}</dd>
                 </div>
               ))}
             </dl>
@@ -346,7 +352,7 @@ export function SceneResult({
         <button
           type="button"
           onClick={handleAnother}
-          className="w-full min-h-[52px] px-6 py-3.5 rounded-xl border-2 border-[#9A3412] text-[#9A3412] bg-white font-semibold text-base hover:bg-[#9A3412]/5 transition-colors flex items-center justify-center gap-2"
+          className="w-full min-h-[52px] px-6 py-3.5 rounded-xl border-2 border-[#8E3524] text-[#8E3524] bg-white font-semibold text-base hover:bg-[#8E3524]/5 transition-colors flex items-center justify-center gap-2"
         >
           <Shuffle className="w-4 h-4" aria-hidden="true" />
           <span>다른 전생 확인하기</span>
@@ -357,7 +363,7 @@ export function SceneResult({
           <button
             type="button"
             onClick={handleShare}
-            className="w-full min-h-[48px] px-5 py-3 rounded-xl border border-[#D6CEBE] bg-white hover:bg-[#F5EFE6] text-sm font-semibold text-[#1C1917] transition-colors"
+            className="w-full min-h-[48px] px-5 py-3 rounded-xl border border-[#C4B8A3] bg-[#FBF8F1] hover:bg-[#F3ECE0] text-sm font-semibold text-[#26201B] transition-colors"
           >
             공유하기
           </button>
@@ -365,7 +371,7 @@ export function SceneResult({
             type="button"
             disabled={saving}
             onClick={handleSaveImage}
-            className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#1C1917] hover:bg-[#292524] text-sm font-semibold text-white transition-colors disabled:opacity-60"
+            className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#8E3524] hover:bg-[#762A1C] text-sm font-semibold text-[#FBF8F1] transition-colors disabled:opacity-60"
           >
             {saving ? '저장 중...' : '저장하기'}
           </button>
@@ -378,7 +384,7 @@ export function SceneResult({
           <button
             type="button"
             onClick={onGoToMediaConsent}
-            className="w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#9A3412] text-white font-semibold text-base hover:bg-[#7C2D12] transition-colors flex items-center justify-center gap-2"
+            className="w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#8E3524] text-[#FBF8F1] font-semibold text-base hover:bg-[#762A1C] transition-colors flex items-center justify-center gap-2"
           >
             <Tv className="w-4 h-4" aria-hidden="true" />
             <span>미디어월 전시 선택하기</span>
@@ -386,13 +392,13 @@ export function SceneResult({
         </div>
 
         {/* 단서 · 굿즈 안내 (접힘) */}
-        <section className="border-t border-[#E5DDD0] pt-4 space-y-3">
+        <section className="border-t border-[#D8CEBE] pt-4 space-y-3">
           <div className="flex items-center justify-between gap-2">
             <button
               type="button"
               onClick={() => setShowDetails((p) => !p)}
               aria-expanded={showDetails}
-              className="text-xs font-semibold text-[#57534E] hover:text-[#1C1917] inline-flex items-center gap-1 min-h-[36px]"
+              className="text-xs font-semibold text-[#5C5349] hover:text-[#26201B] inline-flex items-center gap-1 min-h-[36px]"
             >
               <span>네 조각 연결 및 전생 굿즈 안내 보기</span>
               {showDetails ? (
@@ -404,7 +410,7 @@ export function SceneResult({
             <button
               type="button"
               onClick={onGoToCoupons}
-              className="text-xs font-semibold text-[#9A3412] hover:underline min-h-[36px]"
+              className="text-xs font-semibold text-[#8E3524] hover:underline min-h-[36px]"
             >
               쿠폰함
             </button>
@@ -413,39 +419,41 @@ export function SceneResult({
           {showDetails && (
             <div className="space-y-4">
               <dl className="grid grid-cols-2 gap-2.5 text-xs">
-                <div className="rounded-xl bg-white border border-[#E5DDD0] p-3">
-                  <dt className="text-[#78716C]">시대 · 경기전</dt>
-                  <dd className="font-semibold text-[#1C1917] mt-0.5">{result.era}</dd>
+                <div className="rounded-xl bg-white border border-[#D8CEBE] p-3">
+                  <dt className="text-[#5C5349]">시대 · 경기전</dt>
+                  <dd className="font-semibold text-[#26201B] mt-0.5">{result.era}</dd>
                 </div>
-                <div className="rounded-xl bg-white border border-[#E5DDD0] p-3">
-                  <dt className="text-[#78716C]">신분 · 전라감영</dt>
-                  <dd className="font-semibold text-[#1C1917] mt-0.5">{result.status}</dd>
+                <div className="rounded-xl bg-white border border-[#D8CEBE] p-3">
+                  <dt className="text-[#5C5349]">신분 · 전라감영</dt>
+                  <dd className="font-semibold text-[#26201B] mt-0.5">{result.status}</dd>
                 </div>
-                <div className="rounded-xl bg-white border border-[#E5DDD0] p-3">
-                  <dt className="text-[#78716C]">이야기 · 완판본</dt>
-                  <dd className="font-semibold text-[#1C1917] mt-0.5">{result.storyTitle}</dd>
+                <div className="rounded-xl bg-white border border-[#D8CEBE] p-3">
+                  <dt className="text-[#5C5349]">이야기 · 완판본</dt>
+                  <dd className="font-semibold text-[#26201B] mt-0.5">{result.storyTitle}</dd>
                 </div>
-                <div className="rounded-xl bg-white border border-[#E5DDD0] p-3">
-                  <dt className="text-[#78716C]">소지품 · 남부시장</dt>
-                  <dd className="font-semibold text-[#1C1917] mt-0.5">{result.item}</dd>
+                <div className="rounded-xl bg-white border border-[#D8CEBE] p-3">
+                  <dt className="text-[#5C5349]">소지품 · 남부시장</dt>
+                  <dd className="font-semibold text-[#26201B] mt-0.5">{result.item}</dd>
                 </div>
               </dl>
 
-              <div className="rounded-xl bg-white border border-[#E5DDD0] p-4 space-y-2.5">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-[#1C1917]">
-                  <Gift className="w-4 h-4 text-[#9A3412]" aria-hidden="true" />
+              <div className="rounded-xl bg-white border border-[#D8CEBE] p-4 space-y-2.5">
+                <div className="flex items-center gap-1.5 text-xs font-bold text-[#26201B]">
+                  <Gift className="w-4 h-4 text-[#8E3524]" aria-hidden="true" />
                   <span>{character.title} 맞춤 전생 굿즈</span>
                 </div>
                 {result.recommendedGoods.map((g) => (
                   <div key={g.id} className="text-xs border-t border-[#F0EAE0] pt-2">
-                    <p className="font-semibold text-[#1C1917]">{g.name}</p>
-                    <p className="text-[#57534E]">{g.description}</p>
+                    <p className="font-semibold text-[#26201B]">{g.name}</p>
+                    <p className="text-[#5C5349]">{g.description}</p>
                   </div>
                 ))}
               </div>
             </div>
           )}
         </section>
+        </div>
+        </div>
       </main>
     </div>
   );
