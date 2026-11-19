@@ -15,6 +15,8 @@ interface GoodsCheckoutPageProps {
   onClose: () => void;
   /** 주문 완료 화면의 `결과 화면으로 돌아가기` */
   onFinish: () => void;
+  /** 하단 내비게이션 위에 표시되는 경우: 결제 바를 내비게이션 위로 올리고 여백을 둔다 */
+  withBottomNav?: boolean;
 }
 
 const MAX_QTY = 10;
@@ -46,6 +48,7 @@ export function GoodsCheckoutPage({
   onBackToList,
   onClose,
   onFinish,
+  withBottomNav = false,
 }: GoodsCheckoutPageProps) {
   const [qty, setQty] = useState(1);
   const [delivery, setDelivery] = useState<Delivery>('pickup');
@@ -96,7 +99,7 @@ export function GoodsCheckoutPage({
   if (stage === 'done') {
     return (
       <div className="min-h-app hanji-texture">
-        <div className="w-full max-w-[430px] mx-auto min-h-app flex flex-col px-4 py-6 pb-10 safe-pb">
+        <div className={`w-full max-w-[430px] mx-auto min-h-app flex flex-col px-4 py-6 safe-pb ${withBottomNav ? 'pb-28' : 'pb-10'}`}>
           <div className="text-center space-y-2 pt-2">
             <CheckCircle2 className="w-12 h-12 mx-auto text-[#14532D]" aria-hidden="true" />
             <h1 className="font-serif-kr text-xl font-bold text-[#14532D]">
@@ -192,7 +195,7 @@ export function GoodsCheckoutPage({
           </button>
         </header>
 
-        <main className="flex-1 px-4 py-4 space-y-5 pb-32">
+        <main className={`flex-1 px-4 py-4 space-y-5 ${withBottomNav ? 'pb-48' : 'pb-32'}`}>
           <h1 className="font-serif-kr text-lg font-bold text-[#1C1917]">주문 · 결제</h1>
 
           <section aria-label="주문 상품" className="rounded-2xl border border-[#D6CEBE] bg-white p-3.5 space-y-3">
@@ -309,7 +312,11 @@ export function GoodsCheckoutPage({
           </section>
         </main>
 
-        <div className="fixed bottom-0 left-0 right-0 max-w-[430px] mx-auto z-40 border-t border-[#E5DDD0] bg-[#FBF8F2]/95 backdrop-blur-md p-3 safe-pb">
+        <div
+          className={`fixed left-0 right-0 max-w-[430px] mx-auto z-40 border-t border-[#E5DDD0] bg-[#FBF8F2]/95 backdrop-blur-md p-3 safe-pb ${
+            withBottomNav ? 'bottom-[72px]' : 'bottom-0'
+          }`}
+        >
           <button
             type="button"
             onClick={handlePay}

@@ -501,7 +501,7 @@ export function getResumeNavigationState(session: UserSessionState): {
       scene: 9,
       homeTab: 'map',
       selectedSpotId: 'jeonju_museum',
-      stepSummary: '국립전주박물관 전생 촬영 대기 (4 / 4)',
+      stepSummary: '국립전주박물관 전생 결과 확인 대기 (4 / 4)',
     };
   }
 

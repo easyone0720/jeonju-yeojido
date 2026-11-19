@@ -1,4 +1,4 @@
-import { CHARACTERS, characterToStory } from '../data/characters';
+import { CHARACTERS, characterToStory, getCharacterById, resolveCharacterImage } from '../data/characters';
 import { ArchetypeId, PastLifeResult } from '../types/jeonju';
 
 interface AttireColors {
@@ -289,12 +289,12 @@ export async function synthesizeJoseonPortrait(params: {
 
   // 5. Archival Calligraphy Title & Red Vermilion Seal Stamp (낙관)
   ctx.fillStyle = '#292524';
-  ctx.font = '600 28px "Noto Serif KR", Georgia, serif';
+  ctx.font = '600 28px "Noto Sans KR", sans-serif';
   ctx.textAlign = 'right';
   ctx.fillText(params.hanjaTitle, padX + innerW - 32, padY + 62);
 
   ctx.fillStyle = '#57534E';
-  ctx.font = '500 18px "Noto Serif KR", Georgia, serif';
+  ctx.font = '500 18px "Noto Sans KR", sans-serif';
   const aliasLine = params.visitorName.trim()
     ? `${params.visitorName.trim()} 肖像`
     : '前生 肖像畫';
@@ -309,7 +309,7 @@ export async function synthesizeJoseonPortrait(params: {
   ctx.lineWidth = 2;
   ctx.strokeRect(sealX + 4, sealY + 4, 54, 54);
   ctx.fillStyle = '#F7F1E3';
-  ctx.font = '700 17px "Noto Serif KR", serif';
+  ctx.font = '700 17px "Noto Sans KR", sans-serif';
   ctx.textAlign = 'center';
   ctx.fillText(palette.sealLabel.slice(0, 2), sealX + 31, sealY + 27);
   ctx.fillText(palette.sealLabel.slice(2, 4), sealX + 31, sealY + 49);
@@ -513,7 +513,8 @@ export async function buildDownloadableResultCard(
   result: PastLifeResult,
   visitorName: string
 ): Promise<string> {
-  const story = result.story ?? characterToStory(CHARACTERS[0]);
+  const character = getCharacterById(result.characterId);
+  const story = character ? characterToStory(character) : (result.story ?? characterToStory(CHARACTERS[0]));
   const width = 900;
   // 초상 영역을 16:9(780×439)로 두기 때문에 3:4(540×720)일 때보다 281px 낮다
   const height = 1419;
@@ -538,7 +539,7 @@ export async function buildDownloadableResultCard(
 
   // Portrait (16:9)
   try {
-    const portraitImg = await loadImage(result.portraitDataUrl);
+    const portraitImg = await loadImage(resolveCharacterImage(result.characterId, result.portraitDataUrl));
     // 어떤 비율이든 16:9 칸에 cover 로 채우되, 인물 얼굴이 잘리지 않도록 위쪽을 기준으로 자른다
     const targetRatio = 780 / 439;
     const srcRatio = portraitImg.width / portraitImg.height;
@@ -565,7 +566,7 @@ export async function buildDownloadableResultCard(
   ctx.fillText(`${visitorName.trim() || '전주 나그네'} 님의 전생 기록`, width / 2, 593);
 
   ctx.fillStyle = '#1C1917';
-  ctx.font = '700 42px "Noto Serif KR", serif';
+  ctx.font = '700 42px "Noto Sans KR", sans-serif';
   const titleBottom = drawWrappedText(ctx, story.jobTitle, width / 2, 647, 760, 54, 2);
 
   // Divider

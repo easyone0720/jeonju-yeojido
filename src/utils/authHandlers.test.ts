@@ -93,4 +93,22 @@ describe('로컬 회원·로그인 (authHandlers)', () => {
     assert.equal(auth.getLocalAuth()?.displayName, '게스트 체험자');
     assert.equal(auth.getLocalAuth()?.method, 'guest');
   });
+  it('Google JWT 에서 이름·이메일·프로필 이미지를 읽어 세션에 저장한다', async () => {
+    const b64url = (o: object) =>
+      Buffer.from(JSON.stringify(o), 'utf-8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    const jwt = `${b64url({ alg: 'RS256' })}.${b64url({
+      name: '홍길동',
+      email: 'gildong@example.com',
+      picture: 'https://example.com/p.png',
+    })}.sig`;
+    const r = await auth.loginWithGoogleCredential(jwt);
+    assert.equal(r.ok, true);
+    const info = auth.getLocalAuth();
+    assert.equal(info?.method, 'google');
+    assert.equal(info?.displayName, '홍길동');
+    assert.equal(info?.email, 'gildong@example.com');
+    assert.equal(info?.picture, 'https://example.com/p.png');
+    const bad = await auth.loginWithGoogleCredential('not-a-jwt');
+    assert.equal(bad.ok, false);
+  });
 });

@@ -400,7 +400,7 @@ export function SceneQrScan({
   };
 
   return (
-    <div className="min-h-app hanji-texture text-[#1C1917] flex flex-col justify-between pb-24">
+    <div className="min-h-app hanji-texture text-[#1C1917] flex flex-col justify-between pb-28">
       {/* Top Bar with explicit Camera Close & Back trigger */}
       <header className="w-full px-4 h-14 flex items-center justify-between max-w-md mx-auto">
         <button

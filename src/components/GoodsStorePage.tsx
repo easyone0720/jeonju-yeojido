@@ -6,9 +6,11 @@ interface GoodsStorePageProps {
   onClose: () => void;
   /** 굿즈 이미지를 누르면 해당 굿즈가 담긴 결제창으로 이동한다 */
   onSelectGoods: (item: GoodsItem) => void;
+  /** 하단 내비게이션 위에 표시되는 경우 하단 여백을 넉넉히 둔다 */
+  withBottomNav?: boolean;
 }
 
-export function GoodsStorePage({ onClose, onSelectGoods }: GoodsStorePageProps) {
+export function GoodsStorePage({ onClose, onSelectGoods, withBottomNav = false }: GoodsStorePageProps) {
   return (
     <div className="min-h-app hanji-texture">
       <div className="w-full max-w-[430px] mx-auto min-h-app flex flex-col">
@@ -29,7 +31,7 @@ export function GoodsStorePage({ onClose, onSelectGoods }: GoodsStorePageProps) 
           </button>
         </header>
 
-        <main className="flex-1 px-4 py-4 space-y-4 pb-10 safe-pb">
+        <main className={`flex-1 px-4 py-4 space-y-4 safe-pb ${withBottomNav ? 'pb-28' : 'pb-10'}`}>
           {GOODS.map((item) => (
             <article
               key={item.id}

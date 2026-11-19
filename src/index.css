@@ -8,32 +8,19 @@
   font-display: swap;
 }
 
-@font-face {
-  font-family: 'Joseon100Years';
-  src: url('https://gcore.jsdelivr.net/gh/projectnoonnu/noonfonts_2206-02@1.0/ChosunCentennial.woff2') format('woff2');
-  font-weight: 400 800;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'MaruBuri';
-  src: url('https://fastly.jsdelivr.net/gh/projectnoonnu/noonfonts_20-10-21@1.0/MaruBuri-Regular.woff') format('woff');
-  font-weight: 400 700;
-  font-style: normal;
-  font-display: swap;
-}
-
 @layer base {
   :root {
     /* 쿠폰함 키 컬러 (쿠폰 카드·배너·버튼에서 var(--coupon-primary) 로 사용) */
     --coupon-primary: #A35139;
-    --font-trad-bold: 'SangSangRock', 'Joseon100Years', 'Gowun Batang', 'Noto Serif KR', serif;
-    --font-trad-base: 'Joseon100Years', 'Gowun Batang', 'Noto Serif KR', serif;
-    --font-trad-caption: 'MaruBuri', 'Gowun Batang', 'Noto Serif KR', serif;
-    --font-serif: var(--font-trad-bold);
-    --font-sans: var(--font-trad-base);
-    --font-mono: var(--font-trad-base);
+    /* 전 화면 단일 고딕 서체. 붓글씨(SangSangRock)는 메인 로고(.font-logo)에만 쓴다. */
+    --font-ui: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', 'Malgun Gothic', sans-serif;
+    --font-logo: 'SangSangRock', 'Noto Sans KR', sans-serif;
+    --font-trad-bold: var(--font-ui);
+    --font-trad-base: var(--font-ui);
+    --font-trad-caption: var(--font-ui);
+    --font-serif: var(--font-ui);
+    --font-sans: var(--font-ui);
+    --font-mono: var(--font-ui);
     --bg-hanji: #FAF5E8;
     --bg-surface: #FFFFFF;
     --bg-subtle: #F2ECE1;
@@ -70,7 +57,13 @@
 }
 
 .font-serif-kr {
-  font-family: var(--font-trad-bold);
+  /* 이름만 남은 호환용 클래스: 이제 일반 고딕이다 */
+  font-family: var(--font-ui);
+}
+
+/* 메인 로고(전생여지도) 전용 붓글씨 포인트 서체 */
+.font-logo {
+  font-family: var(--font-logo);
   font-synthesis-weight: none;
 }
 
@@ -81,22 +74,6 @@
 .font-mono-tabular {
   font-family: var(--font-trad-base);
   font-variant-numeric: tabular-nums;
-}
-
-/* Bold & dark titles/headings -> Attachment 5 (SangSangRock / 바위체) */
-h1,
-h2,
-h3,
-:is(.font-bold, .font-semibold):is(.text-\[\#1C1917\], .text-\[\#292524\], .text-\[\#141210\], .text-black) {
-  font-family: var(--font-trad-bold);
-  font-synthesis-weight: none;
-}
-
-/* Small muted/gray secondary descriptions -> Attachment 4 (MaruBuri / Gowun Batang) */
-:is(.text-\[\#78716C\], .text-\[\#57534E\]),
-input::placeholder,
-textarea::placeholder {
-  font-family: var(--font-trad-caption);
 }
 
 .safe-pb {

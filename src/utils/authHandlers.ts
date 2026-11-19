@@ -42,6 +42,9 @@ export interface LocalAuthInfo {
   displayName: string;
   /** ID 로그인에서 입력한 ID (비밀번호는 저장하지 않음) */
   id?: string;
+  /** Google 로그인 시 JWT 에서 읽은 이메일 / 프로필 이미지 URL (sessionStorage 에만 저장) */
+  email?: string;
+  picture?: string;
   loggedInAt: string;
 }
 
@@ -223,8 +226,100 @@ export async function registerWithPassword({
   return { ok: true, method: 'password' };
 }
 
-/** 소셜 로그인 (Google / Kakao / Naver) */
+// ---------------------------------------------------------------------------------------------
+// Google Identity Services (https://accounts.google.com/gsi/client)
+// ---------------------------------------------------------------------------------------------
+const GSI_SCRIPT_SRC = 'https://accounts.google.com/gsi/client';
+
+/** .env 의 VITE_GOOGLE_CLIENT_ID (비어 있거나 예시값이면 빈 문자열) */
+export function getGoogleClientId(): string {
+  const raw = ((import.meta.env?.VITE_GOOGLE_CLIENT_ID as string | undefined) ?? '').trim();
+  if (!raw || /^(MY_|YOUR_|your-|<)/i.test(raw)) return '';
+  return raw;
+}
+
+interface GoogleIdApi {
+  initialize: (config: {
+    client_id: string;
+    callback: (response: { credential?: string }) => void;
+    ux_mode?: 'popup' | 'redirect';
+    auto_select?: boolean;
+    cancel_on_tap_outside?: boolean;
+  }) => void;
+  renderButton: (parent: HTMLElement, options: Record<string, unknown>) => void;
+}
+
+declare global {
+  interface Window {
+    google?: { accounts?: { id?: GoogleIdApi } };
+  }
+}
+
+let gsiLoading: Promise<GoogleIdApi | null> | null = null;
+
+/** GIS 스크립트를 한 번만 불러온다. 실패(오프라인·차단)하면 null. */
+export function loadGoogleIdentity(): Promise<GoogleIdApi | null> {
+  if (typeof window === 'undefined') return Promise.resolve(null);
+  const ready = window.google?.accounts?.id;
+  if (ready) return Promise.resolve(ready);
+  if (gsiLoading) return gsiLoading;
+  gsiLoading = new Promise<GoogleIdApi | null>((resolve) => {
+    const script = document.createElement('script');
+    script.src = GSI_SCRIPT_SRC;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => resolve(window.google?.accounts?.id ?? null);
+    script.onerror = () => {
+      gsiLoading = null; // 다음 시도에서 다시 불러올 수 있게 한다
+      script.remove();
+      resolve(null);
+    };
+    document.head.appendChild(script);
+  });
+  return gsiLoading;
+}
+
+/** JWT(ID 토큰)의 payload 를 디코딩한다. 서명 검증은 하지 않는다(시연용, 서버 인증 아님). */
+export function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  try {
+    const part = token.split('.')[1];
+    if (!part) return null;
+    const b64 = part.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = b64 + '='.repeat((4 - (b64.length % 4)) % 4);
+    const bin = atob(padded);
+    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+    const parsed = JSON.parse(new TextDecoder().decode(bytes)) as unknown;
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Google 로그인 팝업이 돌려준 JWT 에서 이름·이메일·프로필 이미지를 읽어 로컬 세션에 저장한다. */
+export async function loginWithGoogleCredential(credential: string): Promise<AuthResult> {
+  const payload = decodeJwtPayload(credential);
+  if (!payload) return { ok: false, message: 'Google 로그인 정보를 읽지 못했습니다. 다시 시도해 주세요.' };
+  const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+  const email = str(payload.email);
+  const name = str(payload.name) || str(payload.given_name) || email.split('@')[0] || SOCIAL_DISPLAY_NAMES.google;
+  const picture = str(payload.picture);
+  saveLocalAuth({
+    method: 'google',
+    displayName: name.slice(0, 16),
+    ...(email ? { email } : {}),
+    ...(picture ? { picture } : {}),
+  });
+  return { ok: true, method: 'google' };
+}
+
+/** 소셜 로그인 (Google / Kakao / Naver). Google 은 클라이언트 ID 가 없을 때의 체험자 폴백으로도 쓰인다. */
 export async function loginWithSocial(provider: SocialProvider): Promise<AuthResult> {
+  if (provider === 'google' && !getGoogleClientId()) {
+    console.info(
+      '[로그인] VITE_GOOGLE_CLIENT_ID 가 비어 있어 실제 Google 로그인 대신 "Google 체험자" 계정으로 진행합니다. ' +
+        '.env 에 VITE_GOOGLE_CLIENT_ID 를 설정하면 실제 Google 로그인 팝업이 열립니다.'
+    );
+  }
   // TODO(auth): Supabase 연동 시 아래로 교체 (kakao, google은 내장 provider, naver는 커스텀 OIDC 필요)
   // const { error } = await supabase.auth.signInWithOAuth({
   //   provider,

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { BottomNav } from './components/BottomNav';
+import { BottomNav, type NavTab } from './components/BottomNav';
+import { MediaWallVideo } from './components/MediaWallVideo';
 import { GoodsCheckoutPage } from './components/GoodsCheckoutPage';
 import { GoodsStorePage } from './components/GoodsStorePage';
 import type { GoodsItem } from './data/goods';
@@ -67,6 +68,7 @@ export default function App() {
 
   const [homeTab, setHomeTab] = useState<HomeTab>('map');
   // 굿즈 스토어/결제 화면 (진행 단계(scene)와 별개의 오버레이 화면, 저장하지 않는다)
+  const [mediaVideoOpen, setMediaVideoOpen] = useState(false);
   const [goodsView, setGoodsView] = useState<{ page: 'store' } | { page: 'checkout'; item: GoodsItem } | null>(null);
   const [selectedSpotId, setSelectedSpotId] = useState<SpotId>('gyeonggijeon');
   const [activeClaimSpotId, setActiveClaimSpotId] = useState<SpotId>('gyeonggijeon');
@@ -335,7 +337,7 @@ export default function App() {
         spotId: 'jeonju_museum',
         spotName: '국립전주박물관',
         message:
-          '국립전주박물관 QR 방문 인증이 완료되었습니다! 이제 전생 초상화 촬영으로 전생을 완성하세요.',
+          '국립전주박물관 QR 방문 인증이 완료되었습니다! 이제 내 전생 결과를 확인하세요.',
         isMuseum: true,
       });
     } else {
@@ -508,7 +510,17 @@ export default function App() {
 
   // 하단 내비게이션(지도/내 조각/쿠폰): 어느 체험 화면에서든 즉시 해당 탭으로 이동한다.
   // 결과 캐릭터는 sessionStorage에 고정되어 있고 진행 상태는 session에 있으므로 이동 후 돌아와도 유지된다.
-  const handleNavTab = (tab: HomeTab) => {
+  const handleNavTab = (tab: NavTab) => {
+    setMediaVideoOpen(false);
+    if (tab === 'goods') {
+      // 기념품 탭: 14종 굿즈 스토어를 바로 연다 (결과 화면이 없어도 열람 가능)
+      setJustStampedSpotId(null);
+      setQrCompletionBanner(null);
+      setGoodsView({ page: 'store' });
+      window.scrollTo({ top: 0, behavior: 'auto' });
+      return;
+    }
+    setGoodsView(null);
     const nextScene: SceneId = tab === 'map' ? 3 : tab === 'clues' ? 4 : 5;
     setJustStampedSpotId(null);
     setQrCompletionBanner(null);
@@ -522,10 +534,11 @@ export default function App() {
     });
   };
 
-  const withNav = (node: ReactNode, activeTab: HomeTab | null) => (
+  const withNav = (node: ReactNode, activeTab: NavTab | null) => (
     <>
       {node}
       <BottomNav activeTab={activeTab} onChangeTab={handleNavTab} />
+      {mediaVideoOpen && <MediaWallVideo onClose={() => handleNavTab('map')} />}
     </>
   );
 
@@ -538,30 +551,40 @@ export default function App() {
     return <AdminDashboardPage onBackToApp={() => navigateRoute('/')} />;
   }
 
+  // 굿즈 스토어/결제창의 X·완료: 전생 결과가 있으면 결과 화면으로, 없으면 지도 탭으로 돌아간다
   const closeGoodsToResult = () => {
+    if (!session.pastLifeResult) {
+      handleNavTab('map');
+      return;
+    }
     setGoodsView(null);
     setScene(10);
     window.scrollTo({ top: 0, behavior: 'auto' });
     void persistProgressMilestone({ ...session, currentScene: 10 });
   };
 
-  if (goodsView && session.pastLifeResult) {
-    return goodsView.page === 'checkout' ? (
-      <GoodsCheckoutPage
-        key={goodsView.item.id}
-        item={goodsView.item}
-        onBackToList={() => setGoodsView({ page: 'store' })}
-        onClose={closeGoodsToResult}
-        onFinish={closeGoodsToResult}
-      />
-    ) : (
-      <GoodsStorePage
-        onClose={closeGoodsToResult}
-        onSelectGoods={(item) => {
-          setGoodsView({ page: 'checkout', item });
-          window.scrollTo({ top: 0, behavior: 'auto' });
-        }}
-      />
+  if (goodsView) {
+    return withNav(
+      goodsView.page === 'checkout' ? (
+        <GoodsCheckoutPage
+          key={goodsView.item.id}
+          item={goodsView.item}
+          withBottomNav
+          onBackToList={() => setGoodsView({ page: 'store' })}
+          onClose={closeGoodsToResult}
+          onFinish={closeGoodsToResult}
+        />
+      ) : (
+        <GoodsStorePage
+          withBottomNav
+          onClose={closeGoodsToResult}
+          onSelectGoods={(item) => {
+            setGoodsView({ page: 'checkout', item });
+            window.scrollTo({ top: 0, behavior: 'auto' });
+          }}
+        />
+      ),
+      'goods',
     );
   }
 
@@ -838,6 +861,7 @@ export default function App() {
 
   // Scenes 3, 4, 5 share HomeWorkspace seamlessly
   return (
+    <>
     <HomeWorkspace
       session={session}
       activeTab={homeTab}
@@ -856,17 +880,7 @@ export default function App() {
           window.scrollTo({ top: 0, behavior: 'auto' });
         }
       }}
-      onChangeTab={(tab) => {
-        const nextScene = tab === 'map' ? 3 : tab === 'clues' ? 4 : 5;
-        setJustStampedSpotId(null);
-        setHomeTab(tab);
-        setScene(nextScene);
-        void persistProgressMilestone({
-          ...session,
-          currentScene: nextScene,
-          currentSpotId: selectedSpotId,
-        });
-      }}
+      onChangeTab={handleNavTab}
       onSelectSpot={(spotId) => {
         setJustStampedSpotId(null);
         setSelectedSpotId(spotId);
@@ -922,6 +936,7 @@ export default function App() {
       }}
       onUseDemoCoupon={handleUseDemoCoupon}
       onNavigateRoute={(p) => navigateRoute(p)}
+      onOpenMediaWall={() => setMediaVideoOpen(true)}
       onGoHome={handleGoHomePreservingRecord}
       onCompleteAllStamps={
         // [QUICK-COMPLETE] 시연·검수용 — features.ts 의 ENABLE_QUICK_COMPLETE_BUTTON 으로 끈다
@@ -934,5 +949,7 @@ export default function App() {
           : undefined
       }
     />
+    {mediaVideoOpen && <MediaWallVideo onClose={() => handleNavTab('map')} />}
+    </>
   );
 }

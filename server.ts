@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import path from 'node:path';
-import { GoogleGenAI, ThinkingLevel, Type } from '@google/genai';
+import fs from 'node:fs';
 import {
   DEMO_WALL_SEEDS,
   HANJI_PRINT_GOODS,
@@ -26,7 +26,26 @@ import {
   serializeHttpOnlyCookie,
   SlidingWindowRateLimiter,
 } from './src/utils/authCrypto.ts';
+import { ENABLE_AI_GENERATION } from './src/config/features.ts';
 import { JeonsaengDatabase } from './src/utils/serverStore.ts';
+import {
+  DEFAULT_ONE_LINE_SUMMARY,
+  DEFAULT_PAST_LIFE_STORY,
+  storyToBiography,
+} from './src/data/defaultPastLifeStory.ts';
+import {
+  generatePastLifePortrait,
+  generatePastLifeStory,
+  getGeminiClient,
+  type GeneratedStory,
+  type InlineImage,
+} from './src/utils/geminiGenerator.ts';
+import {
+  deletePortraitByUrl,
+  parseImageDataUrl,
+  resolvePortraitPath,
+  savePortraitFile,
+} from './src/utils/portraitFiles.ts';
 import type {
   AdminDashboardStats,
   AppMode,
@@ -45,6 +64,9 @@ const PORT = Number(process.env.PORT) || 3000;
 const DATA_DIR = path.resolve(process.cwd(), '.data');
 const DB_PATH = path.join(DATA_DIR, 'jeonsaeng.db');
 const LEGACY_STORE_PATH = path.join(DATA_DIR, 'jeonsaeng-store.json');
+const PORTRAIT_DIR = path.join(DATA_DIR, 'portraits');
+const MAX_PORTRAIT_BYTES = 6 * 1024 * 1024;
+const MAX_FACE_BYTES = 4 * 1024 * 1024;
 const ADMIN_PASSCODE = process.env.ADMIN_PASSCODE || '전주2026';
 
 const EXP_COOKIE_NAME = 'jeonsaeng_exp_sid';
@@ -52,6 +74,8 @@ const DEMO_COOKIE_NAME = 'jeonsaeng_demo_sid';
 
 const db = new JeonsaengDatabase(DB_PATH);
 const recoverLimiter = new SlidingWindowRateLimiter(8, 5 * 60 * 1000);
+// Gemini 호출 비용 보호: 세션당 10분에 3회까지
+const generateLimiter = new SlidingWindowRateLimiter(3, 10 * 60 * 1000);
 
 function cookieNameForMode(mode: AppMode): string {
   return mode === 'demo' ? DEMO_COOKIE_NAME : EXP_COOKIE_NAME;
@@ -159,118 +183,6 @@ function getClientIp(req: express.Request): string {
   return req.ip || 'unknown';
 }
 
-function getGeminiClient(): GoogleGenAI | null {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey || apiKey === 'MY_GEMINI_API_KEY') {
-    return null;
-  }
-  return new GoogleGenAI({
-    apiKey,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      },
-    },
-  });
-}
-
-async function generateNarrativeWithGemini(params: {
-  visitorName: string;
-  birthDate: string;
-  companion: 'alone' | 'together';
-  archetypeTitle: string;
-  hanjaTitle: string;
-  era: string;
-  status: string;
-  storySeed: string;
-  item: string;
-  visitOrderNames: string[];
-}): Promise<{
-  oneLineSummary: string;
-  biography: string;
-  clueSynthesisNote: string;
-  generationSource: 'gemini-ai' | 'curated-demo';
-}> {
-  const displayName = params.visitorName.trim() || '전주의 나그네';
-  const fallback = {
-    oneLineSummary: `${params.era}, ${params.storySeed}`,
-    biography: `${displayName}님은 ${params.era}의 전주 땅에서 ${params.status}로 살아갔던 인물입니다. ${params.visitOrderNames.join(' → ')}을 거치며 모은 네 가지 단서는 하나의 서사로 이어집니다. 경기전의 왕실 기풍 속에서 시대의 숨결을 배웠고, 전라감영의 선화당 앞뜰에서 맡은 바 소임을 다했으며, 완판본에 담긴 한글 이야기에 마음을 얹었습니다. 늘 품에 지녔던 ${params.item}은(는) 훗날 풍남문 밖 저잣거리에서도 사람들과 신의를 나누는 징표가 되었습니다.`,
-    clueSynthesisNote: `경기전(시대: ${params.era}) · 전라감영(신분: ${params.archetypeTitle}) · 완판본문화관(이야기) · 남부시장(소지품: ${params.item})이 하나의 역사적 인물로 결합되었습니다.`,
-    generationSource: 'curated-demo' as const,
-  };
-
-  const ai = getGeminiClient();
-  if (!ai) {
-    return fallback;
-  }
-
-  try {
-    const prompt = `당신은 전주 역사문화 체험 '전생여지도'의 전속 사관(史官)입니다.
-다음 네 가지 확정된 전생 단서와 여행 정보를 바탕으로, 역사적 사실에 위배되지 않는 따뜻하고 몰입감 있는 가상의 전생 일대기를 한국어로 작성해 주세요.
-
-[확정 단서 — 절대 변경하거나 모순되는 시대/직업/소지품을 만들지 마세요]
-- 참여자 호칭: ${displayName} (동행 형태: ${params.companion === 'together' ? '일행과 함께' : '홀로 탐험'})
-- 전생 칭호: ${params.archetypeTitle} (${params.hanjaTitle})
-- 시대 (경기전 단서): ${params.era}
-- 신분 (전라감영 단서): ${params.status}
-- 핵심 일화 (완판본문화관 단서): ${params.storySeed}
-- 소지품 (남부시장 단서): ${params.item}
-- 탐험 동선: ${params.visitOrderNames.join(' -> ')}
-
-[작성 규칙]
-1. 실제 역사적 인물이나 존재하지 않은 역사 사건을 실제 사실처럼 단정하지 말고, 전주의 실제 공간 배경(경기전, 전라감영, 완판본문화관, 남부시장, 국립전주박물관)에 어울리는 가상의 개인 서사로 써 주세요.
-2. 외모 평가나 관상·운명 단정은 금지합니다.
-3. oneLineSummary는 35~55자 이내의 시적인 한 줄 요약으로 작성하세요.
-4. biography는 3~4문장(약 220~300자)으로, 네 장소의 단서가 어떻게 연결되는지 자연스럽게 녹여 쓰세요.
-5. clueSynthesisNote는 네 조각이 어떻게 하나의 인물로 연결되었는지 1~2문장으로 설명하세요.`;
-
-    const response = await Promise.race([
-      ai.models.generateContent({
-        model: 'gemini-4-hydrogen',
-        contents: prompt,
-        config: {
-          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-          systemInstruction:
-            'You are a careful Korean cultural heritage storyteller for Jeonju. Always output valid JSON in Korean matching the schema.',
-          responseMimeType: 'application/json',
-          responseSchema: {
-            type: Type.OBJECT,
-            properties: {
-              oneLineSummary: { type: Type.STRING },
-              biography: { type: Type.STRING },
-              clueSynthesisNote: { type: Type.STRING },
-            },
-            required: ['oneLineSummary', 'biography', 'clueSynthesisNote'],
-          },
-        },
-      }),
-      new Promise<never>((_, reject) =>
-        setTimeout(() => reject(new Error('Gemini API timeout (12s)')), 12000)
-      ),
-    ]);
-
-    const text = (response.text ?? '').trim();
-    if (!text) return fallback;
-    const parsed = JSON.parse(text) as {
-      oneLineSummary?: string;
-      biography?: string;
-      clueSynthesisNote?: string;
-    };
-    if (!parsed.oneLineSummary || !parsed.biography || !parsed.clueSynthesisNote) {
-      return fallback;
-    }
-    return {
-      oneLineSummary: parsed.oneLineSummary,
-      biography: parsed.biography,
-      clueSynthesisNote: parsed.clueSynthesisNote,
-      generationSource: 'gemini-ai',
-    };
-  } catch (err) {
-    console.warn('Gemini narrative fallback activated:', err instanceof Error ? err.message : err);
-    return fallback;
-  }
-}
-
 async function startServer() {
   db.migrateLegacyJsonIfEmpty(LEGACY_STORE_PATH);
 
@@ -280,6 +192,18 @@ async function startServer() {
 
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true, service: 'jeonsaeng-yeojido', storage: 'sqlite' });
+  });
+
+  // 생성된 전생 초상 이미지 (파일명은 추측 불가능한 UUID, 형식 엄격 검증)
+  app.get('/api/portraits/:file', (req, res) => {
+    const filePath = resolvePortraitPath(PORTRAIT_DIR, req.params.file);
+    if (!filePath || !fs.existsSync(filePath)) {
+      res.status(404).json({ error: '이미지를 찾을 수 없습니다.' });
+      return;
+    }
+    res.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.sendFile(filePath);
   });
 
   // Expose ONLY public NAVER Maps Client ID (never any Client Secret)
@@ -440,6 +364,7 @@ async function startServer() {
       return;
     }
 
+    deletePortraitByUrl(PORTRAIT_DIR, auth.session.pastLifeResult?.portraitDataUrl);
     db.deleteUserRecord(auth.userId);
     clearAuthCookie(req, res, mode);
     res.json({ deleted: true });
@@ -777,9 +702,13 @@ async function startServer() {
   });
 
   app.post('/api/past-life/generate', async (req, res) => {
-    const { sessionId, portraitDataUrl, coords } = req.body as {
+    const { sessionId, portraitDataUrl, faceImageDataUrl, faceConsent, coords } = req.body as {
       sessionId: string;
+      /** 브라우저 캔버스 전통 초상화. Gemini 이미지 생성이 실패했을 때의 폴백 */
       portraitDataUrl: string;
+      /** (선택) 얼굴 사진. faceConsent가 true일 때만 Gemini 참조 이미지로 사용하며 서버에 저장하지 않는다 */
+      faceImageDataUrl?: string;
+      faceConsent?: boolean;
       coords?: GeoCoordinates | null;
     };
 
@@ -810,8 +739,18 @@ async function startServer() {
       }
     }
 
-    if (!portraitDataUrl || !portraitDataUrl.startsWith('data:image/')) {
+    const fallbackPortrait = parseImageDataUrl(portraitDataUrl, MAX_PORTRAIT_BYTES);
+    if (!fallbackPortrait) {
       res.status(400).json({ error: '초상화 이미지 생성 데이터가 올바르지 않습니다.' });
+      return;
+    }
+
+    const gate = generateLimiter.consume(session.sessionId);
+    if (!gate.allowed) {
+      res.setHeader('Retry-After', String(gate.retryAfterSeconds));
+      res.status(429).json({
+        error: `전생 생성 요청이 너무 많습니다. ${gate.retryAfterSeconds}초 후 다시 시도해 주세요.`,
+      });
       return;
     }
 
@@ -825,18 +764,44 @@ async function startServer() {
       (id) => JEONJU_SPOTS.find((s) => s.id === id)?.name ?? id
     );
 
-    const narrative = await generateNarrativeWithGemini({
-      visitorName: session.visitorName,
-      birthDate: session.birthDate,
-      companion: session.companion,
-      archetypeTitle: archetype.title,
-      hanjaTitle: archetype.hanjaTitle,
-      era: archetype.era,
-      status: archetype.status,
-      storySeed: archetype.storySeed,
-      item: archetype.item,
-      visitOrderNames,
-    });
+    // --- Gemini: 스토리(텍스트) → 캐릭터 이미지. 키 미설정/실패/시간 초과 시 기본 샘플·캔버스 초상화로 폴백 ---
+    // ENABLE_AI_GENERATION=false 이면 키가 있어도 Gemini 를 호출하지 않는다 (비용·지연 없음)
+    const ai = ENABLE_AI_GENERATION ? getGeminiClient() : null;
+    let generated: GeneratedStory | null = null;
+    let aiPortrait: { buffer: Buffer; mimeType: string } | null = null;
+
+    if (ai) {
+      generated = await generatePastLifeStory(ai, {
+        visitorName: session.visitorName,
+        birthDate: session.birthDate,
+        companion: session.companion,
+        archetypeTitle: archetype.title,
+        hanjaTitle: archetype.hanjaTitle,
+        era: archetype.era,
+        status: archetype.status,
+        storySeed: archetype.storySeed,
+        item: archetype.item,
+        visitOrderNames,
+      });
+
+      // 이미지 속 직업은 화면에 표시될 스토리의 직업과 항상 일치시킨다 (폴백 샘플이면 샘플 직업)
+      const storyForImage = generated?.story ?? DEFAULT_PAST_LIFE_STORY;
+      const face = faceConsent === true ? parseImageDataUrl(faceImageDataUrl, MAX_FACE_BYTES) : null;
+      const faceImage: InlineImage | null = face
+        ? { mimeType: face.mimeType, data: face.base64 }
+        : null;
+
+      aiPortrait = await generatePastLifePortrait(
+        ai,
+        { jobTitle: storyForImage.jobTitle, era: archetype.era, item: archetype.item },
+        { faceImage }
+      );
+    }
+
+    const story = generated?.story ?? DEFAULT_PAST_LIFE_STORY;
+    const portraitUrl = aiPortrait
+      ? savePortraitFile(PORTRAIT_DIR, aiPortrait.buffer, aiPortrait.mimeType)
+      : savePortraitFile(PORTRAIT_DIR, fallbackPortrait.buffer, fallbackPortrait.mimeType);
 
     const nowIso = new Date().toISOString();
     const result: PastLifeResult = {
@@ -848,14 +813,16 @@ async function startServer() {
       status: archetype.status,
       storyTitle: archetype.storySeed,
       item: archetype.item,
-      oneLineSummary: narrative.oneLineSummary,
-      biography: narrative.biography,
-      clueSynthesisNote: narrative.clueSynthesisNote,
-      portraitDataUrl,
+      oneLineSummary: generated?.oneLineSummary ?? DEFAULT_ONE_LINE_SUMMARY,
+      biography: storyToBiography(story),
+      clueSynthesisNote: `경기전(시대: ${archetype.era}) · 전라감영(신분: ${archetype.title}) · 완판본문화관(이야기) · 남부시장(소지품: ${archetype.item})이 하나의 역사적 인물로 결합되었습니다.`,
+      story,
+      portraitDataUrl: portraitUrl,
+      portraitSource: aiPortrait ? 'gemini-image' : 'canvas-painter',
       generatedAt: nowIso,
-      generationSource: narrative.generationSource,
+      generationSource: generated ? 'gemini-ai' : 'curated-demo',
       historicalDisclaimer:
-        '본 전생 일대기는 전주의 실제 역사·문화적 배경을 바탕으로 AI가 구성한 가상의 체험 서사입니다. 원본 얼굴 사진은 초상 생성 즉시 파기되었습니다.',
+        '본 전생 이야기와 캐릭터 일러스트는 전주의 역사·문화적 배경을 바탕으로 AI가 구성한 가상의 체험 콘텐츠입니다. 원본 얼굴 사진은 서버에 저장되지 않습니다.',
       recommendedGoods: [archetype.goods, HANJI_PRINT_GOODS],
     };
 
@@ -940,8 +907,9 @@ async function startServer() {
       id: entryId,
       sessionId,
       visitorAlias: safeAlias,
-      title: session.pastLifeResult.title,
-      hanjaTitle: session.pastLifeResult.hanjaTitle,
+      // 결과 화면에 보이는 직업 타이틀과 일치시킨다 (AI 스토리가 있으면 한자 칭호는 비움)
+      title: session.pastLifeResult.story?.jobTitle ?? session.pastLifeResult.title,
+      hanjaTitle: session.pastLifeResult.story ? '' : session.pastLifeResult.hanjaTitle,
       era: session.pastLifeResult.era,
       oneLineSummary: session.pastLifeResult.oneLineSummary,
       portraitDataUrl: session.pastLifeResult.portraitDataUrl,

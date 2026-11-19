@@ -145,6 +145,8 @@ export interface PastLifeResult {
   oneLineSummary: string;
   biography: string;
   clueSynthesisNote: string;
+  /** charactersData.json 의 id. 이미지·음성·스토리는 이 id 로 조회한다. */
+  characterId?: string;
   portraitDataUrl: string;
   generatedAt: string;
   generationSource: 'gemini-ai' | 'curated-demo';
@@ -210,6 +212,8 @@ export interface WallEntry {
   hanjaTitle: string;
   era: string;
   oneLineSummary: string;
+  /** charactersData.json 의 id (있으면 이미지는 이 id 로 조회) */
+  characterId?: string;
   portraitDataUrl: string;
   publishedAt: string;
   isDemoSeed: boolean;

@@ -200,6 +200,7 @@ export function SceneResult({
     () => ({
       ...result,
       story: characterToStory(character),
+      characterId: character.id,
       portraitDataUrl: character.imageUrl,
       oneLineSummary: character.quote,
     }),
@@ -251,7 +252,7 @@ export function SceneResult({
   };
 
   return (
-    <div className="min-h-app hanji-texture flex flex-col pb-24">
+    <div className="min-h-app hanji-texture flex flex-col pb-28">
       <header className="w-full px-4 h-12 flex items-center justify-between max-w-[430px] mx-auto">
         <button
           type="button"

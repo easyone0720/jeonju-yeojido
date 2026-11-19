@@ -3,6 +3,7 @@ import { ArrowLeft, Pause, Play, RefreshCw, ScrollText } from 'lucide-react';
 import { WallEntry } from '../types/jeonju';
 import { synthesizeJoseonPortrait } from '../utils/portraitPainter';
 import { apiFetch } from '../utils/localApi';
+import { resolveCharacterImage } from '../data/characters';
 
 interface MediaWallPageProps {
   onBackToApp: () => void;
@@ -43,7 +44,7 @@ export function MediaWallPage({ onBackToApp }: MediaWallPageProps) {
     const renderSeeds = async () => {
       const map: Record<string, string> = {};
       for (const seed of demoSeeds) {
-        if (!seed.portraitDataUrl && !seedPortraits[seed.id]) {
+        if (!resolveCharacterImage(seed.characterId, seed.portraitDataUrl) && !seedPortraits[seed.id]) {
           const archetypeId =
             seed.title === '목판 각수'
               ? 'woodblock_artisan'
@@ -86,7 +87,7 @@ export function MediaWallPage({ onBackToApp }: MediaWallPageProps) {
   }, [autoPlay, combinedEntries.length]);
 
   const resolvePortrait = (entry: WallEntry) =>
-    entry.portraitDataUrl || seedPortraits[entry.id] || '';
+    resolveCharacterImage(entry.characterId, entry.portraitDataUrl) || seedPortraits[entry.id] || '';
 
   return (
     <div className="min-h-app hanji-texture-dark text-[#FBF8F2] flex flex-col">

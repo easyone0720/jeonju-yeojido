@@ -11,6 +11,7 @@ import {
   Sparkles,
   RotateCcw,
   UserCircle2,
+  Tv,
   X,
 } from 'lucide-react';
 import { JEONJU_SPOTS } from '../data/jeonjuSpots';
@@ -34,7 +35,7 @@ import {
   isSpotClueOrPastLifeCompleted,
   isSpotVisitVerified,
 } from '../utils/pastLifeEngine';
-import { BottomNav } from './BottomNav';
+import { BottomNav, type NavTab } from './BottomNav';
 import { CouponCategoryBadge } from './CouponCategoryBadge';
 import { ENABLE_QUICK_COMPLETE_BUTTON } from '../config/features';
 import { CompleteSealStamp } from './CompleteSealStamp';
@@ -57,7 +58,7 @@ interface HomeWorkspaceProps {
   qrBanner?: QrCompletionBanner | null;
   onDismissQrBanner?: () => void;
   onOpenClueScroll?: (spotId: ClueSpotId) => void;
-  onChangeTab: (tab: HomeTab) => void;
+  onChangeTab: (tab: NavTab) => void;
   onSelectSpot: (spotId: SpotId) => void;
   onOpenQrScan: (spotId: SpotId) => void;
   onContinueSpotVerify: (spotId: SpotId) => void;
@@ -65,12 +66,24 @@ interface HomeWorkspaceProps {
   onViewPastLifeResult: () => void;
   onUseDemoCoupon: (couponId: string) => Promise<void>;
   onNavigateRoute: (path: '/wall' | '/admin') => void;
+  /** 박물관 미디어월 영상 화면을 연다 (X 로 닫으면 지도 탭으로 이동) */
+  onOpenMediaWall: () => void;
   onGoHome: () => void;
   /** [시연·검수용] 4개 거점 인증·조각·쿠폰을 한 번에 완료 처리 (ENABLE_QUICK_COMPLETE_BUTTON) */
   onCompleteAllStamps?: () => Promise<void>;
   saveError?: string | null;
   onRetrySync?: () => void;
 }
+
+/** 추천 관람 순서 (참고용 — 실제 인증 순서는 자유) */
+const RECOMMENDED_ORDER: SpotId[] = [
+  'gyeonggijeon',
+  'jeollagamyeong',
+  'wanpanbon',
+  'nambu_market',
+  'jeonju_museum',
+];
+const CIRCLED_NUMBERS = ['①', '②', '③', '④', '⑤'];
 
 const CLUE_GRID: ClueGridMeta[] = [
   { category: 'era', spotId: 'gyeonggijeon', question: '당신의 시대는', spotName: '경기전' },
@@ -95,6 +108,7 @@ export function HomeWorkspace({
   onViewPastLifeResult,
   onUseDemoCoupon,
   onNavigateRoute,
+  onOpenMediaWall,
   onGoHome,
   onCompleteAllStamps,
   saveError,
@@ -239,8 +253,8 @@ export function HomeWorkspace({
                 : !museumReady
                   ? '잠금 (4/4 필요)'
                   : visitVerified
-                    ? '촬영 진행 중'
-                    : '촬영 대기'
+                    ? '결과 확인 가능'
+                    : '결과 확인 대기'
               : stage2Done
                 ? '획득 완료'
                 : visitVerified
@@ -290,6 +304,20 @@ export function HomeWorkspace({
         </div>
       </div>
 
+      {spot.id === 'jeonju_museum' && (
+        <button
+          type="button"
+          onClick={() => {
+            setSpotSheetOpen(false);
+            onOpenMediaWall();
+          }}
+          className="w-full min-h-[44px] px-4 py-2.5 rounded-xl border border-[#D6CEBE] bg-[#FBF8F2] text-[#1C1917] font-semibold text-sm hover:bg-[#F2ECE1] flex items-center justify-center gap-2"
+        >
+          <Tv className="w-4 h-4" aria-hidden="true" />
+          <span>박물관 미디어월 보기</span>
+        </button>
+      )}
+
       {spot.id === 'jeonju_museum' ? (
         session.pastLifeResult ? (
           <button
@@ -313,7 +341,7 @@ export function HomeWorkspace({
             className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#9A3412] text-white font-semibold text-sm hover:bg-[#7C2D12] flex items-center justify-center gap-2"
           >
             <Sparkles className="w-4 h-4" aria-hidden="true" />
-            <span>전생 초상화 촬영 이어하기</span>
+            <span>내 전생 결과 확인하기</span>
           </button>
         ) : (
           <button
@@ -376,7 +404,7 @@ export function HomeWorkspace({
     : null;
 
   return (
-    <div className="min-h-app hanji-texture flex flex-col pb-24">
+    <div className="min-h-app hanji-texture flex flex-col pb-28">
       {/* Wireframe Top Profile + Progress Header: [Profile Icon] 0 / 4 */}
       <header className="sticky top-0 z-30 border-b border-[#E5DDD0] bg-[#FBF8F2]/95 backdrop-blur-md">
         <div className="mx-auto max-w-5xl px-3 sm:px-6 min-h-14 py-1.5 flex items-center justify-between gap-2 sm:gap-4">
@@ -403,11 +431,36 @@ export function HomeWorkspace({
           <div className="flex items-center gap-1.5 sm:gap-2">
             <button
               type="button"
-              onClick={() => onNavigateRoute('/wall')}
+              onClick={onOpenMediaWall}
               className="section-heading text-xs font-bold text-[#1C1917] hover:text-[#9A3412] min-h-[44px] px-2 whitespace-nowrap"
             >
               미디어월
             </button>
+            {/* [QUICK-COMPLETE] 시연자용 초소형 skip — 4개 거점 인증·쿠폰 발급·박물관 단계로 한 번에 이동.
+                ENABLE_QUICK_COMPLETE_BUTTON 을 false 로 바꾸면 사라진다. */}
+            {ENABLE_QUICK_COMPLETE_BUTTON && onCompleteAllStamps && clueCount < 4 && (
+              <button
+                type="button"
+                disabled={quickCompleting}
+                onClick={async () => {
+                  setQuickCompleting(true);
+                  setQuickCompleteError(null);
+                  try {
+                    await onCompleteAllStamps();
+                  } catch (err) {
+                    setQuickCompleteError(
+                      err instanceof Error ? err.message : '스탬프 일괄 완료에 실패했습니다.'
+                    );
+                  } finally {
+                    setQuickCompleting(false);
+                  }
+                }}
+                aria-label="스탬프 4개 완료로 이동"
+                className="px-1.5 min-h-[32px] bg-transparent text-[11px] text-[#2C3B4D]/45 hover:text-[#1B2632] disabled:opacity-50 transition-colors"
+              >
+                {quickCompleting ? '…' : 'skip'}
+              </button>
+            )}
             <button
               type="button"
               onClick={onGoHome}
@@ -422,36 +475,10 @@ export function HomeWorkspace({
       </header>
 
       <main className="flex-1 mx-auto w-full max-w-5xl px-4 sm:px-6 py-4 sm:py-6 flex flex-col gap-4">
-        {/* [QUICK-COMPLETE] 시연·검수용 빠른 이동 버튼 — 최종 시연 영상 녹화 전에 features.ts 의
-            ENABLE_QUICK_COMPLETE_BUTTON 을 false 로 바꾸거나 이 블록을 통째로 삭제하세요. */}
-        {ENABLE_QUICK_COMPLETE_BUTTON && onCompleteAllStamps && clueCount < 4 && (
-          <div className="flex flex-col items-end gap-1">
-            <button
-              type="button"
-              disabled={quickCompleting}
-              onClick={async () => {
-                setQuickCompleting(true);
-                setQuickCompleteError(null);
-                try {
-                  await onCompleteAllStamps();
-                } catch (err) {
-                  setQuickCompleteError(
-                    err instanceof Error ? err.message : '스탬프 일괄 완료에 실패했습니다.'
-                  );
-                } finally {
-                  setQuickCompleting(false);
-                }
-              }}
-              className="min-h-[36px] px-3 py-1.5 rounded-lg border border-dashed border-[#9A3412]/60 bg-white/70 text-xs font-semibold text-[#9A3412] hover:bg-[#FFF7ED] disabled:opacity-60"
-            >
-              {quickCompleting ? '처리 중...' : '스탬프 4개 완료로 이동'}
-            </button>
-            {quickCompleteError && (
-              <p role="alert" className="text-[11px] text-[#7C2D12]">
-                {quickCompleteError}
-              </p>
-            )}
-          </div>
+        {quickCompleteError && (
+          <p role="alert" className="text-[11px] text-[#7C2D12] text-right">
+            {quickCompleteError}
+          </p>
         )}
 
         {saveError && (
@@ -497,7 +524,7 @@ export function HomeWorkspace({
                   }}
                   className="min-h-[36px] px-3.5 py-1.5 rounded-lg bg-[#9A3412] text-white text-xs font-semibold hover:bg-[#7C2D12] whitespace-nowrap"
                 >
-                  전생 초상화 촬영
+                  내 전생 결과 확인
                 </button>
               ) : (
                 onOpenClueScroll && (
@@ -532,9 +559,9 @@ export function HomeWorkspace({
           <div className="rounded-xl border border-[#9A3412]/30 bg-white px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
             <p className="text-sm font-semibold text-[#1C1917]">
               {session.pastLifeResult
-                ? `전생 완성: ${session.pastLifeResult.title} (${session.pastLifeResult.hanjaTitle})`
+                ? `전생 완성: ${session.pastLifeResult.title}${session.pastLifeResult.hanjaTitle ? ` (${session.pastLifeResult.hanjaTitle})` : ''}`
                 : museumVisitVerified
-                  ? '박물관 방문 인증 완료! 얼굴 촬영으로 전생을 완성하세요.'
+                  ? '박물관 방문 인증 완료! 결과 확인으로 전생을 완성하세요.'
                   : '네 조각을 모두 모았습니다! 국립전주박물관 현장 QR을 스캔해 주세요.'}
             </p>
             <button
@@ -551,7 +578,7 @@ export function HomeWorkspace({
               {session.pastLifeResult
                 ? '내 전생 결과 보기'
                 : museumVisitVerified
-                  ? '박물관 얼굴 촬영'
+                  ? '내 전생 결과 확인'
                   : '박물관 QR 스캔'}
             </button>
           </div>
@@ -565,6 +592,31 @@ export function HomeWorkspace({
                 <h1 id="map-section-title" className="section-heading text-lg font-bold text-[#1C1917]">
                   지도
                 </h1>
+              </div>
+
+              {/* 추천 관람 순서 안내 (참고용) */}
+              <div className="space-y-1">
+                <ol
+                  aria-label="추천 관람 순서"
+                  className="flex flex-wrap items-center gap-x-1.5 gap-y-1 rounded-xl border border-[#E5DDD0] bg-white/80 px-3 py-2 text-xs sm:text-sm font-medium text-[#1C1917]"
+                >
+                  {RECOMMENDED_ORDER.map((id, i) => (
+                    <li key={id} className="inline-flex items-center gap-1.5">
+                      <span className="whitespace-nowrap">
+                        {CIRCLED_NUMBERS[i]} {JEONJU_SPOTS.find((s) => s.id === id)?.name}
+                      </span>
+                      {i < RECOMMENDED_ORDER.length - 1 && (
+                        <span aria-hidden="true" className="text-[#78716C]">
+                          →
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+                <p className="text-[11px] leading-snug text-[#78716C]">
+                  ※ 위 동선은 추천 관람 순서이며, 참고사항입니다. 어느 장소부터 방문하셔도 자유롭게
+                  스탬프를 모을 수 있습니다.
+                </p>
               </div>
 
               {/* Large Traditional Joseon Map Container matching Scene 3 */}
@@ -760,7 +812,7 @@ export function HomeWorkspace({
                         }
                         className="min-h-[44px] px-3.5 py-2 rounded-lg bg-[#9A3412] text-white text-xs font-semibold"
                       >
-                        {museumVisitVerified ? '초상 촬영' : 'QR 스캔'}
+                        {museumVisitVerified ? '결과 확인' : 'QR 스캔'}
                       </button>
                     )
                   ) : !isSpotVisited(selectedSpot) ? (

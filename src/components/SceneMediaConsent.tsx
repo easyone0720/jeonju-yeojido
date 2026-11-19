@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft, CheckCircle2, Info, ShoppingBag, Tv, X } from 'lucide-react';
 import { PastLifeResult } from '../types/jeonju';
+import { resolveCharacterImage } from '../data/characters';
 
 interface SceneMediaConsentProps {
   result: PastLifeResult;
@@ -64,7 +65,7 @@ export function SceneMediaConsent({
   };
 
   return (
-    <div className="min-h-app hanji-texture flex flex-col pb-24">
+    <div className="min-h-app hanji-texture flex flex-col pb-28">
       <header className="w-full px-4 h-12 flex items-center justify-between max-w-md sm:max-w-lg mx-auto">
         <button
           type="button"
@@ -86,7 +87,7 @@ export function SceneMediaConsent({
           <p className="text-xs font-medium text-[#78716C]">내 전생 초상</p>
           <div className="w-full rounded-2xl overflow-hidden border border-[#C7B596] bg-[#EFE5D0] shadow-md">
             <img
-              src={result.portraitDataUrl}
+              src={resolveCharacterImage(result.characterId, result.portraitDataUrl)}
               alt="내 전생 초상 미리보기"
               className="w-full aspect-video object-cover object-top block"
             />

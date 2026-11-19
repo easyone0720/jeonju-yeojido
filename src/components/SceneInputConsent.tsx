@@ -240,7 +240,7 @@ export function SceneInputConsent({
                   <div>
                     <span className="text-sm font-semibold text-[#1C1917]">카메라</span>
                     <p className="text-xs text-[#57534E] mt-0.5">
-                      현장 QR 스캔과 박물관 초상화 촬영 시 사용합니다.
+                      현장 QR 스캔 시에만 사용하며 사진은 저장하지 않습니다.
                     </p>
                   </div>
                 </button>

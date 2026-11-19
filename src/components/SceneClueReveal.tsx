@@ -36,7 +36,7 @@ export function SceneClueReveal({
   };
 
   return (
-    <div className="min-h-app hanji-texture flex flex-col pb-24">
+    <div className="min-h-app hanji-texture flex flex-col pb-28">
       <main className="flex-1 mx-auto w-full max-w-md sm:max-w-lg px-5 py-6 sm:py-10 flex flex-col justify-between gap-6">
         {/* Top Badge: 조각 N matching Scene 8 wireframe */}
         <div className="flex items-center justify-between">

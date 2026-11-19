@@ -44,7 +44,7 @@ export function SceneStart({
       <main className="flex-1 mx-auto w-full max-w-md sm:max-w-lg px-5 py-4 sm:py-8 flex flex-col items-center justify-between text-center gap-5">
         {/* Top Service Name */}
         <div className="pt-2 sm:pt-4 space-y-1">
-          <h1 className="font-serif-kr text-3xl sm:text-4xl font-bold tracking-tight text-[#1C1917]">
+          <h1 className="font-logo text-3xl sm:text-4xl font-bold tracking-tight text-[#1C1917]">
             전생여지도
           </h1>
           <p className="text-xs tracking-widest text-[#78716C]">前生輿地圖</p>

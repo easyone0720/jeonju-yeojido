@@ -262,7 +262,7 @@ export function SceneArriveVerify({
         </div>
       </header>
 
-      <main className="flex-1 mx-auto w-full max-w-md sm:max-w-lg px-4 py-5 flex flex-col justify-between gap-5 pb-24">
+      <main className="flex-1 mx-auto w-full max-w-md sm:max-w-lg px-4 py-5 flex flex-col justify-between gap-5 pb-28">
         <div className="space-y-4">
           {/* Top Status Box with Traditional Red '完' Seal Slam */}
           <section
@@ -310,7 +310,7 @@ export function SceneArriveVerify({
                 {isVisitStamped && (
                   <p className="text-[11px] font-semibold text-[#9A3412]">
                     {spotId === 'jeonju_museum'
-                      ? '방문 인증 완료 · 이제 전생 초상화 촬영을 진행해 주세요.'
+                      ? '방문 인증 완료 · 이제 내 전생 결과를 확인해 주세요.'
                       : alreadyCompleted
                         ? '방문 인증 및 전생 조각 획득이 완료된 장소입니다.'
                         : '방문 인증 완료 · 아래에서 전생 조각과 쿠폰을 수령하세요.'}
@@ -428,7 +428,7 @@ export function SceneArriveVerify({
             {submitting
               ? '조각을 펼치는 중...'
               : spotId === 'jeonju_museum'
-                ? '전생 초상화 촬영하러 가기'
+                ? '내 전생 결과 확인하기'
                 : alreadyCompleted
                   ? '지도로 돌아가기'
                   : '조각 · 쿠폰 받기'}

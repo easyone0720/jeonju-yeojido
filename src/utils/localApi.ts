@@ -54,8 +54,8 @@ function storyToBiography(story: PastLifeStory): string {
   return `${story.setting.replace(/\n+/g, ' ')} ${story.ending.replace(/\n+/g, ' ')}`.trim();
 }
 
-const SESSION_KEY_PREFIX = 'jeonsaeng:local:session:';
-const WALL_KEY = 'jeonsaeng:local:wall';
+const SESSION_KEY_PREFIX = 'jeonsaeng:v2:local:session:';
+const WALL_KEY = 'jeonsaeng:v2:local:wall';
 
 // ---------------------------------------------------------------------------------------------
 // 저장소 (storage 를 못 쓰면 메모리로 폴백)
@@ -488,12 +488,13 @@ function handleGenerate(body: Record<string, unknown>): Response {
     biography: storyToBiography(story),
     clueSynthesisNote: `경기전(시대: ${archetype.era}) · 전라감영(신분: ${archetype.title}) · 완판본문화관(이야기) · 남부시장(소지품: ${archetype.item})이 하나의 인물로 결합되었습니다.`,
     story,
+    characterId: character.id,
     portraitDataUrl: character.imageUrl,
     portraitSource: undefined,
     generatedAt: nowIso,
     generationSource: 'curated-demo',
     historicalDisclaimer:
-      '본 전생 이야기와 캐릭터 일러스트는 전주의 역사·문화적 배경을 바탕으로 구성한 가상의 체험 콘텐츠입니다. 촬영한 얼굴 사진은 어디에도 저장·전송되지 않습니다.',
+      '본 전생 이야기와 캐릭터 일러스트는 전주의 역사·문화적 배경을 바탕으로 구성한 가상의 체험 콘텐츠입니다. 본 체험은 사진을 촬영하거나 수집하지 않습니다.',
     recommendedGoods: [archetype.goods, HANJI_PRINT_GOODS],
   };
 
@@ -562,6 +563,7 @@ function handleWallConsent(body: Record<string, unknown>): Response {
     hanjaTitle: '',
     era: session.pastLifeResult.era,
     oneLineSummary: character.quote,
+    characterId: character.id,
     portraitDataUrl: character.imageUrl,
     publishedAt: nowIso,
     isDemoSeed: false,
