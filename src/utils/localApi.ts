@@ -10,7 +10,8 @@
  *  - 미디어월 전시 목록(별칭·직업·대표 대사만)은 같은 브라우저의 /wall 에서 보이도록 localStorage.
  *  - 어떤 저장소도 쓸 수 없는 환경이면 메모리에만 보관한다 (에러 없이 동작).
  */
-import { USE_LOCAL_BACKEND } from '../config/features';
+import { ENABLE_QUICK_COMPLETE_BUTTON, USE_LOCAL_BACKEND } from '../config/features';
+import { COUPON_CATEGORIES, COUPON_TEMPLATES, pickCouponTemplate } from '../data/coupons';
 import {
   Character,
   characterToStory,
@@ -22,6 +23,8 @@ import { canonicalizeSpotId, validateSpotQrCode } from '../data/qrAllowlist';
 import type {
   AppMode,
   ClueSpotId,
+  CouponCategory,
+  CouponRecord,
   GeoCoordinates,
   PastLifeResult,
   PastLifeStory,
@@ -99,12 +102,38 @@ function findSessionById(sessionId: string): UserSessionState | null {
   return s && s.sessionId === sessionId ? s : null;
 }
 
-/** 새로 잠금 해제된 쿠폰에 유효기간·시연용 바코드 번호를 채운다 (로컬 모드는 모두 시연용 쿠폰). */
+/**
+ * 새로 잠금 해제된 쿠폰 슬롯에 4대 카테고리 × 3종(12종) 템플릿 중 1종을 무작위로 채운다.
+ * 카테고리를 균등 확률로 먼저 고른 뒤 그 안에서 뽑으며, 이미 보유 중인 템플릿은 피한다.
+ */
+export function assignRandomCoupons(
+  coupons: CouponRecord[],
+  rng: () => number = Math.random
+): CouponRecord[] {
+  const held: string[] = coupons.flatMap((c) => (c.unlocked && c.templateId ? [c.templateId] : []));
+  return coupons.map((c) => {
+    if (!c.unlocked || c.templateId) return c;
+    const tpl = pickCouponTemplate(held, rng);
+    held.push(tpl.id);
+    return {
+      ...c,
+      templateId: tpl.id,
+      category: tpl.category,
+      title: tpl.storeName,
+      benefit: tpl.benefit,
+      locationHint: tpl.locationHint,
+      partnerArea: tpl.locationHint,
+      condition: '1인 1매 사용 가능 · 제휴 예정 모델(시연용 가상 쿠폰)',
+    };
+  });
+}
+
+/** 새로 잠금 해제된 쿠폰에 랜덤 템플릿·유효기간·시연용 바코드 번호를 채운다 (로컬 모드는 모두 시연용 쿠폰). */
 function withCouponBarcodes(session: UserSessionState): UserSessionState {
   const nowIso = new Date().toISOString();
   return {
     ...session,
-    coupons: session.coupons.map((c) => {
+    coupons: assignRandomCoupons(session.coupons).map((c) => {
       if (!c.unlocked || c.barcodeNumber) return c;
       const unlockedAt = c.unlockedAt ?? nowIso;
       return {
@@ -115,6 +144,45 @@ function withCouponBarcodes(session: UserSessionState): UserSessionState {
       };
     }),
   };
+}
+
+export interface CouponCategoryStat {
+  category: CouponCategory;
+  /** 발급(잠금 해제)된 쿠폰 수 */
+  issued: number;
+  /** 사용 처리된 쿠폰 수 */
+  used: number;
+  /** 발급된 템플릿별 수량 (운영자 대시보드 상세용) */
+  byTemplate: Record<string, number>;
+}
+
+/** 세션들의 쿠폰을 4대 카테고리별 발급·사용 수로 집계한다. 항상 4개 카테고리를 모두 반환한다. */
+export function summarizeCouponsByCategory(sessions: UserSessionState[]): CouponCategoryStat[] {
+  const stats: CouponCategoryStat[] = COUPON_CATEGORIES.map((category) => ({
+    category,
+    issued: 0,
+    used: 0,
+    byTemplate: Object.fromEntries(
+      COUPON_TEMPLATES.filter((t) => t.category === category).map((t) => [t.id, 0])
+    ),
+  }));
+  for (const s of sessions) {
+    for (const c of s.coupons) {
+      if (!c.unlocked || !c.templateId) continue;
+      const stat = stats.find((x) => x.category === c.category);
+      if (!stat) continue;
+      stat.issued += 1;
+      if (c.used) stat.used += 1;
+      stat.byTemplate[c.templateId] = (stat.byTemplate[c.templateId] ?? 0) + 1;
+    }
+  }
+  return stats;
+}
+
+/** 이 브라우저(로컬 모드)에 저장된 체험 세션 기준 카테고리별 쿠폰 현황. */
+export function getLocalCouponCategoryStats(): CouponCategoryStat[] {
+  const s = loadSession('experience');
+  return summarizeCouponsByCategory(s ? [s] : []);
 }
 
 function loadWall(): WallEntry[] {
@@ -303,6 +371,27 @@ function handleClaim(sessionId: string, body: Record<string, unknown>): Response
   return json(200, { session: persistSession(withCouponBarcodes(nextSession)), claimedClue, alreadyClaimed, distanceMeters });
 }
 
+/**
+ * [시연·검수용] 4개 거점의 방문·QR 인증과 조각·쿠폰 발급을 한 번에 완료로 반영한다.
+ * ENABLE_QUICK_COMPLETE_BUTTON 이 false 이면 동작하지 않는다.
+ */
+function handleCompleteAllStamps(sessionId: string): Response {
+  if (!ENABLE_QUICK_COMPLETE_BUTTON) return json(404, { error: '지원하지 않는 요청입니다.' });
+  const existing = findSessionById(sessionId);
+  if (!existing) return json(401, { error: AUTH_REQUIRED_MSG });
+
+  const clueSpots: ClueSpotId[] = ['gyeonggijeon', 'jeollagamyeong', 'wanpanbon', 'nambu_market'];
+  let next = existing;
+  for (const spotId of clueSpots) {
+    if (isSpotClueOrPastLifeCompleted(next, spotId)) continue;
+    next = claimSpotClueAndCoupon(next, spotId).nextSession;
+  }
+  const saved = persistSession(
+    withCouponBarcodes({ ...next, currentScene: 3, currentSpotId: 'jeonju_museum' })
+  );
+  return json(200, { session: saved });
+}
+
 function handleCouponUse(sessionId: string, couponId: string): Response {
   const existing = findSessionById(sessionId);
   if (!existing) return json(401, { error: '세션 인증이 필요합니다.' });
@@ -484,6 +573,7 @@ function routeLocal(url: URL, init?: RequestInit): Response {
     if (rest === 'verify-qr' && method === 'POST') return handleVerifyQr(sessionId, body);
     if (rest === 'verify-spot' && method === 'POST') return handleVerifySpot(sessionId, body);
     if (rest === 'claim' && method === 'POST') return handleClaim(sessionId, body);
+    if (rest === 'complete-all-stamps' && method === 'POST') return handleCompleteAllStamps(sessionId);
     const couponMatch = rest.match(/^coupons\/([^/]+)\/use$/);
     if (couponMatch && method === 'POST') return handleCouponUse(sessionId, decodeURIComponent(couponMatch[1]));
   }

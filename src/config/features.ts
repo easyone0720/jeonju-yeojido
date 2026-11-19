@@ -8,3 +8,10 @@
  */
 export const USE_LOCAL_BACKEND = true;
 export const ENABLE_AI_GENERATION = false;
+
+/**
+ * [시연·검수용] 지도 화면의 `[스탬프 4개 완료로 이동]` 빠른 이동 버튼.
+ * 4개 거점 QR 인증을 건너뛰고 조각·쿠폰 발급과 박물관 단계를 한 번에 확인한다.
+ * TODO: 최종 시연 영상 녹화·배포 전에 false 로 바꾸면 버튼(HomeWorkspace)과 로컬 API 가 모두 꺼진다.
+ */
+export const ENABLE_QUICK_COMPLETE_BUTTON = true;

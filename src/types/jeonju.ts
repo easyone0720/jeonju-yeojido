@@ -59,10 +59,17 @@ export interface ClueRecord {
   spotPhotoCaptured?: boolean;
 }
 
+/** 쿠폰 4대 카테고리 (운영자 대시보드 소비 분산 지표용) */
+export type CouponCategory = '카페' | '식당' | '숙박권' | '전주 지역 상품권';
+
 export interface CouponRecord {
   id: string;
   spotId: ClueSpotId;
-  category: '음식점' | '카페' | '전통체험' | '숙박';
+  category: CouponCategory;
+  /** 발급된 쿠폰 템플릿 id (예: 'cafe-1'). 랜덤 발급 전(잠금 상태)에는 없다 */
+  templateId?: string;
+  /** 위치 안내 (예: '경기전~국립전주박물관 방면') */
+  locationHint?: string;
   title: string;
   partnerArea: string;
   benefit: string;

@@ -106,7 +106,7 @@ export const INITIAL_DEMO_COUPONS: CouponRecord[] = [
   {
     id: 'coupon_gyeonggijeon',
     spotId: 'gyeonggijeon',
-    category: '음식점',
+    category: '식당',
     title: '경기전 한옥 비빔밥·전주 한정식 10% 할인권',
     partnerArea: '태조로·한옥마을 일대 시연 제휴점',
     benefit: '전주 비빔밥·모주 세트 10% 현장 할인',
@@ -132,7 +132,7 @@ export const INITIAL_DEMO_COUPONS: CouponRecord[] = [
   {
     id: 'coupon_wanpanbon',
     spotId: 'wanpanbon',
-    category: '전통체험',
+    category: '전주 지역 상품권',
     title: '완판본 한지 책갈피·목판 인쇄 체험 우대권',
     partnerArea: '향교길·전주천동로 공방 시연 제휴점',
     benefit: '전주 한지 엽서·책갈피 체험 20% 할인',
@@ -145,7 +145,7 @@ export const INITIAL_DEMO_COUPONS: CouponRecord[] = [
   {
     id: 'coupon_nambu_market',
     spotId: 'nambu_market',
-    category: '숙박',
+    category: '숙박권',
     title: '남부시장 청년몰 먹거리 & 한옥 스테이 우대권',
     partnerArea: '남부시장·풍남문 일대 시연 제휴점',
     benefit: '야시장 먹거리 1,500원 할인 및 한옥 숙소 주중 10% 우대',
