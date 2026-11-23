@@ -12,13 +12,8 @@ import {
   Tv,
   Volume2,
 } from 'lucide-react';
-import {
-  Character,
-  characterToStory,
-  getOrPickCurrentCharacter,
-  parseDialogue,
-  pickAnotherCharacter,
-} from '../data/characters';
+import { Character, characterToStory, parseDialogue } from '../services/pastLife';
+import { usePastLifeGeneration } from '../hooks/usePastLifeGeneration';
 import { PastLifeResult } from '../types/jeonju';
 import { buildDownloadableResultCard } from '../utils/portraitPainter';
 
@@ -178,15 +173,55 @@ interface SceneResultProps {
   onGoToMediaConsent: () => void;
 }
 
-export function SceneResult({
+/**
+ * 전생 결과 화면. 결과 데이터는 usePastLifeGeneration 훅(서비스 계층)으로만 받는다.
+ * Mock 모드에서는 이 탭에 고정된 캐릭터가 즉시 준비되므로 기존과 똑같이 로딩 없이 그려진다.
+ */
+export function SceneResult(props: SceneResultProps) {
+  const generation = usePastLifeGeneration();
+
+  if (!generation.character) {
+    const failedPart = [generation.story, generation.image, generation.voice].find((p) => p.status === 'error');
+    return (
+      <div className="min-h-app hanji-texture flex flex-col pb-[calc(7rem+env(safe-area-inset-bottom))]">
+        <main className="flex-1 mx-auto w-full max-w-5xl px-4 sm:px-6 py-10 flex flex-col items-center justify-center gap-4 text-center">
+          {failedPart ? (
+            <>
+              <p className="text-[15px] text-[#26201B]">전생 기록을 불러오지 못했습니다.</p>
+              <button
+                type="button"
+                onClick={generation.retry}
+                className="rounded-full bg-[#8E3524] hover:bg-[#762A1C] text-white px-5 py-2.5 text-sm font-semibold"
+              >
+                다시 시도하기
+              </button>
+            </>
+          ) : (
+            <p className="text-[15px] text-[#5C5349]" role="status" aria-live="polite">
+              전생 기록을 펼치는 중이옵니다…
+            </p>
+          )}
+        </main>
+      </div>
+    );
+  }
+
+  return (
+    <div data-past-life-mode={generation.mode} data-past-life-source={generation.source ?? ''} className="contents">
+      <SceneResultBody {...props} character={generation.character} onAnother={generation.another} />
+    </div>
+  );
+}
+
+function SceneResultBody({
   result,
   visitorName,
   onBackToMap,
   onGoToCoupons,
   onGoToMediaConsent,
-}: SceneResultProps) {
-  // 이번 체험에서 뽑힌 캐릭터는 sessionStorage 에 고정되어 새로고침해도 유지된다 (처음 뽑을 때만 직전 캐릭터 제외)
-  const [character, setCharacter] = useState<Character>(() => getOrPickCurrentCharacter());
+  character,
+  onAnother,
+}: SceneResultProps & { character: Character; onAnother: () => void }) {
   const [saving, setSaving] = useState(false);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -208,7 +243,7 @@ export function SceneResult({
   );
 
   const handleAnother = () => {
-    setCharacter((prev) => pickAnotherCharacter(prev.id));
+    onAnother();
     setShareStatus(null);
     topRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
