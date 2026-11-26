@@ -4,13 +4,25 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import type {
   AppMode,
+  ClueSpotId,
   CompanionType,
+  CouponRecord,
   SpotAuthRecord,
   SpotId,
   UserSessionState,
   WallEntry,
 } from '../types/jeonju.ts';
 import { createInitialSession } from './pastLifeEngine.ts';
+import {
+  computeCouponExpiresAt,
+  generateDemoBarcodeNumber,
+  isCouponExpired,
+  isDemoBarcodeNumber,
+} from './couponBarcode.ts';
+import {
+  generateLiveCouponBarcode,
+  verifyLiveCouponBarcodeSignature,
+} from './couponServerCrypto.ts';
 import {
   generateAuthToken,
   generateRecoveryCode,
@@ -32,6 +44,10 @@ interface UserRow {
   created_at: string;
   last_accessed_at: string;
 }
+
+export type RedeemResult<T extends object> =
+  | ({ ok: true } & T)
+  | { ok: false; statusCode: number; code: string; error: string };
 
 export class JeonsaengDatabase {
   private readonly db: DatabaseSync;
@@ -536,10 +552,42 @@ export class JeonsaengDatabase {
     }
   }
 
-  saveSession(session: UserSessionState): void {
+  /**
+   * 새로 잠금 해제된 쿠폰에 유효기간과 바코드 번호를 채운다.
+   * 시연(demo) 세션은 JSYJ-DEMO-… 번호와 isDemoCoupon=true, 현장 체험(experience) 세션은
+   * 서버 HMAC 서명 JSYJ-LV-… 번호와 isDemoCoupon=false 로 발급한다. 이미 있는 번호는 바꾸지 않는다.
+   */
+  private issueCouponBarcodes(session: UserSessionState): UserSessionState {
+    if (!Array.isArray(session.coupons)) return session;
+    const nowIso = new Date().toISOString();
+    const isLive = session.mode === 'experience';
+    return {
+      ...session,
+      coupons: session.coupons.map((c) => {
+        if (!c.unlocked || c.barcodeNumber) return c;
+        const unlockedAt = c.unlockedAt ?? nowIso;
+        const barcodeNumber = isLive
+          ? generateLiveCouponBarcode({
+              spotId: c.spotId as ClueSpotId,
+              userId: session.sessionId,
+              couponId: c.id,
+            })
+          : generateDemoBarcodeNumber(c.spotId as ClueSpotId, session.sessionId, unlockedAt);
+        return {
+          ...c,
+          unlockedAt,
+          expiresAt: c.expiresAt ?? computeCouponExpiresAt(c.spotId as ClueSpotId, unlockedAt),
+          barcodeNumber,
+          isDemoCoupon: !isLive,
+        };
+      }),
+    };
+  }
+
+  saveSession(session: UserSessionState): UserSessionState {
     const nowIso = new Date().toISOString();
     const normalized: UserSessionState = {
-      ...session,
+      ...this.issueCouponBarcodes(session),
       spotAuthentications: session.spotAuthentications ?? {},
       lastAccessedAt: nowIso,
       updatedAt: session.updatedAt || nowIso,
@@ -568,10 +616,111 @@ export class JeonsaengDatabase {
         .run(nowIso, session.sessionId);
 
       this.db.exec('COMMIT');
+      return normalized;
     } catch (err) {
       this.db.exec('ROLLBACK');
       throw err;
     }
+  }
+
+  /** 시연용(demo) 쿠폰의 본인 사용 처리. 현장 쿠폰은 제휴처 확인이 필요하므로 거절한다. */
+  redeemDemoCoupon(params: {
+    userId: string;
+    couponId: string;
+  }): RedeemResult<{ session: UserSessionState }> {
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      const session = this.getSession(params.userId);
+      const coupon = session?.coupons.find((c) => c.id === params.couponId);
+      if (!session || !coupon || !coupon.unlocked) {
+        this.db.exec('ROLLBACK');
+        return { ok: false, statusCode: 404, code: 'NOT_FOUND', error: '사용할 수 있는 쿠폰을 찾지 못했습니다.' };
+      }
+      if (!coupon.isDemoCoupon) {
+        this.db.exec('ROLLBACK');
+        return { ok: false, statusCode: 403, code: 'PARTNER_VERIFY_REQUIRED', error: '현장 체험 쿠폰은 제휴처에서 바코드 확인 후 사용 처리됩니다.' };
+      }
+      if (coupon.used) {
+        this.db.exec('ROLLBACK');
+        return { ok: false, statusCode: 409, code: 'ALREADY_USED', error: '이미 사용 처리된 쿠폰입니다.' };
+      }
+      if (isCouponExpired(coupon.expiresAt)) {
+        this.db.exec('ROLLBACK');
+        return { ok: false, statusCode: 410, code: 'EXPIRED', error: '유효기간이 지난 쿠폰입니다.' };
+      }
+      const saved = this.markCouponUsed(session, coupon);
+      this.db.exec('COMMIT');
+      return { ok: true, session: saved };
+    } catch (err) {
+      this.db.exec('ROLLBACK');
+      throw err;
+    }
+  }
+
+  /** 운영자/제휴처가 바코드 번호로 현장 쿠폰을 1회만 사용 처리한다(서명 검증 + 원자적 처리). */
+  redeemCouponByIssueCode(params: {
+    issueCode: string;
+  }): RedeemResult<{ session: UserSessionState; couponId: string; title: string }> {
+    const code = (params.issueCode ?? '').trim().toUpperCase();
+    if (!code) {
+      return { ok: false, statusCode: 400, code: 'INVALID_CODE', error: '바코드 번호를 입력해 주세요.' };
+    }
+    if (isDemoBarcodeNumber(code)) {
+      return { ok: false, statusCode: 400, code: 'DEMO_COUPON', error: '시연용 쿠폰 바코드는 현장 사용 처리를 할 수 없습니다.' };
+    }
+    this.db.exec('BEGIN IMMEDIATE');
+    try {
+      let owner: UserSessionState | null = null;
+      let target: CouponRecord | undefined;
+      for (const s of this.getAllSessions()) {
+        const hit = s.coupons?.find((c) => c.barcodeNumber?.toUpperCase() === code);
+        if (hit) {
+          owner = this.getSession(s.sessionId) ?? s;
+          target = hit;
+          break;
+        }
+      }
+      if (!owner || !target) {
+        this.db.exec('ROLLBACK');
+        return { ok: false, statusCode: 404, code: 'NOT_FOUND', error: '등록되지 않은 바코드입니다.' };
+      }
+      if (!verifyLiveCouponBarcodeSignature({ issueCode: code, userId: owner.sessionId, couponId: target.id })) {
+        this.db.exec('ROLLBACK');
+        return { ok: false, statusCode: 400, code: 'INVALID_SIGNATURE', error: '바코드 서명이 올바르지 않습니다.' };
+      }
+      const fresh = owner.coupons.find((c) => c.id === target!.id)!;
+      if (fresh.used) {
+        this.db.exec('ROLLBACK');
+        return { ok: false, statusCode: 409, code: 'ALREADY_USED', error: '이미 사용 처리된 쿠폰입니다.' };
+      }
+      if (isCouponExpired(fresh.expiresAt)) {
+        this.db.exec('ROLLBACK');
+        return { ok: false, statusCode: 410, code: 'EXPIRED', error: '유효기간이 지난 쿠폰입니다.' };
+      }
+      const saved = this.markCouponUsed(owner, fresh);
+      this.db.exec('COMMIT');
+      return { ok: true, session: saved, couponId: fresh.id, title: fresh.title };
+    } catch (err) {
+      this.db.exec('ROLLBACK');
+      throw err;
+    }
+  }
+
+  /** 트랜잭션 안에서 호출: 쿠폰 used 표시 후 세션 JSON만 갱신한다. */
+  private markCouponUsed(session: UserSessionState, coupon: CouponRecord): UserSessionState {
+    const nowIso = new Date().toISOString();
+    const next: UserSessionState = {
+      ...session,
+      coupons: session.coupons.map((c) =>
+        c.id === coupon.id ? { ...c, used: true, usedAt: nowIso } : c
+      ),
+      updatedAt: nowIso,
+      lastAccessedAt: nowIso,
+    };
+    this.db
+      .prepare('UPDATE progress_records SET session_json = ?, updated_at = ? WHERE user_id = ?')
+      .run(JSON.stringify(next), nowIso, session.sessionId);
+    return next;
   }
 
   getAllSessions(): UserSessionState[] {

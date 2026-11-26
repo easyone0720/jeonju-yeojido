@@ -104,42 +104,46 @@ test('buildPortraitPrompt fixes the house style and only mentions the face photo
   assert.doesNotMatch(noRefs, /FIRST attached image/);
 });
 
-test('generatePastLifeStory returns parsed story, and null on API error / bad output', async () => {
-  const ok = await generatePastLifeStory(
-    fakeAi(async () => ({ text: VALID_STORY_JSON })),
-    {
-      visitorName: '철수',
-      birthDate: '1998-05-15',
-      companion: 'alone',
-      archetypeTitle: '수문장',
-      hanjaTitle: '守門將',
-      era: '조선 전기',
-      status: '호위 무관',
-      storySeed: '폭우 속 전각 수호',
-      item: '나무 호패',
-      visitOrderNames: ['경기전'],
-    }
-  );
-  assert.equal(ok?.story.outcome.reputation, '융통성 없기로 유명');
+/** Anthropic Messages API 응답 모양의 가짜 fetch */
+function fakeClaudeFetch(text: string, calls: Array<{ url: string; init: RequestInit }> = []): typeof fetch {
+  return (async (url: string | URL | Request, init?: RequestInit) => {
+    calls.push({ url: String(url), init: init ?? {} });
+    return new Response(JSON.stringify({ content: [{ type: 'text', text }] }), { status: 200 });
+  }) as typeof fetch;
+}
 
+test('generatePastLifeStory (Claude) returns parsed story, and null on API error / bad output / timeout', async () => {
   const input = {
-    visitorName: '철수', birthDate: '1998-05-15', companion: 'alone' as const,
-    archetypeTitle: 'a', hanjaTitle: 'b', era: 'c', status: 'd', storySeed: 'e', item: 'f',
-    visitOrderNames: [],
+    visitorName: '철수', birthDate: '', companion: 'alone' as const,
+    archetypeTitle: '수문장', hanjaTitle: '守門將', era: '조선 전기', status: '호위 무관',
+    storySeed: '폭우 속 전각 수호', item: '나무 호패', visitOrderNames: ['경기전'],
   };
+  const calls: Array<{ url: string; init: RequestInit }> = [];
+  const ok = await generatePastLifeStory(input, {
+    apiKey: 'test-key', model: 'claude-test', fetchImpl: fakeClaudeFetch(VALID_STORY_JSON, calls),
+  });
+  assert.equal(ok?.story.outcome.reputation, '융통성 없기로 유명');
+  assert.equal(calls[0].url, 'https://api.anthropic.com/v1/messages');
+  const sent = JSON.parse(String(calls[0].init.body));
+  assert.equal(sent.model, 'claude-test');
+  assert.equal(sent.messages[0].role, 'user');
+  assert.match(sent.messages[0].content, /확정 단서/);
+
+  // 코드 울타리를 붙여 답해도 파싱된다
+  const fenced = await generatePastLifeStory(input, {
+    apiKey: 'k', fetchImpl: fakeClaudeFetch('```json\n' + VALID_STORY_JSON + '\n```'),
+  });
+  assert.ok(fenced);
+
   const originalWarn = console.warn;
   console.warn = () => {};
   try {
-    assert.equal(
-      await generatePastLifeStory(fakeAi(async () => { throw new Error('boom'); }), input),
-      null
-    );
-    assert.equal(await generatePastLifeStory(fakeAi(async () => ({ text: 'oops' })), input), null);
-    // 타임아웃
-    assert.equal(
-      await generatePastLifeStory(fakeAi(() => new Promise(() => {})), input, { timeoutMs: 20 }),
-      null
-    );
+    const failing = (async () => new Response(JSON.stringify({ error: { message: 'overloaded' } }), { status: 529 })) as typeof fetch;
+    assert.equal(await generatePastLifeStory(input, { apiKey: 'k', fetchImpl: failing }), null);
+    assert.equal(await generatePastLifeStory(input, { apiKey: 'k', fetchImpl: fakeClaudeFetch('oops') }), null);
+    const hanging = ((_u: unknown, init?: RequestInit) =>
+      new Promise((_, rej) => init?.signal?.addEventListener('abort', () => rej(new Error('aborted'))))) as typeof fetch;
+    assert.equal(await generatePastLifeStory(input, { apiKey: 'k', fetchImpl: hanging, timeoutMs: 20 }), null);
   } finally {
     console.warn = originalWarn;
   }

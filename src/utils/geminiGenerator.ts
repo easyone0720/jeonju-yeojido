@@ -1,17 +1,19 @@
 /**
- * Gemini 연동 (서버 전용). API 키는 브라우저로 절대 내려가지 않으며, 이 모듈은 server.ts에서만 import한다.
+ * 전생 생성 연동 (서버 전용). API 키는 브라우저로 절대 내려가지 않으며, 이 모듈은 server.ts에서만 import한다.
  *
- * - generatePastLifeStory : 텍스트 모델 + Structured Output(JSON)으로 4개 섹션 스토리 생성
- * - generatePastLifePortrait : 이미지 모델로 전생 캐릭터 일러스트 생성 (메인 화면 마스코트를 화풍 레퍼런스로 첨부)
+ * - generatePastLifeStory : Claude(Anthropic Messages API)로 4개 섹션 스토리를 JSON 으로 생성
+ * - generatePastLifePortrait : Gemini 이미지 모델로 전생 캐릭터 일러스트 생성 (Claude 는 이미지를 만들지 못한다.
+ *   메인 화면 마스코트를 화풍 레퍼런스로 첨부)
  * 두 함수 모두 실패/시간 초과 시 예외 대신 null을 반환하므로, 호출 측은 기본 샘플/캔버스 초상화로 폴백하면 된다.
+ * (파일 이름은 이전 호환을 위해 geminiGenerator 로 둔다.)
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { GoogleGenAI, Modality, Type } from '@google/genai';
 import { DEFAULT_PAST_LIFE_STORY } from '../data/defaultPastLifeStory.ts';
 import type { PastLifeStory } from '../types/jeonju.ts';
+import { generateClaudeJson, getClaudeModel } from './claudeClient.ts';
 
-export const DEFAULT_TEXT_MODEL = 'gemini-2.5-flash';
 export const DEFAULT_IMAGE_MODEL = 'gemini-2.5-flash-image';
 
 const STYLE_REFERENCE_PATH = path.resolve(
@@ -27,10 +29,6 @@ export function getGeminiClient(): GoogleGenAI | null {
     return null;
   }
   return new GoogleGenAI({ apiKey });
-}
-
-export function getTextModel(): string {
-  return process.env.GEMINI_TEXT_MODEL?.trim() || DEFAULT_TEXT_MODEL;
 }
 
 export function getImageModel(): string {
@@ -133,32 +131,32 @@ ending: ${example.ending.replace(/\n/g, ' ')}`;
 }
 
 const STORY_RESPONSE_SCHEMA = {
-  type: Type.OBJECT,
+  type: 'object',
   properties: {
-    jobTitle: { type: Type.STRING },
-    oneLineSummary: { type: Type.STRING },
-    setting: { type: Type.STRING },
+    jobTitle: { type: 'string' },
+    oneLineSummary: { type: 'string' },
+    setting: { type: 'string' },
     dialogue: {
-      type: Type.ARRAY,
+      type: 'array',
       items: {
-        type: Type.OBJECT,
+        type: 'object',
         properties: {
-          speaker: { type: Type.STRING },
-          text: { type: Type.STRING },
+          speaker: { type: 'string' },
+          text: { type: 'string' },
         },
         required: ['speaker', 'text'],
       },
     },
     outcome: {
-      type: Type.OBJECT,
+      type: 'object',
       properties: {
-        job: { type: Type.STRING },
-        reputation: { type: Type.STRING },
-        achievement: { type: Type.STRING },
+        job: { type: 'string' },
+        reputation: { type: 'string' },
+        achievement: { type: 'string' },
       },
       required: ['job', 'reputation', 'achievement'],
     },
-    ending: { type: Type.STRING },
+    ending: { type: 'string' },
   },
   required: ['jobTitle', 'oneLineSummary', 'setting', 'dialogue', 'outcome', 'ending'],
 };
@@ -218,38 +216,49 @@ export function parseStoryResponse(text: string): GeneratedStory | null {
   };
 }
 
+export interface StoryGenerationOptions {
+  /** Anthropic API 키 (서버 환경변수 ANTHROPIC_API_KEY 에서 읽은 값) */
+  apiKey: string;
+  timeoutMs?: number;
+  /** 기본값: ANTHROPIC_MODEL 또는 claude-haiku-4-5-20251001 */
+  model?: string;
+  /** 테스트용 주입 */
+  fetchImpl?: typeof fetch;
+}
+
 export async function generatePastLifeStory(
-  ai: GoogleGenAI,
   input: StoryPromptInput,
-  options: { timeoutMs?: number } = {}
+  options: StoryGenerationOptions
 ): Promise<GeneratedStory | null> {
-  const model = getTextModel();
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? 25_000);
   try {
-    const response = await withTimeout(
-      ai.models.generateContent({
-        model,
-        contents: buildStoryPrompt(input),
-        config: {
-          systemInstruction:
-            'You are a witty Korean storyteller for a Jeonju heritage experience. Always answer with valid JSON in Korean that matches the schema.',
-          responseMimeType: 'application/json',
-          responseSchema: STORY_RESPONSE_SCHEMA,
-          temperature: 1,
-          // 2.5-flash는 사고(thinking)를 끄면 응답이 훨씬 빠르다. 다른 모델에서는 설정하지 않는다.
-          ...(model.includes('2.5-flash') ? { thinkingConfig: { thinkingBudget: 0 } } : {}),
-        },
-      }),
-      options.timeoutMs ?? 25_000,
-      'Gemini story'
-    );
-    const parsed = parseStoryResponse(response.text ?? '');
+    const text = await generateClaudeJson({
+      apiKey: options.apiKey,
+      model: options.model ?? getClaudeModel(),
+      system:
+        'You are a witty Korean storyteller for a Jeonju heritage experience. Always answer with valid JSON in Korean that matches the schema.',
+      user: buildStoryPrompt(input),
+      schema: STORY_RESPONSE_SCHEMA,
+      temperature: 1,
+      maxTokens: 2048,
+      signal: controller.signal,
+      fetchImpl: options.fetchImpl,
+    });
+    const parsed = parseStoryResponse(text);
     if (!parsed) {
-      console.warn('[gemini] story response did not match the expected structure');
+      console.warn('[claude] story response did not match the expected structure');
     }
     return parsed;
   } catch (err) {
-    console.warn('[gemini] story generation failed:', err instanceof Error ? err.message : err);
+    const timedOut = controller.signal.aborted;
+    console.warn(
+      '[claude] story generation failed:',
+      timedOut ? `timeout (${Math.round((options.timeoutMs ?? 25_000) / 1000)}s)` : err instanceof Error ? err.message : err
+    );
     return null;
+  } finally {
+    clearTimeout(timer);
   }
 }
 

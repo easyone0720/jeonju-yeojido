@@ -33,6 +33,7 @@ import {
   DEFAULT_PAST_LIFE_STORY,
   storyToBiography,
 } from './src/data/defaultPastLifeStory.ts';
+import { getAnthropicApiKey } from './src/utils/claudeClient.ts';
 import {
   generatePastLifePortrait,
   generatePastLifeStory,
@@ -764,16 +765,18 @@ async function startServer() {
       (id) => JEONJU_SPOTS.find((s) => s.id === id)?.name ?? id
     );
 
-    // --- Gemini: 스토리(텍스트) → 캐릭터 이미지. 키 미설정/실패/시간 초과 시 기본 샘플·캔버스 초상화로 폴백 ---
-    // ENABLE_AI_GENERATION=false 이면 키가 있어도 Gemini 를 호출하지 않는다 (비용·지연 없음)
+    // --- 스토리(텍스트) = Claude(ANTHROPIC_API_KEY), 캐릭터 이미지 = Gemini(GEMINI_API_KEY, 선택) ---
+    // 키 미설정/실패/시간 초과 시 기본 샘플·캔버스 초상화로 폴백한다.
+    // ENABLE_AI_GENERATION=false 이면 키가 있어도 외부 AI 를 호출하지 않는다 (비용·지연 없음)
+    const claudeKey = ENABLE_AI_GENERATION ? getAnthropicApiKey() : null;
     const ai = ENABLE_AI_GENERATION ? getGeminiClient() : null;
     let generated: GeneratedStory | null = null;
     let aiPortrait: { buffer: Buffer; mimeType: string } | null = null;
 
-    if (ai) {
-      generated = await generatePastLifeStory(ai, {
+    if (claudeKey) {
+      generated = await generatePastLifeStory({
         visitorName: session.visitorName,
-        birthDate: session.birthDate,
+        birthDate: '', // 생년월일은 AI 로 보내지 않는다 (띠 서사 소재는 api/past-life/story.ts 가 코드로만 받는다)
         companion: session.companion,
         archetypeTitle: archetype.title,
         hanjaTitle: archetype.hanjaTitle,
@@ -782,8 +785,10 @@ async function startServer() {
         storySeed: archetype.storySeed,
         item: archetype.item,
         visitOrderNames,
-      });
+      }, { apiKey: claudeKey });
+    }
 
+    if (ai) {
       // 이미지 속 직업은 화면에 표시될 스토리의 직업과 항상 일치시킨다 (폴백 샘플이면 샘플 직업)
       const storyForImage = generated?.story ?? DEFAULT_PAST_LIFE_STORY;
       const face = faceConsent === true ? parseImageDataUrl(faceImageDataUrl, MAX_FACE_BYTES) : null;
@@ -820,7 +825,7 @@ async function startServer() {
       portraitDataUrl: portraitUrl,
       portraitSource: aiPortrait ? 'gemini-image' : 'canvas-painter',
       generatedAt: nowIso,
-      generationSource: generated ? 'gemini-ai' : 'curated-demo',
+      generationSource: generated ? 'claude-ai' : 'curated-demo',
       historicalDisclaimer:
         '본 전생 이야기와 캐릭터 일러스트는 전주의 역사·문화적 배경을 바탕으로 AI가 구성한 가상의 체험 콘텐츠입니다. 원본 얼굴 사진은 서버에 저장되지 않습니다.',
       recommendedGoods: [archetype.goods, HANJI_PRINT_GOODS],
@@ -1057,6 +1062,28 @@ async function startServer() {
     }
 
     res.json(result);
+  });
+
+  // AI 이야기 생성: 배포(Vercel)에서는 api/past-life/story.ts 함수가 직접 처리한다.
+  // `bun run dev`(이 Express 서버)에서도 같은 함수를 그대로 호출해 로컬에서 확인할 수 있게 연결만 해 둔다.
+  app.post('/api/past-life/story', async (req, res) => {
+    try {
+      const { POST } = await import('./api/past-life/story.ts');
+      const response = await POST(
+        new Request(`http://localhost${req.originalUrl}`, {
+          method: 'POST',
+          headers: {
+            'content-type': 'application/json',
+            authorization: req.get('authorization') ?? '',
+            'x-forwarded-for': req.ip ?? '',
+          },
+          body: JSON.stringify(req.body ?? {}),
+        })
+      );
+      res.status(response.status).type('application/json').send(await response.text());
+    } catch {
+      res.status(500).json({ error: '서버 오류가 발생했습니다.' });
+    }
   });
 
   if (process.env.NODE_ENV === 'production') {

@@ -6,7 +6,8 @@
  * pastLifeEngine / qrAllowlist 를 그대로 재사용하므로 검증 규칙이 서버와 같다.)
  *
  * 저장소 정책
- *  - 체험 세션(생년월일 포함)은 sessionStorage — 탭을 닫으면 사라진다. localStorage 에는 개인정보를 두지 않는다.
+ *  - 체험 세션은 sessionStorage — 탭을 닫으면 사라진다. localStorage 에는 개인정보를 두지 않는다.
+ *  - 생년월일은 어디에도 저장하지 않는다. 등록 요청에 들어와도 무시하고, 예전 기록에 남아 있으면 불러올 때 지운다.
  *  - 미디어월 전시 목록(별칭·직업·대표 대사만)은 같은 브라우저의 /wall 에서 보이도록 localStorage.
  *  - 어떤 저장소도 쓸 수 없는 환경이면 메모리에만 보관한다 (에러 없이 동작).
  */
@@ -38,15 +39,16 @@ import type {
 import {
   claimSpotClueAndCoupon,
   createInitialSession,
-  determinePastLifeArchetype,
   getCollectedClueCount,
   isSpotClueOrPastLifeCompleted,
   isSpotVisitVerified,
   recordSpotVisitAuthentication,
+  resolveSessionArchetype,
+  stripLegacyBirthDate,
   toggleCouponUsedState,
-  validateBirthDate,
   verifySpotLocation,
 } from './pastLifeEngine';
+import { isZodiacCode } from './zodiacMotif';
 import { computeCouponExpiresAt, generateDemoBarcodeNumber } from './couponBarcode';
 
 /** 스토리를 한 덩어리 전기 문장으로 합친다 (저장 기록용) */
@@ -86,16 +88,22 @@ function writeStore(kind: 'session' | 'local', key: string, value: string | null
 function loadSession(mode: AppMode): UserSessionState | null {
   const raw = readStore('session', SESSION_KEY_PREFIX + mode);
   if (!raw) return null;
+  let parsed: UserSessionState;
   try {
-    return JSON.parse(raw) as UserSessionState;
+    parsed = JSON.parse(raw) as UserSessionState;
   } catch {
     return null;
   }
+  // 이관: 예전 기록의 birthDate 만 지우고(결과·방문·쿠폰 유지) 바로 다시 저장한다
+  const migrated = stripLegacyBirthDate(parsed);
+  if (migrated !== parsed) writeStore('session', SESSION_KEY_PREFIX + mode, JSON.stringify(migrated));
+  return migrated;
 }
 
 function persistSession(session: UserSessionState): UserSessionState {
-  writeStore('session', SESSION_KEY_PREFIX + session.mode, JSON.stringify(session));
-  return session;
+  const clean = stripLegacyBirthDate(session);
+  writeStore('session', SESSION_KEY_PREFIX + clean.mode, JSON.stringify(clean));
+  return clean;
 }
 
 function findSessionById(sessionId: string): UserSessionState | null {
@@ -284,11 +292,8 @@ function parseBody(init?: RequestInit): Record<string, unknown> {
 // ---------------------------------------------------------------------------------------------
 function handleRegister(body: Record<string, unknown>): Response {
   const mode: AppMode = 'experience';
-  const birthDate = typeof body.birthDate === 'string' ? body.birthDate.trim() : '';
-  const dateCheck = validateBirthDate(birthDate);
-  if (!dateCheck.valid) {
-    return json(400, { error: dateCheck.error ?? '생년월일을 확인해 주세요.' });
-  }
+  // 생년월일은 받지 않는다(들어와도 무시). 브라우저가 계산한 12간지 코드만 받는다.
+  const zodiacCode = isZodiacCode(body.zodiacCode) ? body.zodiacCode : null;
   const perms = body.permissionsAcknowledged as { location?: boolean; camera?: boolean } | undefined;
   if (!perms?.location || !perms?.camera) {
     return json(400, { error: '위치와 카메라 권한 허용 안내에 모두 체크해 주세요.' });
@@ -299,7 +304,13 @@ function handleRegister(body: Record<string, unknown>): Response {
   const userId = `usr_${crypto.randomUUID()}`;
 
   const session: UserSessionState = {
-    ...createInitialSession({ sessionId: userId, mode, visitorName, birthDate, companion }),
+    ...createInitialSession({
+      sessionId: userId,
+      mode,
+      visitorName,
+      companion,
+      zodiacCode,
+    }),
     permissionsAcknowledged: { location: true, camera: true },
     currentScene: 3,
     currentSpotId: 'wanpanbon',
@@ -466,11 +477,7 @@ function handleGenerate(body: Record<string, unknown>): Response {
     if (!gps.verified) return json(403, { error: gps.reason, distanceMeters: gps.distanceMeters });
   }
 
-  const archetype = determinePastLifeArchetype({
-    birthDate: session.birthDate || '1998-05-15',
-    visitOrder: session.visitOrder,
-    sessionId: session.sessionId,
-  });
+  const archetype = resolveSessionArchetype(session);
   const character = getOrPickCurrentCharacter();
   const story = characterToStory(character);
   const nowIso = new Date().toISOString();
@@ -496,6 +503,7 @@ function handleGenerate(body: Record<string, unknown>): Response {
     historicalDisclaimer:
       '본 전생 이야기와 캐릭터 일러스트는 전주의 역사·문화적 배경을 바탕으로 구성한 가상의 체험 콘텐츠입니다. 본 체험은 사진을 촬영하거나 수집하지 않습니다.',
     recommendedGoods: [archetype.goods, HANJI_PRINT_GOODS],
+    zodiacCode: session.zodiacCode ?? null,
   };
 
   const existingMuseumAuth = session.spotAuthentications?.jeonju_museum;

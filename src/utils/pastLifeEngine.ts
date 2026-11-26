@@ -12,6 +12,7 @@ import type {
   SpotId,
   UserSessionState,
 } from '../types/jeonju.ts';
+import { isCouponExpired } from './couponBarcode.ts';
 
 const EARTH_RADIUS_METERS = 6371000;
 
@@ -154,16 +155,58 @@ const ARCHETYPE_ORDER: ArchetypeId[] = [
   'gate_guardian',
 ];
 
+/**
+ * 원형(상품 추천·조각 문구용) 판정: 첫 방문지 + 세션 id. 생년월일은 쓰지 않는다.
+ * birthDate 인자는 서버 모드(server.ts, 미사용)·기존 테스트 호환용으로만 받으며 판정에 반영하지 않는다.
+ */
 export function determinePastLifeArchetype(params: {
-  birthDate: string;
+  /** @deprecated 받아도 쓰지 않는다 */
+  birthDate?: string;
   visitOrder: ClueSpotId[];
   sessionId: string;
 }): PastLifeArchetype {
   const firstSpot = params.visitOrder[0] ?? 'gyeonggijeon';
-  const seedKey = `${params.birthDate}|${firstSpot}|${params.sessionId.slice(0, 8)}`;
+  const seedKey = `${firstSpot}|${params.sessionId.slice(0, 8)}`;
   const idx = hashSeed(seedKey) % ARCHETYPE_ORDER.length;
   const archetypeId = ARCHETYPE_ORDER[idx];
   return PAST_LIFE_ARCHETYPES[archetypeId];
+}
+
+/**
+ * 세션의 원형. 이미 받은 조각이나 결과가 있으면 그 값에서 원형을 찾아 그대로 잇는다
+ * (예전 기록처럼 다른 판정식으로 받은 조각이 있어도 네 조각이 한 세트로 유지되도록).
+ * 아무것도 없으면 첫 방문지 + 세션 id 로 정한다.
+ */
+export function resolveSessionArchetype(
+  session: Pick<UserSessionState, 'sessionId' | 'visitOrder' | 'clues' | 'pastLifeResult'>,
+  visitOrder: ClueSpotId[] = session.visitOrder
+): PastLifeArchetype {
+  const fromResult = session.pastLifeResult?.archetypeId;
+  if (fromResult && fromResult in PAST_LIFE_ARCHETYPES) {
+    return PAST_LIFE_ARCHETYPES[fromResult as keyof typeof PAST_LIFE_ARCHETYPES];
+  }
+  const clues = session.clues ?? {};
+  for (const a of Object.values(PAST_LIFE_ARCHETYPES)) {
+    if (
+      clues.era?.value === a.era ||
+      clues.status?.value === `${a.title} (${a.hanjaTitle})` ||
+      clues.story?.value === a.storySeed ||
+      clues.item?.value === a.item
+    ) {
+      return a;
+    }
+  }
+  return determinePastLifeArchetype({ visitOrder, sessionId: session.sessionId });
+}
+
+/**
+ * 예전 기록 정리: birthDate 필드만 지우고 결과·방문·쿠폰 등 나머지는 그대로 둔다.
+ * birthDate 키가 없으면 같은 객체를 그대로 돌려준다.
+ */
+export function stripLegacyBirthDate(session: UserSessionState): UserSessionState {
+  if (!Object.prototype.hasOwnProperty.call(session, 'birthDate')) return session;
+  const { birthDate: _removed, ...rest } = session;
+  return rest as UserSessionState;
 }
 
 export function buildClueForSpot(params: {
@@ -227,7 +270,10 @@ export function createInitialSession(params: {
   sessionId: string;
   mode?: 'experience' | 'demo';
   visitorName?: string;
+  /** @deprecated 받아도 저장하지 않는다 (기존 호출 호환용) */
   birthDate?: string;
+  /** 브라우저에서 계산한 12간지 코드 */
+  zodiacCode?: string | null;
   companion?: 'alone' | 'together';
   nowIso?: string;
 }): UserSessionState {
@@ -236,7 +282,7 @@ export function createInitialSession(params: {
     sessionId: params.sessionId,
     mode: params.mode ?? 'experience',
     visitorName: params.visitorName ?? '',
-    birthDate: params.birthDate ?? '',
+    zodiacCode: params.zodiacCode ?? null,
     companion: params.companion ?? 'alone',
     permissionsAcknowledged: {
       location: false,
@@ -381,12 +427,8 @@ export function claimSpotClueAndCoupon(
     ? session.visitOrder
     : [...session.visitOrder, spotId];
 
-  // Determine archetype deterministically from first visit + birthdate + sessionId
-  const archetype = determinePastLifeArchetype({
-    birthDate: session.birthDate || '1998-05-15',
-    visitOrder: nextVisitOrder,
-    sessionId: session.sessionId,
-  });
+  // 원형: 이관 고정값 또는 (세션 seed + 첫 방문지 + sessionId) — 생년월일은 쓰지 않는다
+  const archetype = resolveSessionArchetype(session, nextVisitOrder);
 
   const newClue = buildClueForSpot({
     spotId,
@@ -456,6 +498,10 @@ export function toggleCouponUsedState(
     ...session,
     coupons: session.coupons.map((coupon) => {
       if (coupon.id !== couponId || !coupon.unlocked || coupon.used) {
+        return coupon;
+      }
+      // 유효기간이 지난 쿠폰은 사용 처리하지 않는다 (resolveCouponBaseStatus 의 'expired' 와 같은 기준)
+      if (isCouponExpired(coupon.expiresAt, Date.parse(nowIso))) {
         return coupon;
       }
       return {

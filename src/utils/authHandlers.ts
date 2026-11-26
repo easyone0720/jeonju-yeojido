@@ -14,7 +14,7 @@ export type SocialProvider = 'google' | 'kakao' | 'naver';
 export type LoginMethod = 'password' | SocialProvider | 'guest';
 
 export type AuthResult =
-  | { ok: true; method: LoginMethod }
+  | { ok: true; method: LoginMethod; /** 외부 로그인 화면으로 이동 중 (돌아온 뒤 이어서 진행) */ redirecting?: boolean }
   | { ok: false; message: string };
 
 export interface PasswordCredentials {
@@ -310,6 +310,65 @@ export async function loginWithGoogleCredential(credential: string): Promise<Aut
     ...(picture ? { picture } : {}),
   });
   return { ok: true, method: 'google' };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Supabase Auth — Google OAuth (Supabase 설정이 있으면 Google 로그인은 이 경로만 쓴다)
+// ---------------------------------------------------------------------------------------------
+const OAUTH_PENDING_KEY = 'jeonsaeng:oauth:pending';
+
+/** Google 로그인 화면으로 이동한다 (같은 탭에서 돌아온다) */
+export async function loginWithSupabaseGoogle(): Promise<AuthResult> {
+  const { signInWithGoogle } = await import('../services/supabase/client');
+  try {
+    window.sessionStorage.setItem(OAUTH_PENDING_KEY, '1');
+  } catch {
+    // 표시만 못 할 뿐 로그인은 진행된다
+  }
+  const r = await signInWithGoogle();
+  if (!r.ok) {
+    try {
+      window.sessionStorage.removeItem(OAUTH_PENDING_KEY);
+    } catch {
+      /* noop */
+    }
+    return { ok: false, message: r.message };
+  }
+  return { ok: true, method: 'google', redirecting: true };
+}
+
+/**
+ * Google 로그인에서 돌아왔으면 세션을 확정하고 로컬 표시 정보(이름·이메일)를 저장한다.
+ * 돌아온 경우가 아니면 'none', 로그인 완료면 'signed-in', 취소·실패면 'failed'.
+ */
+export async function completeSupabaseGoogleLogin(): Promise<'none' | 'signed-in' | 'failed'> {
+  const { completeOAuthReturn, hasOAuthResponseInUrl, isSupabaseConfigured } = await import('../services/supabase/client');
+  let pending = false;
+  try {
+    pending = window.sessionStorage.getItem(OAUTH_PENDING_KEY) === '1';
+  } catch {
+    pending = false;
+  }
+  if (!isSupabaseConfigured() || (!pending && !hasOAuthResponseInUrl())) return 'none';
+  try {
+    window.sessionStorage.removeItem(OAUTH_PENDING_KEY);
+  } catch {
+    /* noop */
+  }
+  const session = await completeOAuthReturn();
+  if (!session) return 'failed';
+  const meta = (session.user.user_metadata ?? {}) as Record<string, unknown>;
+  const str = (v: unknown) => (typeof v === 'string' ? v.trim() : '');
+  const email = str(session.user.email);
+  const name = str(meta.full_name) || str(meta.name) || email.split('@')[0] || SOCIAL_DISPLAY_NAMES.google;
+  const picture = str(meta.avatar_url) || str(meta.picture);
+  saveLocalAuth({
+    method: 'google',
+    displayName: name.slice(0, 16),
+    ...(email ? { email } : {}),
+    ...(picture ? { picture } : {}),
+  });
+  return 'signed-in';
 }
 
 /** 소셜 로그인 (Google / Kakao / Naver). Google 은 클라이언트 ID 가 없을 때의 체험자 폴백으로도 쓰인다. */
