@@ -1,0 +1,82 @@
+[
+  {
+    "id": "wanpanbon",
+    "orderNumber": 1,
+    "name": "완판본문화관",
+    "coordinates": {
+      "lat": 35.8117,
+      "lng": 127.1566
+    },
+    "verifyRadiusMeters": 240,
+    "clueCategory": "story",
+    "mapPositionPercent": {
+      "x": 80,
+      "y": 68
+    },
+    "qrCodeValue": "https://m.site.naver.com/2l46H"
+  },
+  {
+    "id": "gyeonggijeon",
+    "orderNumber": 2,
+    "name": "경기전",
+    "coordinates": {
+      "lat": 35.8154,
+      "lng": 127.1497
+    },
+    "verifyRadiusMeters": 220,
+    "clueCategory": "era",
+    "mapPositionPercent": {
+      "x": 56,
+      "y": 54
+    },
+    "qrCodeValue": "https://m.site.naver.com/2l46K"
+  },
+  {
+    "id": "nambu_market",
+    "orderNumber": 3,
+    "name": "남부시장",
+    "coordinates": {
+      "lat": 35.8126,
+      "lng": 127.1462
+    },
+    "verifyRadiusMeters": 240,
+    "clueCategory": "item",
+    "mapPositionPercent": {
+      "x": 40,
+      "y": 74
+    },
+    "qrCodeValue": "https://m.site.naver.com/2l46G"
+  },
+  {
+    "id": "jeollagamyeong",
+    "orderNumber": 4,
+    "name": "전라감영",
+    "coordinates": {
+      "lat": 35.8165,
+      "lng": 127.1436
+    },
+    "verifyRadiusMeters": 220,
+    "clueCategory": "status",
+    "mapPositionPercent": {
+      "x": 46,
+      "y": 33
+    },
+    "qrCodeValue": "https://m.site.naver.com/2l46J"
+  },
+  {
+    "id": "jeonju_museum",
+    "orderNumber": 5,
+    "name": "국립전주박물관",
+    "coordinates": {
+      "lat": 35.8012,
+      "lng": 127.0894
+    },
+    "verifyRadiusMeters": 300,
+    "clueCategory": null,
+    "mapPositionPercent": {
+      "x": 24,
+      "y": 18
+    },
+    "qrCodeValue": "https://m.site.naver.com/2l46E"
+  }
+]

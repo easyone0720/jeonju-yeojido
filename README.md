@@ -117,7 +117,7 @@
   - `sessionStorage`: 체험 세션(생년월일 포함), 고정 캐릭터 id
   - `localStorage`: 미디어월 전시 목록, 직전 캐릭터 id, 튜토리얼 숨김 기한
   - 저장소를 쓸 수 없는 환경에서는 메모리로 대체됩니다.
-- **서버(확장 경로용)**: Express 4, `node:sqlite`, `@google/genai`
+- **서버(확장 경로용)**: Express 4, `node:sqlite`, Claude(Anthropic Messages API, fetch), `@google/genai`(이미지·음성)
 - **패키지 매니저**: Bun (`bun.lock`)
 ### 디렉토리 구조
 ```
@@ -179,8 +179,8 @@ export const ENABLE_AI_GENERATION = false;
   - 쿠폰은 가상 바코드이며 실제 매장에서 사용할 수 없습니다.
   - 박물관 단계의 위치 확인(GPS)은 브라우저 위치 권한을 사용하며, 박물관 QR로 이미 인증한 경우 생략됩니다.
 ### 5-2. 추후 확장 대비 구조 (`ENABLE_AI_GENERATION = false`)
-- **Gemini 생성**: `src/utils/geminiGenerator.ts`와 `server.ts`의 생성 로직은 삭제하지 않고 보존되어 있습니다. 플래그가 `false`이면 API 키가 있어도 Gemini를 호출하지 않고, 사진도 서버로 전송하지 않습니다.
-- **다시 켜는 방법(서버 경로)**: `USE_LOCAL_BACKEND = false`로 바꿔 `/api/*`를 `server.ts`가 처리하게 하고, `ENABLE_AI_GENERATION = true`로 바꾼 뒤 `.env`에 `GEMINI_API_KEY`를 설정합니다. 서버 경로는 SQLite(`node:sqlite`, `.data/`)에 기록을 저장합니다. 이 서버 경로는 현재 로컬 모드와 별도로 유지되는 코드이며, 로컬 모드 전환 이후 끝까지 다시 검증하지는 않았습니다.
+- **AI 생성(Claude + Gemini)**: 이야기·유형 분류는 **Claude(Anthropic Messages API)**, 캐릭터 이미지·낭독 음성은 Gemini(선택)입니다. `src/utils/claudeClient.ts`·`src/utils/geminiGenerator.ts`와 `server.ts`의 생성 로직은 삭제하지 않고 보존되어 있습니다. 플래그가 `false`이면 API 키가 있어도 외부 AI를 호출하지 않고 기본 샘플 스토리 + 캔버스 초상화로 동작합니다.
+- **다시 켜는 방법(서버 경로)**: `USE_LOCAL_BACKEND = false`로 바꿔 `/api/*`를 `server.ts`가 처리하게 하고, `ENABLE_AI_GENERATION = true`로 바꾼 뒤 `.env`에 `ANTHROPIC_API_KEY`(이야기)를 설정합니다. 이미지·음성까지 쓰려면 `GEMINI_API_KEY`(선택)도 설정합니다. 서버 경로는 SQLite(`node:sqlite`, `.data/`)에 기록을 저장합니다. 이 서버 경로는 현재 로컬 모드와 별도로 유지되는 코드이며, 로컬 모드 전환 이후 끝까지 다시 검증하지는 않았습니다.
 - **Supabase**: 현재 연동되어 있지 않습니다. `supabase/proposals/0001_jeonsaeng_schema.sql`은 스키마 **제안서**이고, `LoginModal.tsx`와 `authHandlers.ts`(스텁, `TODO(auth)` 지점)는 인증을 붙일 때 교체할 확장 지점입니다. 둘 다 현재 앱 화면에 연결되어 있지 않습니다.
 ## 6. 로컬 설치 및 실행 방법
  

@@ -1,0 +1,58 @@
+{
+  "categories": [
+    "카페",
+    "식당",
+    "숙박권",
+    "전주 지역 상품권"
+  ],
+  "templates": [
+    {
+      "id": "cafe-1",
+      "category": "카페"
+    },
+    {
+      "id": "cafe-2",
+      "category": "카페"
+    },
+    {
+      "id": "cafe-3",
+      "category": "카페"
+    },
+    {
+      "id": "food-1",
+      "category": "식당"
+    },
+    {
+      "id": "food-2",
+      "category": "식당"
+    },
+    {
+      "id": "food-3",
+      "category": "식당"
+    },
+    {
+      "id": "stay-1",
+      "category": "숙박권"
+    },
+    {
+      "id": "stay-2",
+      "category": "숙박권"
+    },
+    {
+      "id": "stay-3",
+      "category": "숙박권"
+    },
+    {
+      "id": "voucher-1",
+      "category": "전주 지역 상품권"
+    },
+    {
+      "id": "voucher-2",
+      "category": "전주 지역 상품권"
+    },
+    {
+      "id": "voucher-3",
+      "category": "전주 지역 상품권"
+    }
+  ]
+}

@@ -1,0 +1,102 @@
+{
+  "royal_inspector": [
+    {
+      "id": "goods_mapae",
+      "archetypeId": "royal_inspector",
+      "name": "개인 각인 마패형 명패",
+      "subtitle": "암행어사 전생 맞춤 기념품",
+      "description": "황동빛 금속 위에 참여자의 이름과 전생 칭호를 새긴 전통 마패형 가방걸이·명패입니다.",
+      "priceLabel": "박물관 굿즈샵 연계 예정 (시연용)",
+      "isDemoGoods": true
+    },
+    {
+      "id": "goods_hanji_print",
+      "archetypeId": "all",
+      "name": "전주한지 인화 전생 초상화",
+      "subtitle": "모든 전생 캐릭터 공통 소장품",
+      "description": "AI로 완성된 나만의 전생 초상화를 천년 전통의 전주 천연 한지 위에 고화질로 인화하여 증정하는 체험 굿즈입니다.",
+      "priceLabel": "박물관 체험 인화 부스 연계 예정 (시연용)",
+      "isDemoGoods": true
+    }
+  ],
+  "gamyeong_official": [
+    {
+      "id": "goods_gwanin",
+      "archetypeId": "gamyeong_official",
+      "name": "맞춤 인장(관인) 도장 세트",
+      "subtitle": "감영 관리 전생 맞춤 기념품",
+      "description": "참여자의 한글·한자 성함을 전통 서체로 새길 수 있는 전주 목제 관인 기념품입니다.",
+      "priceLabel": "박물관 굿즈샵 연계 예정 (시연용)",
+      "isDemoGoods": true
+    },
+    {
+      "id": "goods_hanji_print",
+      "archetypeId": "all",
+      "name": "전주한지 인화 전생 초상화",
+      "subtitle": "모든 전생 캐릭터 공통 소장품",
+      "description": "AI로 완성된 나만의 전생 초상화를 천년 전통의 전주 천연 한지 위에 고화질로 인화하여 증정하는 체험 굿즈입니다.",
+      "priceLabel": "박물관 체험 인화 부스 연계 예정 (시연용)",
+      "isDemoGoods": true
+    }
+  ],
+  "woodblock_artisan": [
+    {
+      "id": "goods_bookmark",
+      "archetypeId": "woodblock_artisan",
+      "name": "완판본 목판 각인 책갈피",
+      "subtitle": "목판 각수 전생 맞춤 기념품",
+      "description": "실제 완판본 판각 문양을 살려 천연 원목과 전주한지로 제작한 소장용 책갈피입니다.",
+      "priceLabel": "박물관 굿즈샵 연계 예정 (시연용)",
+      "isDemoGoods": true
+    },
+    {
+      "id": "goods_hanji_print",
+      "archetypeId": "all",
+      "name": "전주한지 인화 전생 초상화",
+      "subtitle": "모든 전생 캐릭터 공통 소장품",
+      "description": "AI로 완성된 나만의 전생 초상화를 천년 전통의 전주 천연 한지 위에 고화질로 인화하여 증정하는 체험 굿즈입니다.",
+      "priceLabel": "박물관 체험 인화 부스 연계 예정 (시연용)",
+      "isDemoGoods": true
+    }
+  ],
+  "market_merchant": [
+    {
+      "id": "goods_coin",
+      "archetypeId": "market_merchant",
+      "name": "상평통보 엽전 키링",
+      "subtitle": "장터 상인 전생 맞춤 기념품",
+      "description": "풍남문 장시의 번영을 상징하는 복각 엽전과 전통 매듭을 엮은 행운 열쇠고리입니다.",
+      "priceLabel": "박물관 굿즈샵 연계 예정 (시연용)",
+      "isDemoGoods": true
+    },
+    {
+      "id": "goods_hanji_print",
+      "archetypeId": "all",
+      "name": "전주한지 인화 전생 초상화",
+      "subtitle": "모든 전생 캐릭터 공통 소장품",
+      "description": "AI로 완성된 나만의 전생 초상화를 천년 전통의 전주 천연 한지 위에 고화질로 인화하여 증정하는 체험 굿즈입니다.",
+      "priceLabel": "박물관 체험 인화 부스 연계 예정 (시연용)",
+      "isDemoGoods": true
+    }
+  ],
+  "gate_guardian": [
+    {
+      "id": "goods_badge",
+      "archetypeId": "gate_guardian",
+      "name": "호위 군사(수문장) 금속 배지",
+      "subtitle": "수문장 전생 맞춤 기념품",
+      "description": "경기전과 풍남문을 수호하던 조선 수문장의 문양을 담은 에나멜 금속 배지입니다.",
+      "priceLabel": "박물관 굿즈샵 연계 예정 (시연용)",
+      "isDemoGoods": true
+    },
+    {
+      "id": "goods_hanji_print",
+      "archetypeId": "all",
+      "name": "전주한지 인화 전생 초상화",
+      "subtitle": "모든 전생 캐릭터 공통 소장품",
+      "description": "AI로 완성된 나만의 전생 초상화를 천년 전통의 전주 천연 한지 위에 고화질로 인화하여 증정하는 체험 굿즈입니다.",
+      "priceLabel": "박물관 체험 인화 부스 연계 예정 (시연용)",
+      "isDemoGoods": true
+    }
+  ]
+}

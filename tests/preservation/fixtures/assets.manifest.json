@@ -1,0 +1,308 @@
+{
+  "generatedFrom": "main",
+  "algorithm": "sha256",
+  "count": 43,
+  "entries": [
+    {
+      "path": "public/characters/01.jpg",
+      "group": "character-portrait",
+      "reason": "결과 화면·전시·결과 카드의 캐릭터 초상(01~10 사용, 11은 미사용이나 원본 보존 대상)",
+      "bytes": 595977,
+      "sha256": "6abc6880ea05f3e2d2ece393837f3518747f0a4646b865f7034565ae454fae05"
+    },
+    {
+      "path": "public/characters/02.jpg",
+      "group": "character-portrait",
+      "reason": "결과 화면·전시·결과 카드의 캐릭터 초상(01~10 사용, 11은 미사용이나 원본 보존 대상)",
+      "bytes": 576414,
+      "sha256": "58a3c367b7229a53ae9736d5c8cfc8174e63f9dc31b75645b6b445a344aa4e80"
+    },
+    {
+      "path": "public/characters/03.jpg",
+      "group": "character-portrait",
+      "reason": "결과 화면·전시·결과 카드의 캐릭터 초상(01~10 사용, 11은 미사용이나 원본 보존 대상)",
+      "bytes": 590838,
+      "sha256": "c935df6e37bddfa889ddb52c7c3237ea12d106afa07bd5680caf0a785cdbf2d3"
+    },
+    {
+      "path": "public/characters/04.jpg",
+      "group": "character-portrait",
+      "reason": "결과 화면·전시·결과 카드의 캐릭터 초상(01~10 사용, 11은 미사용이나 원본 보존 대상)",
+      "bytes": 600420,
+      "sha256": "0e005db5319ca6dcae89caac115cce79a63298f39f60ff5ec234702eb006dc88"
+    },
+    {
+      "path": "public/characters/05.jpg",
+      "group": "character-portrait",
+      "reason": "결과 화면·전시·결과 카드의 캐릭터 초상(01~10 사용, 11은 미사용이나 원본 보존 대상)",
+      "bytes": 628121,
+      "sha256": "99bf44c6f1c812aa17d9f577cfff223d03d90a802e533b06922d82ca2b4dc085"
+    },
+    {
+      "path": "public/characters/06.jpg",
+      "group": "character-portrait",
+      "reason": "결과 화면·전시·결과 카드의 캐릭터 초상(01~10 사용, 11은 미사용이나 원본 보존 대상)",
+      "bytes": 597169,
+      "sha256": "1685212ab87d384b1f8e1f61df6e34abcc58b0a32a1c32bbba4878a784e6deb1"
+    },
+    {
+      "path": "public/characters/07.jpg",
+      "group": "character-portrait",
+      "reason": "결과 화면·전시·결과 카드의 캐릭터 초상(01~10 사용, 11은 미사용이나 원본 보존 대상)",
+      "bytes": 630156,
+      "sha256": "02a41a93607b5c92f86ddd4f9b49f859e0b298cc1626cc5a00dfde1af2799e67"
+    },
+    {
+      "path": "public/characters/08.jpg",
+      "group": "character-portrait",
+      "reason": "결과 화면·전시·결과 카드의 캐릭터 초상(01~10 사용, 11은 미사용이나 원본 보존 대상)",
+      "bytes": 638470,
+      "sha256": "9eefce06d09d97b276e9327fff299aa068f0836e4c113056ccc8da6d3c9d7b66"
+    },
+    {
+      "path": "public/characters/09.jpg",
+      "group": "character-portrait",
+      "reason": "결과 화면·전시·결과 카드의 캐릭터 초상(01~10 사용, 11은 미사용이나 원본 보존 대상)",
+      "bytes": 630634,
+      "sha256": "6555abb1697d8623dd0f0e263ad8d0f91ede9ba9ce0f5f61c416be5b47dd46a5"
+    },
+    {
+      "path": "public/characters/10.jpg",
+      "group": "character-portrait",
+      "reason": "결과 화면·전시·결과 카드의 캐릭터 초상(01~10 사용, 11은 미사용이나 원본 보존 대상)",
+      "bytes": 586451,
+      "sha256": "a8f74ef4410a6685876e77a28323aee0414cc0d94003154a22ac38ea143d37a2"
+    },
+    {
+      "path": "public/characters/11.jpg",
+      "group": "character-portrait",
+      "reason": "결과 화면·전시·결과 카드의 캐릭터 초상(01~10 사용, 11은 미사용이나 원본 보존 대상)",
+      "bytes": 622193,
+      "sha256": "55eef68c9efc739f51fa7e8564efe17f36c37f4900a6f8d108a2b78d559a6dc4"
+    },
+    {
+      "path": "public/characters/01.mp3",
+      "group": "character-voice",
+      "reason": "캐릭터 대표 대사 음성(quote 와 일치해야 함)",
+      "bytes": 297644,
+      "sha256": "98388b4efecdf06a0154232ddbff651f485b32c7c63278e9541004a674567a90"
+    },
+    {
+      "path": "public/characters/02.mp3",
+      "group": "character-voice",
+      "reason": "캐릭터 대표 대사 음성(quote 와 일치해야 함)",
+      "bytes": 184364,
+      "sha256": "593696979d283e76e289e11dc7ee0250086a703b966faf1d61d97d55ea4ffc7a"
+    },
+    {
+      "path": "public/characters/03.mp3",
+      "group": "character-voice",
+      "reason": "캐릭터 대표 대사 음성(quote 와 일치해야 함)",
+      "bytes": 307244,
+      "sha256": "7ca27f344755d16b3cbdbf44a3174ffdf7b697158d669f3adeb14219cb6d6cbb"
+    },
+    {
+      "path": "public/characters/04.mp3",
+      "group": "character-voice",
+      "reason": "캐릭터 대표 대사 음성(quote 와 일치해야 함)",
+      "bytes": 251564,
+      "sha256": "bb33cfb23f7910d97b3df2d44e789cdf822036549661fed93b0d6729a5224747"
+    },
+    {
+      "path": "public/characters/05.mp3",
+      "group": "character-voice",
+      "reason": "캐릭터 대표 대사 음성(quote 와 일치해야 함)",
+      "bytes": 182444,
+      "sha256": "3fe7fc6e688a273f8115e556617ce714b46cc9f285952932fd72955bb453d56a"
+    },
+    {
+      "path": "public/characters/06.mp3",
+      "group": "character-voice",
+      "reason": "캐릭터 대표 대사 음성(quote 와 일치해야 함)",
+      "bytes": 266924,
+      "sha256": "e9a0556d302d67a273ca09e4ccfc210b5b47c898b6bb95ff37c3376e85d1c447"
+    },
+    {
+      "path": "public/characters/07.mp3",
+      "group": "character-voice",
+      "reason": "캐릭터 대표 대사 음성(quote 와 일치해야 함)",
+      "bytes": 234284,
+      "sha256": "c6f062d4e8f4fedee980f58d40b407322f99bfac88b0027a85b1d8733a79e461"
+    },
+    {
+      "path": "public/characters/08.mp3",
+      "group": "character-voice",
+      "reason": "캐릭터 대표 대사 음성(quote 와 일치해야 함)",
+      "bytes": 190124,
+      "sha256": "af83b5f8b20c25e719492e26f2d900d4c9a410f8c50fcc853b771a5465a74c63"
+    },
+    {
+      "path": "public/characters/09.mp3",
+      "group": "character-voice",
+      "reason": "캐릭터 대표 대사 음성(quote 와 일치해야 함)",
+      "bytes": 243884,
+      "sha256": "d13481b6a0bbb148ccc7b2e45afa34221aa06d53fcd7ad247f1d4a17bb002756"
+    },
+    {
+      "path": "public/characters/10.mp3",
+      "group": "character-voice",
+      "reason": "캐릭터 대표 대사 음성(quote 와 일치해야 함)",
+      "bytes": 203564,
+      "sha256": "94f031d9847dbe3918acb01d758fde03800bdeb6763e7f831464f80ce9f863bb"
+    },
+    {
+      "path": "public/goods/01.jpg",
+      "group": "goods-image",
+      "reason": "기념품 스토어·결제 화면 상품 이미지(GOODS.imageUrl)",
+      "bytes": 178543,
+      "sha256": "d32b1a8753635c770746aabd7bfcfb0668ae4ef3e3ed4649aa82e9686bad2ca7"
+    },
+    {
+      "path": "public/goods/02.jpg",
+      "group": "goods-image",
+      "reason": "기념품 스토어·결제 화면 상품 이미지(GOODS.imageUrl)",
+      "bytes": 224074,
+      "sha256": "54d881c695a876f764a0e92448b089449e3406d7888d0a8377e12532f9bf0ada"
+    },
+    {
+      "path": "public/goods/03.jpg",
+      "group": "goods-image",
+      "reason": "기념품 스토어·결제 화면 상품 이미지(GOODS.imageUrl)",
+      "bytes": 221426,
+      "sha256": "514b676f9844096bbae1595b45ed9ab421879a7b9800d22ccacde41c6766e22c"
+    },
+    {
+      "path": "public/goods/04.jpg",
+      "group": "goods-image",
+      "reason": "기념품 스토어·결제 화면 상품 이미지(GOODS.imageUrl)",
+      "bytes": 211787,
+      "sha256": "12c914bc69ab50932c795e531dfeca44dcaa165b0cb6d03d5cf77d85f42a3cf1"
+    },
+    {
+      "path": "public/goods/05.jpg",
+      "group": "goods-image",
+      "reason": "기념품 스토어·결제 화면 상품 이미지(GOODS.imageUrl)",
+      "bytes": 225260,
+      "sha256": "263596dae546891d9312e552974f17474c019138ab4ae550b0bf1445e779c2f0"
+    },
+    {
+      "path": "public/goods/06.jpg",
+      "group": "goods-image",
+      "reason": "기념품 스토어·결제 화면 상품 이미지(GOODS.imageUrl)",
+      "bytes": 215626,
+      "sha256": "6d9efe447732ee2d0a5267d92a34f03f3a0414aa872772fedc3e480144162708"
+    },
+    {
+      "path": "public/goods/07.jpg",
+      "group": "goods-image",
+      "reason": "기념품 스토어·결제 화면 상품 이미지(GOODS.imageUrl)",
+      "bytes": 224231,
+      "sha256": "7f0c56437b2d1c3b76a9940bbe5360f1559403f3475e0d8b80bd67108b3ae4bc"
+    },
+    {
+      "path": "public/goods/08.jpg",
+      "group": "goods-image",
+      "reason": "기념품 스토어·결제 화면 상품 이미지(GOODS.imageUrl)",
+      "bytes": 223497,
+      "sha256": "49e869a2db772fff7e1bb68be2f4cf162a96c731616fa254861d80a3bb653470"
+    },
+    {
+      "path": "public/goods/09.jpg",
+      "group": "goods-image",
+      "reason": "기념품 스토어·결제 화면 상품 이미지(GOODS.imageUrl)",
+      "bytes": 193507,
+      "sha256": "d15b0402f09921ac72ce16cf0c2250ed37856c038cb0a566cb2039381a4687bc"
+    },
+    {
+      "path": "public/goods/10.jpg",
+      "group": "goods-image",
+      "reason": "기념품 스토어·결제 화면 상품 이미지(GOODS.imageUrl)",
+      "bytes": 207072,
+      "sha256": "dcd7c7a9369c12264d1149b9925246402888a19e5b0ba21f472f9ed9c2df429b"
+    },
+    {
+      "path": "public/goods/11.jpg",
+      "group": "goods-image",
+      "reason": "기념품 스토어·결제 화면 상품 이미지(GOODS.imageUrl)",
+      "bytes": 219563,
+      "sha256": "c336a2ed5d0986e9a053cf25d04254f79f4a267ab1be54ae8bc3e37b26f6f70b"
+    },
+    {
+      "path": "public/goods/12.jpg",
+      "group": "goods-image",
+      "reason": "기념품 스토어·결제 화면 상품 이미지(GOODS.imageUrl)",
+      "bytes": 241682,
+      "sha256": "29440a428cc336d76e42b55d0d5a9f7088f26429135d0cae84941d0d38c9a66f"
+    },
+    {
+      "path": "public/goods/13.jpg",
+      "group": "goods-image",
+      "reason": "기념품 스토어·결제 화면 상품 이미지(GOODS.imageUrl)",
+      "bytes": 254761,
+      "sha256": "51cc86279fa98ef63f274f3356dd336e9f40ee6f920d3d9ca57fa3f13465b91d"
+    },
+    {
+      "path": "public/goods/14.jpg",
+      "group": "goods-image",
+      "reason": "기념품 스토어·결제 화면 상품 이미지(GOODS.imageUrl)",
+      "bytes": 250889,
+      "sha256": "ab0ea8efa752065ec682795ca78f763a90d71a2b48a049dcc7e93f4f8f84a23a"
+    },
+    {
+      "path": "src/assets/images/jeonju_traditional_map_1794650257338.jpg",
+      "group": "map-and-places",
+      "reason": "지도 배경(spotImages.ts import)과 거점·튜토리얼 사진(public/places)",
+      "bytes": 907485,
+      "sha256": "d253eb546a72fc2247623d7f9da5a4108057ca2d231cc5529826c9284d5dccd7"
+    },
+    {
+      "path": "public/places/gyeonggijeon.jpg",
+      "group": "map-and-places",
+      "reason": "지도 배경(spotImages.ts import)과 거점·튜토리얼 사진(public/places)",
+      "bytes": 578678,
+      "sha256": "bb94c35259af0d8df2c4ca16fdd7e2f5cdbc5215fbbfd53612b87d685d82a84b"
+    },
+    {
+      "path": "public/places/hanok_village.jpg",
+      "group": "map-and-places",
+      "reason": "지도 배경(spotImages.ts import)과 거점·튜토리얼 사진(public/places)",
+      "bytes": 429457,
+      "sha256": "43a25ea66665ba4aff01cc6b76030d0685c364ab3a9847d1d8f3655733fe90f7"
+    },
+    {
+      "path": "public/places/jeollagamyeong.jpg",
+      "group": "map-and-places",
+      "reason": "지도 배경(spotImages.ts import)과 거점·튜토리얼 사진(public/places)",
+      "bytes": 624133,
+      "sha256": "81dd5d02e4f0718764ce4205e16e5e5eb3a8fcbe8fc1f3148d6ed0abe42cbf05"
+    },
+    {
+      "path": "public/places/jeonju_museum.jpg",
+      "group": "map-and-places",
+      "reason": "지도 배경(spotImages.ts import)과 거점·튜토리얼 사진(public/places)",
+      "bytes": 564120,
+      "sha256": "4fafd73ea68c6ccbcd8d3f392c372a43df387e823e5c3ec4468ab99e5ae02124"
+    },
+    {
+      "path": "public/places/nambu_market.jpg",
+      "group": "map-and-places",
+      "reason": "지도 배경(spotImages.ts import)과 거점·튜토리얼 사진(public/places)",
+      "bytes": 565363,
+      "sha256": "553ff576a860a71d986dc2d352547cbe0809e0f0c458cbbc79e22ab0834e93e0"
+    },
+    {
+      "path": "public/places/wanpanbon.jpg",
+      "group": "map-and-places",
+      "reason": "지도 배경(spotImages.ts import)과 거점·튜토리얼 사진(public/places)",
+      "bytes": 569902,
+      "sha256": "e2636c40c52bb5aca5e2e836f5996c99643015156de90d144003c324b3f6588e"
+    },
+    {
+      "path": "public/videos/mediawall.mp4",
+      "group": "media-wall-video",
+      "reason": "미디어월 영상(MEDIA_WALL_VIDEO_SRC)",
+      "bytes": 5604804,
+      "sha256": "b764df46bf8147fece76b9957c08ffc8bac087bd32623c33249e892be6b9678e"
+    }
+  ]
+}

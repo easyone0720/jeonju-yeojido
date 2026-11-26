@@ -1,0 +1,74 @@
+{
+  "ids": [
+    "01",
+    "02",
+    "03",
+    "04",
+    "05",
+    "06",
+    "07",
+    "08",
+    "09",
+    "10"
+  ],
+  "entryShape": {
+    "id": "string",
+    "name": "string",
+    "emoji": "string",
+    "image": "string",
+    "audio": "string",
+    "quote": "string",
+    "story": {
+      "setting": "string",
+      "dialogue": "string",
+      "result": {
+        "job": "string",
+        "reputation": "string",
+        "achievement": "string"
+      },
+      "ending": "string"
+    }
+  },
+  "assets": {
+    "10": {
+      "image": "/characters/10.jpg",
+      "audio": "/characters/10.mp3"
+    },
+    "01": {
+      "image": "/characters/01.jpg",
+      "audio": "/characters/01.mp3"
+    },
+    "02": {
+      "image": "/characters/02.jpg",
+      "audio": "/characters/02.mp3"
+    },
+    "03": {
+      "image": "/characters/03.jpg",
+      "audio": "/characters/03.mp3"
+    },
+    "04": {
+      "image": "/characters/04.jpg",
+      "audio": "/characters/04.mp3"
+    },
+    "05": {
+      "image": "/characters/05.jpg",
+      "audio": "/characters/05.mp3"
+    },
+    "06": {
+      "image": "/characters/06.jpg",
+      "audio": "/characters/06.mp3"
+    },
+    "07": {
+      "image": "/characters/07.jpg",
+      "audio": "/characters/07.mp3"
+    },
+    "08": {
+      "image": "/characters/08.jpg",
+      "audio": "/characters/08.mp3"
+    },
+    "09": {
+      "image": "/characters/09.jpg",
+      "audio": "/characters/09.mp3"
+    }
+  }
+}
