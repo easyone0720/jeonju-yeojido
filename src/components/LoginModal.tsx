@@ -1,5 +1,6 @@
 import { FormEvent, ReactNode, useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
+import { isSupabaseConfigured } from '../services/supabase/client';
 import {
   AuthResult,
   DEFAULT_DEMO_ACCOUNT,
@@ -9,6 +10,7 @@ import {
   getGoogleClientId,
   loadGoogleIdentity,
   loginWithGoogleCredential,
+  loginWithSupabaseGoogle,
   loginWithPassword,
   loginWithSocial,
   registerWithPassword,
@@ -131,7 +133,8 @@ export function LoginModal({ open, onClose, onSuccess }: LoginModalProps) {
     if (!open) return;
     const clientId = getGoogleClientId();
     setGoogleReady(false);
-    if (!clientId) return;
+    // Supabase 가 설정돼 있으면 Google 로그인은 Supabase Auth(OAuth 이동)로만 처리한다
+    if (!clientId || isSupabaseConfigured()) return;
     let cancelled = false;
     void loadGoogleIdentity().then((gsi) => {
       if (cancelled) return;
@@ -168,6 +171,9 @@ export function LoginModal({ open, onClose, onSuccess }: LoginModalProps) {
     setError(null);
     try {
       const result = await attempt();
+      if (result.ok && result.redirecting) {
+        return; // Google 로그인 화면으로 이동 중 — 돌아오면 SceneStart 가 이어서 진행한다
+      }
       if (result.ok) {
         onSuccess(result.method);
       } else {
@@ -187,7 +193,10 @@ export function LoginModal({ open, onClose, onSuccess }: LoginModalProps) {
     if (tab === 'signup') void run(() => registerWithPassword({ id, password, name }));
     else void run(() => loginWithPassword({ id, password }));
   };
-  const handleSocialLogin = (provider: SocialProvider) => void run(() => loginWithSocial(provider));
+  const handleSocialLogin = (provider: SocialProvider) =>
+    void run(() =>
+      provider === 'google' && isSupabaseConfigured() ? loginWithSupabaseGoogle() : loginWithSocial(provider),
+    );
   const handleGuestLogin = () => void run(() => loginAsGuest());
   const switchTab = (next: AuthTab) => {
     if (busy) return;

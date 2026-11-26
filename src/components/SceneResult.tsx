@@ -14,6 +14,10 @@ import {
 } from 'lucide-react';
 import { Character, characterToStory, parseDialogue } from '../services/pastLife';
 import { usePastLifeGeneration } from '../hooks/usePastLifeGeneration';
+import { getPastLifeMode } from '../config/features';
+import { getCharacterById, getOrPickCurrentCharacter } from '../data/characters';
+import { PAST_LIFE_ARCHETYPES } from '../data/jeonjuSpots';
+import { AiPastLifeSection } from './AiPastLifeSection';
 import { PastLifeResult } from '../types/jeonju';
 import { buildDownloadableResultCard } from '../utils/portraitPainter';
 
@@ -178,6 +182,43 @@ interface SceneResultProps {
  * Mock 모드에서는 이 탭에 고정된 캐릭터가 즉시 준비되므로 기존과 똑같이 로딩 없이 그려진다.
  */
 export function SceneResult(props: SceneResultProps) {
+  // 모드는 페이지를 연 동안 바뀌지 않는다. 'api' 는 맞춤형 AI 전생, 'mock' 은 기존 화면 그대로.
+  return getPastLifeMode() === 'api' ? <ApiSceneResult {...props} /> : <MockSceneResult {...props} />;
+}
+
+/**
+ * 맞춤형 AI 전생 결과 (API 모드). 이야기·초상화·음성은 AiPastLifeSection 이 서버에서 받아 그린다.
+ * 공유·저장·미디어월·조각·굿즈 안내 영역은 기존 화면을 그대로 쓴다(기준 캐릭터 = 결과에 고정된 캐릭터).
+ */
+function ApiSceneResult(props: SceneResultProps) {
+  const character = useMemo(
+    () => getCharacterById(props.result.characterId) ?? getOrPickCurrentCharacter(),
+    [props.result.characterId],
+  );
+  // 4개 조각: 지도에서 받은 조각과 같은 문자열 (서버가 허용 목록과 정확히 대조한다)
+  const fragments = useMemo(() => {
+    const a = PAST_LIFE_ARCHETYPES[props.result.archetypeId as keyof typeof PAST_LIFE_ARCHETYPES];
+    return a ? { era: a.era, status: `${a.title} (${a.hanjaTitle})`, story: a.storySeed, item: a.item } : null;
+  }, [props.result.archetypeId]);
+  return (
+    <SceneResultBody
+      {...props}
+      character={character}
+      onAnother={() => {}}
+      storySlot={
+        <AiPastLifeSection
+          sessionId={props.result.sessionId}
+          visitorName={props.visitorName}
+          zodiacCode={props.result.zodiacCode ?? null}
+          fragments={fragments}
+          disclaimer={props.result.historicalDisclaimer}
+        />
+      }
+    />
+  );
+}
+
+function MockSceneResult(props: SceneResultProps) {
   const generation = usePastLifeGeneration();
 
   if (!generation.character) {
@@ -221,7 +262,13 @@ function SceneResultBody({
   onGoToMediaConsent,
   character,
   onAnother,
-}: SceneResultProps & { character: Character; onAnother: () => void }) {
+  storySlot,
+}: SceneResultProps & {
+  character: Character;
+  onAnother: () => void;
+  /** API 모드: 이야기·초상화·음성 영역을 이 내용으로 바꾼다 (공유·저장·미디어월·안내 영역은 그대로) */
+  storySlot?: ReactNode;
+}) {
   const [saving, setSaving] = useState(false);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -305,6 +352,7 @@ function SceneResultBody({
         <div ref={topRef} className="scroll-mt-16" />
 
         <div className="space-y-5 lg:space-y-0 lg:grid lg:grid-cols-12 lg:gap-8 lg:items-start">
+        {storySlot ? null : (
         <div className="lg:col-span-5 lg:sticky lg:top-20">
 
         {/* 1) 상단 카드: 9:16 세로 캐릭터 이미지 + 타이틀 + 음성 플레이어 */}
@@ -324,7 +372,10 @@ function SceneResultBody({
         </section>
 
         </div>
-        <div className="lg:col-span-7 space-y-5">
+        )}
+        <div className={storySlot ? 'lg:col-span-12 space-y-5' : 'lg:col-span-7 space-y-5'}>
+        {storySlot ?? (
+        <>
         {/* 2) 설정 */}
         <SectionCard label="📜 설정" className="bg-white">
           <p className="text-[15px] text-[#292524] leading-[1.85] whitespace-pre-line">{character.setting}</p>
@@ -392,6 +443,8 @@ function SceneResultBody({
           <Shuffle className="w-4 h-4" aria-hidden="true" />
           <span>다른 전생 확인하기</span>
         </button>
+        </>
+        )}
 
         {/* 공유 / 저장 / 미디어월 */}
         <div className="space-y-2.5 pt-1">

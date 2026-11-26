@@ -12,6 +12,8 @@ import {
   Tv,
   X,
 } from 'lucide-react';
+import { getPastLifeMode } from '../config/features';
+import { PastLifeHistory } from './PastLifeHistory';
 import { JEONJU_SPOTS } from '../data/jeonjuSpots';
 import { SPOT_IMAGES, TRADITIONAL_MAP_IMAGE } from '../data/spotImages';
 import {
@@ -849,6 +851,9 @@ export function HomeWorkspace({
                 </p>
               </div>
             )}
+
+            {/* API 모드: 로그인한 계정의 맞춤형 전생 기록 */}
+            {getPastLifeMode() === 'api' && <PastLifeHistory />}
           </section>
         )}
 

@@ -3,7 +3,7 @@ import { ArrowLeft, AlertTriangle, Loader2 } from 'lucide-react';
 import { JEONJU_SPOTS } from '../data/jeonjuSpots';
 import { GeoCoordinates, PastLifeResult, UserSessionState } from '../types/jeonju';
 import {
-  determinePastLifeArchetype,
+  resolveSessionArchetype,
   getCollectedClueCount,
   isSpotVisitVerified,
   verifySpotLocation,
@@ -81,11 +81,7 @@ export function SceneMuseumFace({ session, onBack, onGenerated }: SceneMuseumFac
 
     void (async () => {
       try {
-        const archetype = determinePastLifeArchetype({
-          birthDate: session.birthDate || '1998-05-15',
-          visitOrder: session.visitOrder,
-          sessionId: session.sessionId,
-        });
+        const archetype = resolveSessionArchetype(session);
 
         // 로컬 단독 모드는 고정 일러스트를 쓰므로 초상화를 만들지 않는다. 서버 모드의 폴백용으로만 생성한다.
         const portraitDataUrl = USE_LOCAL_BACKEND

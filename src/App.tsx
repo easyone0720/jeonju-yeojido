@@ -48,6 +48,7 @@ import {
   shouldShowTutorial,
 } from './utils/tutorialStorage';
 import { apiFetch } from './utils/localApi';
+import { getZodiacCode } from './utils/zodiacMotif';
 import { ENABLE_QUICK_COMPLETE_BUTTON } from './config/features';
 
 type RoutePath = '/' | '/wall' | '/admin';
@@ -206,6 +207,9 @@ export default function App() {
     companion: CompanionType;
     permissionsAcknowledged: { location: boolean; camera: boolean };
   }) => {
+    // 생년월일은 이 함수 안(브라우저 메모리)에서 12간지 코드로만 바꾸고 버린다.
+    // 저장소·요청 본문·로그 어디에도 원문을 넣지 않는다. 띠 계산에 실패하면 띠 없이 진행한다.
+    const zodiacCode = getZodiacCode(data.birthDate);
     const res = await apiFetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -213,7 +217,7 @@ export default function App() {
       body: JSON.stringify({
         mode: 'experience',
         visitorName: data.visitorName,
-        birthDate: data.birthDate,
+        zodiacCode,
         companion: data.companion,
         permissionsAcknowledged: data.permissionsAcknowledged,
       }),
@@ -257,7 +261,8 @@ export default function App() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'same-origin',
-      body: JSON.stringify(data),
+      // 생년월일은 보내지 않는다 (로컬 모드는 복구 기능이 없고, 서버 모드는 현재 사용하지 않음)
+      body: JSON.stringify({ visitorName: data.visitorName, recoveryCode: data.recoveryCode }),
     });
 
     const payload = (await res.json()) as {
@@ -682,7 +687,7 @@ export default function App() {
       <>
         <SceneInputConsent
           initialVisitorName={session.visitorName}
-          initialBirthDate={session.birthDate}
+          initialBirthDate=""
           initialCompanion={session.companion}
           initialPermissions={session.permissionsAcknowledged}
           onBack={() => setScene(1)}

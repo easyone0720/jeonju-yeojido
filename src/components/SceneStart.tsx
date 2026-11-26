@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { HahoeDanceCharacter } from './HahoeDanceCharacter';
 import { InteractiveNorigae } from './InteractiveNorigae';
 import { SceneStartBackdrop } from './SceneStartBackdrop';
 import { START_HERO_IMAGE } from '../data/spotImages';
 import { LoginModal } from './LoginModal';
+import { completeSupabaseGoogleLogin } from '../utils/authHandlers';
 
 interface SceneStartProps {
   onStart: () => void;
@@ -15,6 +16,26 @@ export function SceneStart({
   onNavigateRoute,
 }: SceneStartProps) {
   const [loginOpen, setLoginOpen] = useState(false);
+  const [oauthError, setOauthError] = useState<string | null>(null);
+  const onStartRef = useRef(onStart);
+  onStartRef.current = onStart;
+
+  // Google(Supabase Auth) 로그인에서 돌아온 경우: 세션을 확정하고 로그인 성공과 같은 흐름으로 이어간다
+  useEffect(() => {
+    let cancelled = false;
+    void completeSupabaseGoogleLogin()
+      .then((state) => {
+        if (cancelled) return;
+        if (state === 'signed-in') onStartRef.current();
+        else if (state === 'failed') setOauthError('Google 로그인이 완료되지 않았습니다. 다시 시도해 주세요.');
+      })
+      .catch(() => {
+        if (!cancelled) setOauthError('Google 로그인 정보를 확인하지 못했습니다. 다시 시도해 주세요.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   return (
     <>
@@ -164,6 +185,11 @@ export function SceneStart({
           >
             시작하기
           </button>
+          {oauthError && (
+            <p role="alert" className="text-xs text-[#B91C1C] text-center leading-relaxed">
+              {oauthError}
+            </p>
+          )}
         </div>
       </main>
       </div>
