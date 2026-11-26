@@ -7,7 +7,9 @@
  *
  * 2) 전생 결과 생성 모드 — 스토리·이미지·음성을 무엇으로 만드는가: 'mock' | 'api'
  *    - 'mock' (기본값): `charactersData.json` 의 고정 10종 캐릭터 (`src/services/pastLife/mockGenerator.ts`)
- *    - 'api'          : 실제 AI API (아직 미구현 — 호출하면 단계별로 Mock 으로 폴백한다)
+ *    - 'api'          : 맞춤형 전생. Google(Supabase Auth) 로그인 후 서버 함수 `/api/past-life/story` 가
+ *                       4개 조각·이름·띠 코드로 스토리·초상화·음성을 만들어 Supabase 에 저장한다
+ *                       (`src/components/AiPastLifeSection.tsx`, `src/services/aiPastLife/api.ts`).
  *    빌드 기본값은 `VITE_PAST_LIFE_MODE`(mock|api)로 정하고, 없으면 'mock'.
  *    실행 중에는 URL 에 `?mock=1` 또는 `?mode=mock` 을 붙이면 재배포 없이 Mock 으로 강제 전환된다.
  *    이 강제 전환은 같은 탭이 열려 있는 동안 유지되며 `?mock=0` 으로 해제한다.

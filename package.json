@@ -9,10 +9,12 @@
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "check:api": "bun scripts/check-api.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
+    "@supabase/supabase-js": "^2.119.2",
     "@tailwindcss/vite": "^4.3.3",
     "@types/qrcode": "^1.5.6",
     "@vitejs/plugin-react": "^6.1.1",
@@ -20,11 +22,15 @@
     "express": "^4.21.2",
     "jsbarcode": "^3.12.3",
     "jsqr": "^1.4.0",
+    "korean-lunar-calendar": "^0.4.0",
     "lucide-react": "^0.546.0",
     "motion": "^12.23.24",
+    "msedge-tts": "^2.1.1",
     "qrcode": "^1.5.4",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
+    "react-is": "^19.3.1",
+    "recharts": "^3.11.1",
     "vite": "^8.3.0"
   },
   "devDependencies": {

@@ -4,6 +4,12 @@
   "installCommand": "bun install --frozen-lockfile",
   "buildCommand": "bun run build",
   "outputDirectory": "dist",
+  "functions": {
+    "api/past-life/story.ts": {
+      "maxDuration": 60,
+      "includeFiles": "src/data/clueFragments.json"
+    }
+  },
   "rewrites": [
     { "source": "/((?!api/)(?!.*\\.[A-Za-z0-9]+$).*)", "destination": "/index.html" }
   ]

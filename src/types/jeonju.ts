@@ -149,13 +149,16 @@ export interface PastLifeResult {
   characterId?: string;
   portraitDataUrl: string;
   generatedAt: string;
-  generationSource: 'gemini-ai' | 'curated-demo';
+  /** 'gemini-ai' 는 Claude 전환 이전에 저장된 기록용 */
+  generationSource: 'claude-ai' | 'gemini-ai' | 'curated-demo';
   /** 4개 섹션 구조의 전생 스토리. 이 필드가 없는 이전 기록은 기본 샘플로 표시한다. */
   story?: PastLifeStory;
   /** 초상 이미지 출처: Gemini 이미지 모델 / 브라우저 캔버스 전통 초상화(폴백) */
   portraitSource?: 'gemini-image' | 'canvas-painter';
   historicalDisclaimer: string;
   recommendedGoods: GoodsItem[];
+  /** 이야기 소재로 쓸 12간지 코드 (없으면 null). 생년월일이 아니라 띠 코드만 담는다. */
+  zodiacCode?: string | null;
 }
 
 export type ProgressMilestone =
@@ -179,7 +182,13 @@ export interface UserSessionState {
   sessionId: string;
   mode: AppMode;
   visitorName: string;
-  birthDate: string;
+  /**
+   * @deprecated 더 이상 저장하지 않는다. 예전 기록에 남아 있으면 불러올 때 제거한다(localApi 이관).
+   * 서버 모드(server.ts, 현재 미사용) 타입 호환을 위해 선택 필드로만 남겨 둔다.
+   */
+  birthDate?: string;
+  /** 브라우저에서 생년월일로 계산한 12간지 코드 (없으면 null). 생년월일 원문은 저장하지 않는다 */
+  zodiacCode?: string | null;
   companion: CompanionType;
   permissionsAcknowledged: {
     location: boolean;
