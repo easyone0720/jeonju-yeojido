@@ -54,7 +54,7 @@ export function GoodsStorePage({
           {GOODS.map((item) => (
             <article
               key={item.id}
-              className="rounded-2xl border border-[#D6CBB9] bg-[#F3ECE0] overflow-hidden shadow-sm"
+              className="rounded-2xl border border-[#D6CBB9] bg-[#FBF8F1] overflow-hidden shadow-sm"
             >
               <button
                 type="button"

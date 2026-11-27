@@ -571,7 +571,7 @@ export function TangramClueBoard({
               }}
               aria-label={
                 clue
-                  ? `${item.spotName} · ${item.question} ${clue.value} 입니다. 자세히 보기`
+                  ? `${item.spotName} · ${item.question} ${clue.value} 입니다.`
                   : `${item.spotName} · ${item.question} 미획득. 지도에서 방문하기`
               }
               className={`group relative min-h-[196px] sm:min-h-[248px] px-5 py-6 sm:px-7 sm:py-7 flex items-center justify-between gap-3 sm:gap-4 text-left overflow-hidden transition-colors hover:bg-[#F5ECD7]/65 ${dividerClasses}`}
@@ -603,11 +603,6 @@ export function TangramClueBoard({
                         {clue.value}
                       </span>
                       <span className="text-sm sm:text-base text-[#44403C]">입니다</span>
-                    </div>
-                    <div>
-                      <span className="text-xs text-[#78716C] underline underline-offset-2">
-                        자세히 보기
-                      </span>
                     </div>
                   </div>
                 ) : (

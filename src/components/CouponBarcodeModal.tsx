@@ -215,7 +215,7 @@ export function CouponBarcodeModal({
 
           {/* Demo vs Production Honest Usage Notice */}
           {isDemo ? (
-            <div className="rounded-xl border border-[#D6CBB9] bg-[#F3ECE0] p-3.5 flex items-start gap-2.5 text-xs text-[#44403C] leading-relaxed">
+            <div className="rounded-xl border border-[#D6CBB9] bg-[#FBF8F1] p-3.5 flex items-start gap-2.5 text-xs text-[#44403C] leading-relaxed">
               <Info className="w-4 h-4 shrink-0 mt-0.5 text-[#A35139]" aria-hidden="true" />
               <div className="space-y-1">
                 <p className="font-bold text-[#A35139]">
@@ -227,7 +227,7 @@ export function CouponBarcodeModal({
               </div>
             </div>
           ) : (
-            <div className="rounded-xl border border-[#D6CBB9] bg-[#F3ECE0] p-3.5 flex items-start gap-2.5 text-xs text-[#44403C] leading-relaxed">
+            <div className="rounded-xl border border-[#D6CBB9] bg-[#FBF8F1] p-3.5 flex items-start gap-2.5 text-xs text-[#44403C] leading-relaxed">
               <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-[#A35139]" aria-hidden="true" />
               <div className="space-y-1">
                 <p className="font-bold text-[#1C1917]">제휴 매장 확인 안내</p>

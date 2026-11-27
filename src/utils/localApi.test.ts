@@ -251,6 +251,25 @@ describe('쿠폰 12종 랜덤 발급', () => {
     }
   });
 
+  it('한 사용자에게 4장을 발급하면 4개 카테고리가 한 장씩 모두 나온다 (카테고리 중복 없음)', () => {
+    for (let n = 0; n < 500; n++) {
+      const held: string[] = [];
+      const cats: string[] = [];
+      for (let k = 0; k < 4; k++) {
+        const t = pickCouponTemplate(held);
+        held.push(t.id);
+        cats.push(t.category);
+      }
+      assert.equal(new Set(cats).size, 4, cats.join(','));
+    }
+    // assignRandomCoupons(여러 슬롯을 한 번에 열 때)도 같은 보장
+    const slot = (id: string) => ({ id, spotId: 'gyeonggijeon', category: '카페', title: '', partnerArea: '', benefit: '', condition: '', expiresLabel: '', isDemoCoupon: true, unlocked: true, used: false }) as never;
+    for (let n = 0; n < 200; n++) {
+      const out = assignRandomCoupons([slot('a'), slot('b'), slot('c'), slot('d')]);
+      assert.equal(new Set(out.map((c) => c.category)).size, 4);
+    }
+  });
+
   it('assignRandomCoupons 는 열린 슬롯에만 채우고 이미 채운 슬롯은 유지한다', () => {
     const base = (id: string, unlocked: boolean) => ({
       id, spotId: 'gyeonggijeon', category: '식당', title: 't', partnerArea: 'p', benefit: 'b', condition: 'c',

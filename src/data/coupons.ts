@@ -124,9 +124,12 @@ export function pickCouponTemplate(
   rng: () => number = Math.random
 ): CouponTemplate {
   const held = new Set(heldTemplateIds);
-  const available = COUPON_CATEGORIES.filter((cat) =>
-    COUPON_TEMPLATES.some((t) => t.category === cat && !held.has(t.id))
-  );
+  // 한 사용자의 쿠폰은 카테고리가 겹치지 않게: 이미 쿠폰을 가진 카테고리는 먼저 제외한다
+  const heldCategories = new Set(COUPON_TEMPLATES.filter((t) => held.has(t.id)).map((t) => t.category));
+  const hasFresh = (cat: CouponCategory) => COUPON_TEMPLATES.some((t) => t.category === cat && !held.has(t.id));
+  const unused = COUPON_CATEGORIES.filter((cat) => !heldCategories.has(cat) && hasFresh(cat));
+  // 4개 카테고리를 모두 한 번씩 받은 뒤(5번째 이후)에만 이미 받은 카테고리에서 다시 뽑는다
+  const available = unused.length > 0 ? unused : COUPON_CATEGORIES.filter(hasFresh);
   const pool = available.length > 0 ? available : COUPON_CATEGORIES;
   const category = pickOne(pool, rng);
   const inCategory = COUPON_TEMPLATES.filter((t) => t.category === category);

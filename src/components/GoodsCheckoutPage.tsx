@@ -198,7 +198,7 @@ export function GoodsCheckoutPage({
             </button>
           </div>
 
-          <section aria-label="주문 상품" className="rounded-2xl border border-[#D6CBB9] bg-white p-3.5 space-y-3">
+          <section aria-label="주문 상품" className="rounded-2xl border border-[#D6CBB9] bg-[#FBF8F1] p-3.5 space-y-3">
             <div className="flex gap-3">
               <img
                 src={item.imageUrl}
