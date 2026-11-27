@@ -1,6 +1,9 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { BottomNav, type NavTab } from './components/BottomNav';
 import { MediaWallVideo } from './components/MediaWallVideo';
+import { SharedResultPage } from './components/SharedResultPage';
+import { overlayAiResult, useLatestAiResult } from './services/aiPastLife/latest';
+import { readSharedResultId } from './services/aiPastLife/api';
 import { GoodsCheckoutPage } from './components/GoodsCheckoutPage';
 import { GoodsStorePage } from './components/GoodsStorePage';
 import { TopExperienceHeader } from './components/TopExperienceHeader';
@@ -70,6 +73,10 @@ export default function App() {
   const [homeTab, setHomeTab] = useState<HomeTab>('map');
   // 굿즈 스토어/결제 화면 (진행 단계(scene)와 별개의 오버레이 화면, 저장하지 않는다)
   const [mediaVideoOpen, setMediaVideoOpen] = useState(false);
+  // AI 로 만든 최신 전생 결과(제목·한 줄·초상화)를 앱 전체에 같은 값으로 보여 주기 위한 덮어쓰기
+  const latestAi = useLatestAiResult(session.sessionId);
+  const viewResult = useMemo(() => overlayAiResult(session.pastLifeResult, latestAi), [session.pastLifeResult, latestAi]);
+  const viewSession = useMemo(() => (viewResult === session.pastLifeResult ? session : { ...session, pastLifeResult: viewResult }), [session, viewResult]);
   const [goodsView, setGoodsView] = useState<{ page: 'store' } | { page: 'checkout'; item: GoodsItem } | null>(null);
   const [selectedSpotId, setSelectedSpotId] = useState<SpotId>('wanpanbon');
   const [activeClaimSpotId, setActiveClaimSpotId] = useState<SpotId>('wanpanbon');
@@ -576,6 +583,17 @@ export default function App() {
     if (scene !== 1) handleNavTab('map');
   };
 
+  // 공유 링크(?sharedResult=…)로 들어오면 그 결과를 바로 보여 준다
+  const sharedResultId = readSharedResultId();
+  if (sharedResultId && route === '/') {
+    return (
+      <SharedResultPage
+        resultId={sharedResultId}
+        onStart={() => window.location.replace('/')}
+      />
+    );
+  }
+
   if (route === '/wall') {
     return <MediaWallVideo onClose={closeMediaWall} />;
   }
@@ -833,7 +851,7 @@ export default function App() {
   if (scene === 10 && session.pastLifeResult) {
     return withNav(
       <SceneResult
-        result={session.pastLifeResult}
+        result={viewResult ?? session.pastLifeResult}
         visitorName={session.visitorName}
         onBackToMap={() => {
           setHomeTab('map');
@@ -868,7 +886,7 @@ export default function App() {
   if (scene === 11 && session.pastLifeResult) {
     return withNav(
       <SceneMediaConsent
-        result={session.pastLifeResult}
+        result={viewResult ?? session.pastLifeResult}
         visitorName={session.visitorName}
         currentConsent={session.mediaWallConsent}
         onBackToResult={() => {
@@ -902,7 +920,7 @@ export default function App() {
   return (
     <>
     <HomeWorkspace
-      session={session}
+      session={viewSession}
       activeTab={homeTab}
       selectedSpotId={selectedSpotId}
       justStampedSpotId={justStampedSpotId}

@@ -6,7 +6,7 @@
  * - 새 이야기 생성에 실패하면 이전 결과를 그대로 둔다.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Check, Loader2, LogIn, Shuffle } from 'lucide-react';
+import { Check, Loader2, LogIn } from 'lucide-react';
 import {
   LoginRequiredError,
   assetUrls,
@@ -18,6 +18,7 @@ import {
   type Fragments,
   type PastLifeResultView,
 } from '../services/aiPastLife/api';
+import { publishLatestAiResult } from '../services/aiPastLife/latest';
 import { getCurrentSession } from '../services/supabase/client';
 import { loginWithSupabaseGoogle } from '../utils/authHandlers';
 import { AiPastLifeView, AssetPhase } from './AiPastLifeView';
@@ -60,6 +61,7 @@ export function AiPastLifeSection({ sessionId, visitorName, zodiacCode, fragment
     assets: 'pending',
   });
   const [error, setError] = useState<string | null>(null);
+  const [retryKey, setRetryKey] = useState(0);
   const busyRef = useRef(false);
   const aliveRef = useRef(true);
   const displayName = visitorName.trim() || '나그네';
@@ -74,6 +76,11 @@ export function AiPastLifeSection({ sessionId, visitorName, zodiacCode, fragment
   const loadAssetsFor = useCallback(async (row: PastLifeResultView) => {
     setUrls(await assetUrls(row));
   }, []);
+
+  // 앱 전체(홈 배너·저장·공유·미디어월)가 같은 결과를 보도록 최신 결과를 알린다
+  useEffect(() => {
+    if (result) publishLatestAiResult(sessionId, result, urls.image);
+  }, [result, urls.image, sessionId]);
 
   const runAssets = useCallback(
     async (row: PastLifeResultView) => {
@@ -170,7 +177,7 @@ export function AiPastLifeSection({ sessionId, visitorName, zodiacCode, fragment
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sessionId]);
+  }, [sessionId, retryKey]);
 
   if (phase === 'checking') {
     return (
@@ -184,19 +191,28 @@ export function AiPastLifeSection({ sessionId, visitorName, zodiacCode, fragment
   if (phase === 'login') {
     return (
       <div className="rounded-2xl border border-[#D8CEBE] bg-[#FBF8F1] p-6 space-y-4 text-center">
-        <p className="font-serif-kr text-lg font-bold text-[#1C1917]">맞춤형 전생은 Google 로그인 후 만들 수 있습니다</p>
+        <p className="font-serif-kr text-lg font-bold text-[#1C1917]">로그인 세션을 확인하지 못했습니다</p>
         <p className="text-sm text-[#5C5349] leading-relaxed">
-          만든 이야기·초상화·음성은 로그인한 계정에만 저장되어, 다시 방문해도 '내 조각'에서 볼 수 있습니다.
+          어떤 방식으로 로그인했든 맞춤형 전생을 만들 수 있습니다. 만든 이야기·초상화·음성은 로그인한 계정에 저장되어, 다시 방문해도 '내 조각'에서 볼 수 있습니다.
         </p>
         <button
           type="button"
+          onClick={() => {
+            setPhase('checking');
+            setRetryKey((k) => k + 1);
+          }}
+          className="w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#8E3524] text-[#FBF8F1] font-semibold text-base hover:bg-[#762A1C] shadow-sm"
+        >
+          다시 시도하기
+        </button>
+        <button
+          type="button"
           onClick={() => void loginWithSupabaseGoogle()}
-          className="w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#8E3524] text-[#FBF8F1] font-semibold text-base hover:bg-[#762A1C] shadow-sm inline-flex items-center justify-center gap-2"
+          className="w-full min-h-[48px] px-5 py-3 rounded-xl border border-[#C4B8A3] bg-[#FBF8F1] hover:bg-[#F3ECE0] text-sm font-semibold text-[#26201B] inline-flex items-center justify-center gap-2"
         >
           <LogIn className="w-4 h-4" aria-hidden="true" />
           <span>Google로 로그인</span>
         </button>
-        <p className="text-xs text-[#78716C]">로그인 후 처음 화면에서 '이어서 시작하기'를 누르면 이 결과로 돌아옵니다.</p>
       </div>
     );
   }
@@ -256,7 +272,6 @@ export function AiPastLifeSection({ sessionId, visitorName, zodiacCode, fragment
 
   if (!result) return null;
 
-  const storyBusy = steps.story === 'active';
   return (
     <AiPastLifeView
       result={result}
@@ -274,16 +289,6 @@ export function AiPastLifeSection({ sessionId, visitorName, zodiacCode, fragment
               <p className="text-xs text-[#5C5349] mt-1 whitespace-pre-line break-words">{error}</p>
             </div>
           )}
-          <button
-            type="button"
-            onClick={() => void generate()}
-            disabled={storyBusy || assetPhase === 'loading'}
-            aria-busy={storyBusy || undefined}
-            className="w-full min-h-[52px] px-6 py-3.5 rounded-xl border-2 border-[#8E3524] text-[#8E3524] bg-white font-semibold text-base hover:bg-[#8E3524]/5 transition-colors flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
-          >
-            {storyBusy ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" /> : <Shuffle className="w-4 h-4" aria-hidden="true" />}
-            <span>{storyBusy ? '새 이야기를 쓰는 중…' : '다른 이야기 만들기'}</span>
-          </button>
         </div>
       }
     />

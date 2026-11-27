@@ -613,3 +613,128 @@ export async function buildDownloadableResultCard(
 
   return canvas.toDataURL('image/png');
 }
+
+/** 외부(Storage) 이미지를 Blob 으로 받아 Canvas 가 오염되지 않게 불러온다. 실패하면 crossOrigin 방식으로 다시 시도한다 */
+async function loadImageUntainted(src: string): Promise<HTMLImageElement> {
+  try {
+    const res = await fetch(src, { mode: 'cors' });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const blob = await res.blob();
+    const objectUrl = URL.createObjectURL(blob);
+    try {
+      return await loadImage(objectUrl);
+    } finally {
+      // 그린 뒤에는 필요 없다 (img 는 이미 디코드됨)
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 0);
+    }
+  } catch {
+    return loadImage(src);
+  }
+}
+
+export interface AiResultCardInput {
+  visitorName: string;
+  title: string;
+  imageUrl: string | null;
+  categoryName?: string;
+  job: string;
+  reputation: string;
+  achievement: string;
+}
+
+/**
+ * AI 전생 결과 카드(PNG data URL): 초상화 + 전생 제목(칭호) + 핵심 결과 문구(직업·평판·업적).
+ * 초상화가 없거나 불러오지 못하면 한지색 빈 칸으로 두고 나머지는 그대로 그린다.
+ */
+export async function buildAiResultCard(input: AiResultCardInput): Promise<string> {
+  const width = 900;
+  const portraitW = 405;
+  const portraitH = 720; // 9:16
+  const height = 1500;
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) throw new Error('이미지를 만들 수 없는 환경입니다.');
+
+  ctx.fillStyle = '#FBF8F2';
+  ctx.fillRect(0, 0, width, height);
+  ctx.strokeStyle = '#D6CEBE';
+  ctx.lineWidth = 3;
+  ctx.strokeRect(24, 24, width - 48, height - 48);
+
+  ctx.fillStyle = '#9A3412';
+  ctx.font = '600 22px "Noto Sans KR", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('전생여지도 · 국립전주박물관 체험 기록', width / 2, 76);
+
+  const px = (width - portraitW) / 2;
+  const py = 104;
+  ctx.fillStyle = '#EFE6D4';
+  ctx.fillRect(px, py, portraitW, portraitH);
+  if (input.imageUrl) {
+    try {
+      const img = await loadImageUntainted(input.imageUrl);
+      // 9:16 칸에 cover 로 채운다 (위쪽 기준으로 자른다)
+      const target = portraitW / portraitH;
+      const src = img.width / img.height;
+      let sx = 0;
+      let sy = 0;
+      let sw = img.width;
+      let sh = img.height;
+      if (src > target) {
+        sw = img.height * target;
+        sx = (img.width - sw) / 2;
+      } else {
+        sh = img.width / target;
+      }
+      ctx.drawImage(img, sx, sy, sw, sh, px, py, portraitW, portraitH);
+    } catch {
+      // 초상화를 불러오지 못해도 카드는 만든다
+    }
+  }
+  ctx.strokeStyle = '#C7B596';
+  ctx.lineWidth = 2;
+  ctx.strokeRect(px, py, portraitW, portraitH);
+
+  ctx.textAlign = 'center';
+  ctx.fillStyle = '#78716C';
+  ctx.font = '500 22px "Noto Sans KR", sans-serif';
+  ctx.fillText(`${input.visitorName.trim() || '전주 나그네'} 님의 전생 기록${input.categoryName ? ` · ${input.categoryName}` : ''}`, width / 2, py + portraitH + 48);
+
+  ctx.fillStyle = '#1C1917';
+  ctx.font = '700 40px "Noto Sans KR", sans-serif';
+  const titleBottom = drawWrappedText(ctx, input.title, width / 2, py + portraitH + 106, 760, 52, 2);
+
+  let y = titleBottom + 8;
+  ctx.strokeStyle = '#D6CEBE';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.moveTo(110, y);
+  ctx.lineTo(width - 110, y);
+  ctx.stroke();
+  y += 50;
+
+  ctx.textAlign = 'left';
+  const rows: Array<[string, string, number]> = [
+    ['직업', input.job, 2],
+    ['평판', input.reputation, 3],
+    ['업적', input.achievement, 4],
+  ];
+  for (const [label, body, lines] of rows) {
+    ctx.fillStyle = '#9A3412';
+    ctx.font = '700 24px "Noto Sans KR", sans-serif';
+    ctx.fillText(label, 110, y);
+    y += 36;
+    ctx.fillStyle = '#292524';
+    ctx.font = '400 22px "Noto Sans KR", sans-serif';
+    y = drawWrappedText(ctx, body, 110, y, 680, 34, lines) + 22;
+  }
+
+  ctx.fillStyle = '#78716C';
+  ctx.font = '400 16px "Noto Sans KR", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText('전주의 역사적 배경을 바탕으로 AI가 구성한 가상 체험 서사입니다 · 전생여지도', width / 2, height - 52);
+
+  return canvas.toDataURL('image/png');
+}

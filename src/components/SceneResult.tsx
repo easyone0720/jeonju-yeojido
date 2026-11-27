@@ -2,9 +2,6 @@ import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 're
 import {
   ArrowLeft,
   Check,
-  ChevronDown,
-  ChevronUp,
-  Gift,
   Pause,
   Play,
   RotateCcw,
@@ -19,7 +16,9 @@ import { getCharacterById, getOrPickCurrentCharacter } from '../data/characters'
 import { PAST_LIFE_ARCHETYPES } from '../data/jeonjuSpots';
 import { AiPastLifeSection } from './AiPastLifeSection';
 import { PastLifeResult } from '../types/jeonju';
-import { buildDownloadableResultCard } from '../utils/portraitPainter';
+import { buildAiResultCard, buildDownloadableResultCard } from '../utils/portraitPainter';
+import { buildShareUrl } from '../services/aiPastLife/api';
+import { markResultSeen, useLatestAiResult } from '../services/aiPastLife/latest';
 
 function SectionCard({
   label,
@@ -258,7 +257,6 @@ function SceneResultBody({
   result,
   visitorName,
   onBackToMap,
-  onGoToCoupons,
   onGoToMediaConsent,
   character,
   onAnother,
@@ -271,8 +269,12 @@ function SceneResultBody({
 }) {
   const [saving, setSaving] = useState(false);
   const [shareStatus, setShareStatus] = useState<string | null>(null);
-  const [showDetails, setShowDetails] = useState(false);
   const topRef = useRef<HTMLDivElement | null>(null);
+  // 결과 화면을 열면 홈 하단 완성 배너의 "새 결과" 강조를 끈다
+  useEffect(() => markResultSeen(result.sessionId), [result.sessionId]);
+  // API 모드: 화면에 보이는 AI 결과(제목·초상화·결과 문구). 저장·공유는 이 값으로 만든다
+  const latestAi = useLatestAiResult(result.sessionId);
+  const ai = storySlot ? latestAi : null;
 
   const displayName = visitorName.trim() || '전주 나그네';
   const dialogueRows = useMemo(() => parseDialogue(character.dialogue), [character.dialogue]);
@@ -298,38 +300,51 @@ function SceneResultBody({
   const handleSaveImage = async () => {
     setSaving(true);
     try {
-      const cardDataUrl = await buildDownloadableResultCard(displayResult, visitorName);
+      const cardDataUrl = ai
+        ? await buildAiResultCard({
+            visitorName,
+            title: ai.title,
+            imageUrl: ai.imageUrl,
+            categoryName: ai.categoryName,
+            job: ai.job,
+            reputation: ai.reputation,
+            achievement: ai.achievement,
+          })
+        : await buildDownloadableResultCard(displayResult, visitorName);
       const link = document.createElement('a');
       link.href = cardDataUrl;
-      link.download = `전생여지도_${character.title.replace(/[\\/:*?"<>|]/g, '')}.png`;
+      link.download = `전생여지도_${(ai?.title ?? character.title).replace(/[\/:*?"<>|]/g, '')}.png`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+    } catch {
+      setShareStatus('이미지를 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.');
     } finally {
       setSaving(false);
     }
   };
 
   const handleShare = async () => {
-    const shareText = `[전생여지도] 나의 전주 전생은 '${character.title}'!\n“${character.quote}”`;
+    // API 모드: 이 결과를 바로 열 수 있는 공유 주소(?sharedResult=<id>)와 제목·요약을 함께 보낸다
+    const title = ai?.title ?? character.title;
+    const quote = ai?.oneLine ?? character.quote;
+    const shareUrl = ai ? buildShareUrl(ai.id) : window.location.origin;
+    const shareText = `[전생여지도] 나의 전주 전생은 '${title}'!
+“${quote}”`;
     try {
       if (typeof navigator !== 'undefined' && navigator.share) {
-        await navigator.share({
-          title: `전생여지도 — ${character.title}`,
-          text: shareText,
-          url: window.location.origin,
-        });
-        setShareStatus('공유창을 열었습니다.');
+        await navigator.share({ title: `전생여지도 — ${title}`, text: shareText, url: shareUrl });
         return;
       }
       if (typeof navigator !== 'undefined' && navigator.clipboard) {
-        await navigator.clipboard.writeText(`${shareText}\n${window.location.origin}`);
-        setShareStatus('전생 결과가 클립보드에 복사되었습니다.');
+        await navigator.clipboard.writeText(`${shareText}
+${shareUrl}`);
+        setShareStatus('전생 결과 링크가 클립보드에 복사되었습니다.');
         return;
       }
       setShareStatus('이 브라우저에서는 저장하기 버튼을 이용해 주세요.');
     } catch {
-      setShareStatus('공유가 취소되었거나 지원되지 않는 환경입니다.');
+      // 사용자가 공유창을 닫은 경우 등: 안내 없이 넘어간다
     }
   };
 
@@ -459,7 +474,7 @@ function SceneResultBody({
             type="button"
             disabled={saving}
             onClick={handleSaveImage}
-            className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#8E3524] hover:bg-[#762A1C] text-sm font-semibold text-[#FBF8F1] transition-colors disabled:opacity-60"
+            className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#2B3E50] hover:bg-[#223242] text-sm font-semibold text-[#FBF8F1] transition-colors disabled:opacity-60"
           >
             {saving ? '저장 중...' : '저장하기'}
           </button>
@@ -472,74 +487,13 @@ function SceneResultBody({
           <button
             type="button"
             onClick={onGoToMediaConsent}
-            className="w-full min-h-[52px] px-6 py-3.5 rounded-xl bg-[#8E3524] text-[#FBF8F1] font-semibold text-base hover:bg-[#762A1C] transition-colors flex items-center justify-center gap-2"
+            className="w-full min-h-[48px] px-5 py-3 rounded-xl bg-[#8E3524] hover:bg-[#762A1C] text-sm font-semibold text-[#FBF8F1] transition-colors flex items-center justify-center gap-2"
           >
             <Tv className="w-4 h-4" aria-hidden="true" />
             <span>미디어월 전시 선택하기</span>
           </button>
         </div>
 
-        {/* 단서 · 굿즈 안내 (접힘) */}
-        <section className="border-t border-[#D8CEBE] pt-4 space-y-3">
-          <div className="flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => setShowDetails((p) => !p)}
-              aria-expanded={showDetails}
-              className="text-xs font-semibold text-[#5C5349] hover:text-[#26201B] inline-flex items-center gap-1 min-h-[36px]"
-            >
-              <span>네 조각 연결 및 전생 굿즈 안내 보기</span>
-              {showDetails ? (
-                <ChevronUp className="w-3.5 h-3.5" aria-hidden="true" />
-              ) : (
-                <ChevronDown className="w-3.5 h-3.5" aria-hidden="true" />
-              )}
-            </button>
-            <button
-              type="button"
-              onClick={onGoToCoupons}
-              className="text-xs font-semibold text-[#8E3524] hover:underline min-h-[36px]"
-            >
-              쿠폰함
-            </button>
-          </div>
-
-          {showDetails && (
-            <div className="space-y-4">
-              <dl className="grid grid-cols-2 gap-2.5 text-xs">
-                <div className="rounded-xl bg-white border border-[#D8CEBE] p-3">
-                  <dt className="text-[#5C5349]">시대 · 경기전</dt>
-                  <dd className="font-semibold text-[#26201B] mt-0.5">{result.era}</dd>
-                </div>
-                <div className="rounded-xl bg-white border border-[#D8CEBE] p-3">
-                  <dt className="text-[#5C5349]">신분 · 전라감영</dt>
-                  <dd className="font-semibold text-[#26201B] mt-0.5">{result.status}</dd>
-                </div>
-                <div className="rounded-xl bg-white border border-[#D8CEBE] p-3">
-                  <dt className="text-[#5C5349]">이야기 · 완판본</dt>
-                  <dd className="font-semibold text-[#26201B] mt-0.5">{result.storyTitle}</dd>
-                </div>
-                <div className="rounded-xl bg-white border border-[#D8CEBE] p-3">
-                  <dt className="text-[#5C5349]">소지품 · 남부시장</dt>
-                  <dd className="font-semibold text-[#26201B] mt-0.5">{result.item}</dd>
-                </div>
-              </dl>
-
-              <div className="rounded-xl bg-white border border-[#D8CEBE] p-4 space-y-2.5">
-                <div className="flex items-center gap-1.5 text-xs font-bold text-[#26201B]">
-                  <Gift className="w-4 h-4 text-[#8E3524]" aria-hidden="true" />
-                  <span>{character.title} 맞춤 전생 굿즈</span>
-                </div>
-                {result.recommendedGoods.map((g) => (
-                  <div key={g.id} className="text-xs border-t border-[#F0EAE0] pt-2">
-                    <p className="font-semibold text-[#26201B]">{g.name}</p>
-                    <p className="text-[#5C5349]">{g.description}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </section>
         </div>
         </div>
       </main>

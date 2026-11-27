@@ -168,7 +168,7 @@ export function MediaWallVideo({ onClose }: MediaWallVideoProps) {
           controls
           ref={videoRef}
           src={MEDIA_WALL_VIDEO_SRC}
-          loop
+          onEnded={onClose}
           playsInline
           preload="auto"
           onVolumeChange={(event) => {

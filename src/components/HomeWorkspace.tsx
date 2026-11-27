@@ -13,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { getPastLifeMode } from '../config/features';
+import { isResultSeen, markResultSeen, useLatestAiResult } from '../services/aiPastLife/latest';
 import { PastLifeHistory } from './PastLifeHistory';
 import { JEONJU_SPOTS } from '../data/jeonjuSpots';
 import { SPOT_IMAGES, TRADITIONAL_MAP_IMAGE } from '../data/spotImages';
@@ -129,6 +130,16 @@ export function HomeWorkspace({
   const clueCount = getCollectedClueCount(session);
   const museumReady = isMuseumUnlocked(session);
   const museumVisitVerified = isSpotVisitVerified(session, 'jeonju_museum');
+  // 전생 결과가 나왔는데 아직 열어 보지 않았다면 완성 배너를 초록색으로 강조한다
+  const [resultSeen, setResultSeen] = useState(() => isResultSeen(session.sessionId));
+  const markSeenNow = () => {
+    markResultSeen(session.sessionId);
+    setResultSeen(true);
+  };
+  const bannerIsNew = !resultSeen && Boolean(session.pastLifeResult || museumVisitVerified);
+  // 완성 배너 제목: API 모드에서는 AI 가 만든 제목만 쓴다(기본 샘플 캐릭터 제목을 고정으로 보여 주지 않는다)
+  const latestAiTitle = useLatestAiResult(session.sessionId)?.title ?? null;
+  const bannerTitle = getPastLifeMode() === 'api' ? latestAiTitle : (session.pastLifeResult?.title ?? null);
   const selectedSpot =
     JEONJU_SPOTS.find((s) => s.id === selectedSpotId) ?? JEONJU_SPOTS[0];
   const unlockedCouponsCount = session.coupons.filter((c) => c.unlocked).length;
@@ -433,7 +444,8 @@ export function HomeWorkspace({
           </div>
         )}
 
-        {qrBanner && activeTab === 'map' && (
+        {/* 박물관 인증 안내는 아래 완성 배너와 내용이 겹쳐서 보여 주지 않는다 (다른 거점의 조각·쿠폰 안내만 표시) */}
+        {qrBanner && !qrBanner.isMuseum && activeTab === 'map' && (
           <div
             role="status"
             aria-live="polite"
@@ -490,23 +502,29 @@ export function HomeWorkspace({
         )}
         {/* Completion Ready Banner */}
         {museumReady && (
-          <div className="rounded-xl border border-[#9A3412]/30 bg-white px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm">
-            <p className="text-sm font-semibold text-[#1C1917]">
+          <div
+            className={`rounded-xl border px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-sm transition-colors ${
+              bannerIsNew ? 'border-[#16A34A]/40 bg-[#F0FDF4]' : 'border-[#9A3412]/30 bg-white'
+            }`}
+            data-result-new={bannerIsNew || undefined}
+          >
+            <p className={`text-sm font-semibold ${bannerIsNew ? 'text-[#14532D]' : 'text-[#1C1917]'}`}>
               {session.pastLifeResult
-                ? `전생 완성: ${session.pastLifeResult.title}${session.pastLifeResult.hanjaTitle ? ` (${session.pastLifeResult.hanjaTitle})` : ''}`
+                ? bannerTitle
+                  ? `전생 완성: ${bannerTitle}${session.pastLifeResult.hanjaTitle ? ` (${session.pastLifeResult.hanjaTitle})` : ''}`
+                  : '전생 기록이 완성되었습니다. 결과를 확인해 보세요.'
                 : museumVisitVerified
                   ? '박물관 방문 인증 완료! 결과 확인으로 전생을 완성하세요.'
                   : '네 조각을 모두 모았습니다! 국립전주박물관 현장 QR을 스캔해 주세요.'}
             </p>
             <button
               type="button"
-              onClick={
-                session.pastLifeResult
-                  ? onViewPastLifeResult
-                  : museumVisitVerified
-                    ? onOpenMuseumFace
-                    : () => onOpenQrScan('jeonju_museum')
-              }
+              onClick={() => {
+                if (session.pastLifeResult || museumVisitVerified) markSeenNow();
+                if (session.pastLifeResult) onViewPastLifeResult();
+                else if (museumVisitVerified) onOpenMuseumFace();
+                else onOpenQrScan('jeonju_museum');
+              }}
               className="min-h-[40px] px-4 py-2 rounded-lg bg-[#8E3524] text-[#FBF8F1] text-xs font-semibold hover:bg-[#762A1C] whitespace-nowrap shrink-0"
             >
               {session.pastLifeResult
@@ -906,8 +924,8 @@ export function HomeWorkspace({
                     key={coupon.id}
                     className={`w-full rounded-2xl border-2 px-5 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-colors ${
                       coupon.unlocked
-                        ? 'bg-white shadow-sm'
-                        : 'bg-[#F5EFE6] border-dashed border-[#C7BDA9]'
+                        ? 'bg-[#FBF8F1] shadow-sm'
+                        : 'bg-[#FBF8F1] border-dashed border-[#C7BDA9]'
                     }`}
                     style={
                       coupon.unlocked

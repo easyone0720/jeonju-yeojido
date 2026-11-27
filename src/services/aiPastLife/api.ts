@@ -72,6 +72,32 @@ export function generateAssets(
   return call({ action: 'assets', resultId }, 70_000, signal);
 }
 
+/** 공유 링크로 연 결과 1건 — 로그인 없이 읽는다(소유자 정보는 서버가 지운다) */
+export async function getSharedResult(resultId: string, signal?: AbortSignal): Promise<{ result: PastLifeResultView }> {
+  const res = await fetch(STORY_ENDPOINT, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'shared', resultId }),
+    signal,
+  });
+  const payload = (await res.json().catch(() => ({}))) as { result?: PastLifeResultView; error?: string };
+  if (!res.ok || !payload.result) throw new Error(payload.error ?? `공유된 결과를 불러오지 못했습니다. (${res.status})`);
+  return { result: payload.result };
+}
+
+/** 이 결과를 열람하는 공유 주소 (현재 사이트 루트 + sharedResult 파라미터) */
+export function buildShareUrl(resultId: string): string {
+  const url = new URL(window.location.origin + '/');
+  url.searchParams.set('sharedResult', resultId);
+  return url.toString();
+}
+
+/** 주소창의 ?sharedResult=<uuid> (없거나 형식이 틀리면 null) */
+export function readSharedResultId(search: string = typeof window === 'undefined' ? '' : window.location.search): string | null {
+  const v = new URLSearchParams(search).get('sharedResult');
+  return v && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v) ? v : null;
+}
+
 export function getResult(resultId: string, signal?: AbortSignal): Promise<{ result: PastLifeResultView }> {
   return call({ action: 'get', resultId }, 20_000, signal);
 }
@@ -105,5 +131,28 @@ export function writeLastResultId(sessionId: string, resultId: string): void {
     window.sessionStorage.setItem(LAST_KEY_PREFIX + sessionId, resultId);
   } catch {
     // 저장소를 못 쓰면 새로고침 복원만 안 된다
+  }
+}
+
+export interface AdminTypeStat {
+  category_code: string;
+  name: string;
+  count: number;
+}
+
+/** 운영자 대시보드: Supabase 의 전생 유형(story_categories)별 저장된 결과 수(전체 기간). 실패하면 null */
+export async function fetchAdminTypeStats(passcode?: string, signal?: AbortSignal): Promise<{ total: number; types: AdminTypeStat[] } | null> {
+  try {
+    const res = await fetch(STORY_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(passcode ? { 'x-admin-passcode': encodeURIComponent(passcode) } : {}) },
+      body: JSON.stringify({ action: 'admin_type_stats' }),
+      signal,
+    });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { total?: number; types?: AdminTypeStat[] };
+    return Array.isArray(body.types) ? { total: body.total ?? 0, types: body.types } : null;
+  } catch {
+    return null;
   }
 }
