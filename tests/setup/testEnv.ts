@@ -4,3 +4,7 @@
  * (api 모드가 필요한 테스트는 스스로 값을 지정한다)
  */
 process.env.VITE_PAST_LIFE_MODE = 'mock';
+
+// 로컬 회원·로그인 테스트가 개발자의 실제 Supabase 설정(.env)에 닿지 않도록 비운다
+process.env.VITE_SUPABASE_URL = '';
+process.env.VITE_SUPABASE_PUBLISHABLE_KEY = '';

@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
     "check:api": "bun scripts/check-api.ts"
   },
   "dependencies": {

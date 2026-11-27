@@ -64,13 +64,62 @@ export async function completeOAuthReturn(): Promise<Session | null> {
   return data.session ?? null;
 }
 
-/** 현재 로그인 세션 (없으면 null). 익명 세션은 쓰지 않는다. */
+/** 아이디·비밀번호로 Supabase 에 로그인한다 (간편 회원가입으로 만든 계정). 성공하면 표시 이름을 돌려준다 */
+export async function signInWithLoginId(id: string, password: string): Promise<{ ok: true; displayName: string } | { ok: false }> {
+  const sb = await getSupabase();
+  if (!sb) return { ok: false };
+  const { loginIdToEmail } = await import('./edge');
+  const { data, error } = await sb.auth.signInWithPassword({ email: loginIdToEmail(id), password });
+  if (error || !data.session) return { ok: false };
+  const meta = (data.session.user.user_metadata ?? {}) as Record<string, unknown>;
+  const name = typeof meta.display_name === 'string' ? meta.display_name : '';
+  return { ok: true, displayName: name || id };
+}
+
+let bridgePromise: Promise<Session | null> | null = null;
+let bridgeFailedAt = 0;
+
+/**
+ * 게스트·소셜(체험)·시연 계정 등 Supabase 세션이 없는 로그인 방식에도 맞춤형 전생을 만들 수 있게,
+ * Edge Function(guest-session)이 만든 임시 사용자로 진짜 Supabase 세션을 연다. 실패하면 null (1분간 다시 시도하지 않음).
+ */
+async function ensureBridgeSession(method: string, displayName: string): Promise<Session | null> {
+  if (bridgePromise) return bridgePromise;
+  if (Date.now() - bridgeFailedAt < 60_000) return null;
+  bridgePromise = (async () => {
+    const sb = await getSupabase();
+    if (!sb) return null;
+    const { requestGuestSession } = await import('./edge');
+    const r = await requestGuestSession({ method, displayName });
+    if (!r.ok) return null;
+    const { data, error } = await sb.auth.signInWithPassword({ email: r.data.email, password: r.data.password });
+    return error || !data.session ? null : data.session;
+  })()
+    .catch(() => null)
+    .then((s) => {
+      if (!s) bridgeFailedAt = Date.now();
+      bridgePromise = null;
+      return s;
+    });
+  return bridgePromise;
+}
+
+/**
+ * 현재 로그인 세션 (없으면 null).
+ * 1) 진짜 Supabase 세션(Google·ID 회원가입) 2) 다른 방식으로 로그인한 탭이면 임시 사용자 세션을 연결 3) 로컬 개발 전용 시연 매핑
+ */
 export async function getCurrentSession(): Promise<Session | null> {
   const sb = await getSupabase();
   if (!sb) return null;
   const { data } = await sb.auth.getSession();
   const s = data.session;
   if (s && !s.user.is_anonymous) return s;
+  const { getLocalAuth } = await import('../../utils/authHandlers');
+  const local = getLocalAuth();
+  if (local) {
+    const bridged = await ensureBridgeSession(local.method, local.displayName);
+    if (bridged) return bridged;
+  }
   return import.meta.env.DEV ? devDemoSession() : null;
 }
 

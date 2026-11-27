@@ -172,9 +172,15 @@ export async function loginWithPassword({
   if (!id.trim()) return { ok: false, message: 'ID를 입력해 주세요.' };
   if (!password) return { ok: false, message: '비밀번호를 입력해 주세요.' };
 
-  // TODO(auth): Supabase 연동 시 아래로 교체
-  // const { error } = await supabase.auth.signInWithPassword({ email: id.trim(), password });
-  // if (error) return { ok: false, message: 'ID 또는 비밀번호가 올바르지 않습니다.' };
+  // 간편 회원가입으로 Supabase 에 만든 계정이면 진짜 세션으로 로그인한다 (다른 기기에서도 로그인 가능)
+  const supa = await import('../services/supabase/client');
+  if (supa.isSupabaseConfigured()) {
+    const r = await supa.signInWithLoginId(id, password);
+    if (r.ok) {
+      saveLocalAuth({ method: 'password', displayName: r.displayName, id: normalizeId(id) });
+      return { ok: true, method: 'password' };
+    }
+  }
   if (!ALLOW_STUB_LOGIN) return { ok: false, message: NOT_READY_MESSAGE };
 
   await ensureDefaultAccount();
@@ -206,7 +212,23 @@ export async function registerWithPassword({
   if (!password) return { ok: false, message: '비밀번호를 입력해 주세요.' };
   if (password.length < 4) return { ok: false, message: '비밀번호는 4자 이상 입력해 주세요.' };
 
-  // TODO(auth): Supabase 연동 시 supabase.auth.signUp(...) 으로 교체
+  // Supabase 연결 시: Edge Function(signup)이 사용자를 만들고 profiles 에 자동 저장한다 → 바로 로그인
+  const supa = await import('../services/supabase/client');
+  if (supa.isSupabaseConfigured()) {
+    if (password.length < 6) return { ok: false, message: '비밀번호는 6자 이상 입력해 주세요.' };
+    const { signUpViaEdge } = await import('../services/supabase/edge');
+    const displayName = (name ?? '').trim().slice(0, 16) || id.trim();
+    const r = await signUpViaEdge({ id: nid, password, name: displayName });
+    if (r.ok) {
+      const login = await supa.signInWithLoginId(nid, password);
+      saveLocalAuth({ method: 'password', displayName, id: nid });
+      if (!login.ok) console.warn('[회원가입] 가입은 되었지만 Supabase 로그인에 실패했습니다. 다시 로그인해 주세요.');
+      return { ok: true, method: 'password' };
+    }
+    // 중복 아이디·형식 오류 등은 그대로 알린다. 함수가 아직 배포되지 않았을 때만 아래 로컬 방식으로 진행한다
+    if (!r.unavailable) return { ok: false, message: r.message };
+    console.warn('[회원가입] Edge Function(signup)에 연결하지 못해 이 브라우저에만 저장합니다. supabase/functions/README.md 의 배포 절차를 확인하세요.');
+  }
   if (!ALLOW_STUB_LOGIN) return { ok: false, message: NOT_READY_MESSAGE };
 
   await ensureDefaultAccount();
