@@ -166,7 +166,15 @@ export function pickVoice(...texts: string[]): string {
 }
 
 /** 낭독 원고 → MP3. 오디오가 비면 null */
-export async function synthesizeSpeech(text: string, voice: string, signal?: AbortSignal): Promise<Buffer | null> {
+const RATE: Record<string, string> = { slow: '-18%', normal: '-8%', fast: '+4%' };
+const PITCH: Record<string, string> = { low: '-6Hz', normal: '+0Hz', high: '+6Hz' };
+
+export async function synthesizeSpeech(
+  text: string,
+  voice: string,
+  signal?: AbortSignal,
+  direction?: { rate?: string; pitch?: string },
+): Promise<Buffer | null> {
   const { MsEdgeTTS, OUTPUT_FORMAT } = await import('msedge-tts');
   const tts = new MsEdgeTTS();
   const onAbort = () => tts.close();
@@ -174,7 +182,7 @@ export async function synthesizeSpeech(text: string, voice: string, signal?: Abo
   try {
     await tts.setMetadata(voice, OUTPUT_FORMAT.AUDIO_24KHZ_48KBITRATE_MONO_MP3);
     // 이야기꾼 호흡: 약간 느리게. 쉼표·말줄임표는 원고에서 표시한다
-    const { audioStream } = tts.toStream(text, { rate: '-8%' });
+    const { audioStream } = tts.toStream(text, { rate: RATE[direction?.rate ?? 'normal'] ?? RATE.normal, pitch: PITCH[direction?.pitch ?? 'normal'] ?? PITCH.normal });
     const chunks: Buffer[] = [];
     for await (const chunk of audioStream) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
     const audio = Buffer.concat(chunks);

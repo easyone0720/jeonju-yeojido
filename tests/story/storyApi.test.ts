@@ -9,6 +9,10 @@ import {
   isDevDemoToken,
   buildStoryPrompt,
   HUMOR_CODE,
+  NEGATIVE_RULES,
+  STYLE_GUIDE,
+  parseVoiceDirection,
+  STORY_TEMPERATURE,
   SlidingWindowLimiter,
   createStoryHandler,
   loadFragmentSets,
@@ -90,6 +94,15 @@ function makeDeps(over: Partial<StoryDeps> = {}) {
     },
     async listResults(uid) {
       return rows.filter((r) => r.user_id === uid);
+    },
+    async countResultsByCategory(codes) {
+      return Object.fromEntries(codes.map((c) => [c, rows.filter((r) => r.category_code === c).length]));
+    },
+    isAdmin(request) {
+      return request.headers.get('x-admin-passcode') === 'pw';
+    },
+    async getSharedResult(id) {
+      return rows.find((x) => x.id === id) ?? null;
     },
     async updateAssetPaths(id, uid, patch) {
       const r = rows.find((x) => x.id === id && x.user_id === uid)!;
@@ -364,8 +377,14 @@ describe('유머 코드 프롬프트', () => {
       zodiac: null,
     });
     assert.ok(system.includes(HUMOR_CODE));
-    for (const k of ['Deadpan Anachronism', '6~8회', '괄호 지문', '4단 호흡', '1인칭 독백', '~하옵니다']) assert.ok(system.includes(k), k);
-    for (const k of ['waist-up', '3/4', '1인칭 독백', '문답 6~8회']) assert.ok(user.includes(k), k);
+    assert.ok(system.includes(NEGATIVE_RULES));
+    assert.ok(system.includes(STYLE_GUIDE));
+    for (const k of ['시대착오적 현대어', '진지한 궤변', '담백한 마무리', 'voice_direction']) assert.ok(STYLE_GUIDE.includes(k), k);
+    assert.ok(system.indexOf(NEGATIVE_RULES) < system.indexOf(HUMOR_CODE), '금지 규칙이 먼저');
+    for (const k of ['정직한 장사로 신뢰 쌓기', '장원급제', '연필', '의도된 개그 장치']) assert.ok(NEGATIVE_RULES.includes(k), k);
+    for (const k of ['괴짜 집착', 'Deadpan Anachronism', '6~8줄', '괄호 지문', '1인칭 독백', '~하옵니다', '퓨전 신선로이옵니다', '인수합병을 검토 중이옵니다']) assert.ok(system.includes(k), k);
+    assert.equal(STORY_TEMPERATURE, 0.9);
+    for (const k of ['waist-up', '3/4', '1인칭 독백', '문답 6~8회', 'quirk']) assert.ok(user.includes(k), k);
   });
 });
 
@@ -387,5 +406,66 @@ describe('로컬 시연 로그인 우회 (dev-demo:jeonju)', () => {
     } finally {
       process.env.NODE_ENV = prev;
     }
+  });
+});
+
+describe('공유 링크 (shared)', () => {
+  async function created(c: ReturnType<typeof makeDeps>) {
+    const r = await c.handle(req(STORY));
+    return ((await r.json()) as any).result as Row;
+  }
+
+  it('로그인 없이 결과 1건을 읽고, 소유자 id·이름은 지워서 돌려준다', async () => {
+    const c = makeDeps();
+    const row = await created(c);
+    const r = await c.handle(new Request('http://x/api/past-life/story', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ action: 'shared', resultId: row.id }),
+    }));
+    assert.equal(r.status, 200);
+    const body = (await r.json()) as any;
+    assert.equal(body.result.id, row.id);
+    assert.equal(body.result.user_id, '');
+    assert.equal(body.result.user_name, '');
+    assert.equal(body.result.story.title, OUTPUT.title);
+  });
+
+  it('없는 결과나 형식이 틀린 id 는 404/400', async () => {
+    const c = makeDeps();
+    const post = (b: unknown) => c.handle(new Request('http://x/api/past-life/story', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(b) }));
+    assert.equal((await post({ action: 'shared', resultId: '00000000-0000-4000-8000-000000000000' })).status, 404);
+    assert.equal((await post({ action: 'shared', resultId: 'nope' })).status, 400);
+  });
+});
+
+describe('운영자 전생 유형 집계 (admin_type_stats)', () => {
+  const post = (c: ReturnType<typeof makeDeps>, headers: Record<string, string> = {}) =>
+    c.handle(new Request('http://x/api/past-life/story', { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify({ action: 'admin_type_stats' }) }));
+
+  it('관리자 확인이 없으면 401', async () => {
+    assert.equal((await post(makeDeps())).status, 401);
+  });
+
+  it('DB 카테고리 목록 전체에 실제 저장 수를 붙여 돌려준다(없는 유형은 0)', async () => {
+    const c = makeDeps();
+    await c.handle(req(STORY));
+    await c.handle(req(STORY));
+    const r = await post(c, { 'x-admin-passcode': 'pw' });
+    assert.equal(r.status, 200);
+    const body = (await r.json()) as { total: number; types: Array<{ category_code: string; name: string; count: number }> };
+    assert.equal(body.total, 2);
+    assert.ok(body.types.length >= 1);
+    assert.equal(body.types.reduce((a, t) => a + t.count, 0), 2);
+    assert.ok(body.types.every((t) => t.name && typeof t.count === 'number'));
+  });
+});
+
+describe('낭독 연출 (voice_direction)', () => {
+  it('허용된 값만 받고 나머지는 normal 로 맞춘다', () => {
+    assert.deepEqual(parseVoiceDirection({ rate: 'slow', pitch: 'high' }), { rate: 'slow', pitch: 'high' });
+    assert.deepEqual(parseVoiceDirection({ rate: 'x', pitch: 7 }), { rate: 'normal', pitch: 'normal' });
+    assert.equal(parseVoiceDirection(null), null);
+    assert.equal(parseVoiceDirection([]), null);
   });
 });

@@ -48,6 +48,13 @@ export interface PastLifeStoryOutput {
   };
   image_prompt: string;
   narration_text: string;
+  /** 낭독 연출(선택). 없으면 기본 속도·높낮이 */
+  voice_direction?: VoiceDirection;
+}
+
+export interface VoiceDirection {
+  rate: 'slow' | 'normal' | 'fast';
+  pitch: 'low' | 'normal' | 'high';
 }
 
 export interface Fragments {
@@ -262,22 +269,24 @@ export function sanitizeName(value: unknown): string {
 }
 
 export type StoryRequest = { action: 'story'; name: string; zodiacCode: string | null; fragments: Fragments };
-export type AssetsRequest = { action: 'assets' | 'get'; resultId: string };
+export type AssetsRequest = { action: 'assets' | 'get' | 'shared'; resultId: string };
 export type ListRequest = { action: 'list' };
+export type AdminTypeStatsRequest = { action: 'admin_type_stats' };
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const FRAGMENT_KEYS = ['era', 'status', 'story', 'item'] as const;
 
 export function parseRequest(
   body: unknown,
-): { ok: true; value: StoryRequest | AssetsRequest | ListRequest } | { ok: false; error: string } {
+): { ok: true; value: StoryRequest | AssetsRequest | ListRequest | AdminTypeStatsRequest } | { ok: false; error: string } {
   if (!body || typeof body !== 'object' || Array.isArray(body)) return { ok: false, error: '요청 형식이 올바르지 않습니다.' };
   const b = body as Record<string, unknown>;
   if (Object.prototype.hasOwnProperty.call(b, 'birthDate')) {
     return { ok: false, error: '생년월일은 서버로 보낼 수 없습니다.' };
   }
   if (b.action === 'list') return { ok: true, value: { action: 'list' } };
-  if (b.action === 'assets' || b.action === 'get') {
+  if (b.action === 'admin_type_stats') return { ok: true, value: { action: 'admin_type_stats' } };
+  if (b.action === 'assets' || b.action === 'get' || b.action === 'shared') {
     if (typeof b.resultId !== 'string' || !UUID_RE.test(b.resultId)) return { ok: false, error: '결과 id 가 올바르지 않습니다.' };
     return { ok: true, value: { action: b.action, resultId: b.resultId } };
   }
@@ -330,6 +339,14 @@ function parseDialogueItem(item: unknown): DialogueLine | null {
     return line ? { speaker, line } : null;
   }
   return null;
+}
+
+export function parseVoiceDirection(v: unknown): VoiceDirection | null {
+  if (!v || typeof v !== 'object' || Array.isArray(v)) return null;
+  const o = v as Record<string, unknown>;
+  const rate = ['slow', 'normal', 'fast'].includes(String(o.rate)) ? (o.rate as VoiceDirection['rate']) : 'normal';
+  const pitch = ['low', 'normal', 'high'].includes(String(o.pitch)) ? (o.pitch as VoiceDirection['pitch']) : 'normal';
+  return { rate, pitch };
 }
 
 export function validateStoryOutput(
@@ -385,6 +402,7 @@ export function validateStoryOutput(
       story: { setting, dialogue: dialogue as DialogueLine[], result: { job, reputation, achievement }, ending },
       image_prompt: imagePrompt,
       narration_text: narration,
+      ...(parseVoiceDirection(d.voice_direction) ? { voice_direction: parseVoiceDirection(d.voice_direction)! } : {}),
     },
   };
 }
@@ -416,47 +434,88 @@ JSON 으로만 답하세요: {"category_code": "<위 코드 중 하나>"}`;
 }
 
 /**
- * 전생여지도 고정 문체 — 기존 10종 캐릭터 이야기에서 뽑은 유머 코드.
- * 아래 예시는 "형식"을 보여 주는 용도다. 문장·소재·인물을 그대로 가져오지 말고 이 전생의 4개 조각에 맞게 새로 짓는다.
+ * 최우선 금지 규칙 — 전래동화 미담 클리셰와 비의도적 고증 오류를 막는다. 다른 모든 규칙보다 앞선다.
  */
+export const NEGATIVE_RULES = `[최우선 금지 규칙 — 어떤 경우에도 어기지 않는다]
+1. 절대 금지 소재: "정직한 장사로 신뢰 쌓기", "가난한 선비를 무료로 도와주기(종이·붓·밥 등을 공짜로 주기)", "10년 뒤 장원급제하거나 관리가 되어 보은하기", "교훈적인 위인전·미담 전개", "역경을 이겨낸 성실한 노력 끝에 인정받는 결말". 이런 줄거리는 부분적으로도 쓰지 않는다.
+2. 주인공을 모범생·성인군자로 그리지 않는다. 반드시 괴짜 같은 집착이나 뻔뻔한 재능을 가진 인물이다.
+3. 비의도적 고증 오류 금지: 조선시대에 존재하지 않는 물건(연필, 볼펜, 유리창, 전화, 시계 등)이 아무 설명 없이 자연스럽게 등장하면 안 된다. 소품과 직업은 시대에 맞는 것만 쓴다.
+4. 현대 용어(인수합병, 퓨전, 족보, 1+1, 구독, 별점 등)는 "의도된 개그 장치"로만 쓴다: 주인공이 사극 말투(~하옵니다)로 진지하게 엉뚱한 소리를 하는 대사 안에서만 등장시키고, 서술문(setting/ending/괄호 지문)이나 주변 인물이 현대어를 쓰게 하지 않는다. 현대 용어를 해설하거나 "요즘으로 치면" 같은 메타 표현도 쓰지 않는다.
+5. 죽음·잔혹·공포 묘사 금지, 성격·운세 단정 금지.`;
+
+/**
+ * 전생여지도 고정 문체 — 기존 10종 캐릭터 이야기에서 뽑은 유머 코드와 실제 베스트 예시(Few-shot).
+ * 예시는 "톤과 구조"를 보여 주는 용도다. 인물·소재·문장을 그대로 가져오지 말고 이 전생의 4개 조각에 맞게 새로 짓는다.
+ */
+/** 뻔한 모범 답안의 확률 분포를 깨기 위해 높게 둔다 */
+export const STORY_TEMPERATURE = 0.9;
+
+/**
+ * 전생여지도 AI 콘텐츠 생성 통합 프롬프트(기획 문서)의 역할·7가지 유머 코드·음성 연출·품질 검증 요약.
+ * 4개 조각이 뼈대라는 앱 규칙이 이 문서보다 우선한다(우선순위 항목 참고).
+ */
+export const STYLE_GUIDE = `[역할과 목표]
+당신은 조선 시대를 배경으로 한 인터랙티브 전생 체험 서비스 '전생여지도'의 전문 스토리 작가이자 캐릭터 디렉터입니다. 기존 전생여지도 캐릭터 10종의 독특한 유머 스타일과 서사 특징을 일관되게 재현하는 것이 핵심 목표입니다.
+- 조선 시대 상황과 현대적 사고방식이 충돌하는 데서 유머가 나온다. 주인공은 자신의 엉뚱한 행동을 지극히 당연하게 생각한다.
+- 대화에는 재치와 반전이, 인생 전체의 서사에는 의미와 여운이 있어야 한다. 모든 이야기를 같은 공식에 맞추지 않는다.
+
+[7가지 유머 코드 — 적극 활용]
+① 시대착오적 현대어: 혼처를 인수합병·사업 투자로, 전통 음식을 퓨전·신메뉴 개발로, 과거시험을 취업·합격률로, 상단 운영을 기업 경영·시장 점유율로 해석하는 식. 무작위 삽입 금지, 주인공의 직업·성격에 맞게.
+② 진지한 궤변: 황당한 행동을 자기 논리로 완벽히 정당화한다("아무도 하지 말라 하지 않았사옵니다", 실패를 자랑거리로 전환, 질문을 엉뚱한 방향으로 해석).
+③ 상황과 기대의 반전: 독자가 예상하는 결과를 주인공의 행동과 성격으로 뒤집는다.
+④ 과장과 캐릭터화: 특징을 극단적으로 표현하되 그것이 고유한 정체성이 되게 한다.
+⑤ 아이러니와 역설: 약점이 강점이 되고, 실패가 다른 형태의 성공으로 이어진다.
+⑥ 주변 인물의 반응: 침묵·당황·반문·행동으로 유머를 강화한다.
+⑦ 담백한 마무리: 황당한 상황을 설명하지 않는다. 짧은 문장이나 괄호 속 상황 묘사로 웃음을 완성한다.
+
+[스토리 구성]
+- setting: 출신·직업·독특한 성격과 행동 소개 / dialogue: 성격이 가장 잘 드러나는 사건과 재치 있는 대화 / result: 행동이 인생에 준 영향 / ending: 가치관과 인생의 의미가 담긴 마지막 장면(유머와 감동의 비중은 이야기마다 조절).
+
+[대화·음성 연출]
+- 대화는 자연스러운 사극 말투를 쓰되 모든 대사를 지나치게 고풍스럽게 만들지 않는다. 현대 개념이 나올 때는 의도적인 시대착오 표현을 허용한다.
+- 음성을 위해 voice_direction 을 함께 정한다: 감정에 맞는 속도(rate)와 높낮이(pitch). 이 인물이 다른 인물과 똑같은 사극 성우처럼 들리지 않게 한다.
+
+[출력 전 내부 점검 — 미달이면 고친 뒤 최종 결과만 출력]
+- 이 인물의 고유한 성격이 드러나는가? 유머 코드가 자연스러운가? 현대 표현이 맥락에 맞는가?
+- 억지 말장난이나 인터넷 유행어에 의존하지 않았는가? 행동과 대화가 일관적인가? 유머와 서사의 균형이 맞는가?
+- 참고 이야기를 복사하지 않고 그 유머 생성 원리를 새 상황에 적용했는가?
+- 분석 과정·프롬프트 설명은 출력하지 않는다. 유효한 JSON 하나만 출력한다.`;
+
 export const HUMOR_CODE = `[전생여지도 고정 문체 — 유머 코드]
-1. 사극 어투 + 현대 개념 충돌 (Deadpan Anachronism)
-   - 대사는 정통 사극 어투(~하옵니다, ~하였사옵니다, ~이옵니다, ~이오이다)를 끝까지 지킨다.
-   - 그 안에 현대 개념(인수합병, 퓨전, 시험 족보, 1+1 행사, 과장된 캐리커처, 대량 주문, 구독, 후기 별점 등)을 진지하고 능청스럽게 1~2곳 섞는다. 화자는 그것이 어색하다는 것을 모르는 듯이 말해야 웃긴다.
-   - 현대 용어를 해설하거나 "현대로 치면" 같은 메타 표현을 쓰지 않는다.
-2. 문답 티키타카 + 괄호 지문 펀치라인
-   - story.dialogue 는 주변 인물(상관·가족·손님·제자·동료 등)과 주인공('나')의 짧은 문답 6~8회로 구성한다. 한 대사는 60자 안팎으로 짧게.
-   - 주인공의 엉뚱하거나 능청스러운 대답 바로 다음에는 상대의 말줄임표 반응 한 줄("……." 또는 "……그, 그러하옵니까.")과, 상황을 코믹하게 압축하는 3인칭 괄호 지문 한 줄을 반드시 둔다. 괄호 지문은 speaker 를 빈 문자열로 두고 line 을 ( ) 로 감싼다.
-   - 괄호 지문은 이야기 전체에서 3개 이상, 짧고 구체적인 동작으로 쓴다(예: "(상궁마마는 국자를 떨어뜨렸고, 전하는 세 번째 그릇을 내밀었다.)").
-3. 4단 호흡 + 반전 여운 결말
-   - setting 과 ending 은 짧은 문장으로 ~했어요 / ~했습니다 를 자연스럽게 번갈아 써서 리듬을 만든다.
-   - 기(상황) → 승(엉뚱한 시도) → 전(반전) → 결(여운) 의 4단 호흡으로, 전반부는 유쾌하고 익살스럽게 전개한다.
-   - ending 에서는 주인공의 고집과 재능이 따뜻한 여운으로 남게 하고, 마지막 대사(또는 마지막 문장) 한 줄로 앞의 유머를 회수한다.
-4. narration_text 는 성우 연기용 낭독문
-   - 건조한 3인칭 요약이 아니라, 주인공의 성격(능청스러움 / 진지한 척 장난스러움 / 묵직한 신념 / 흥겨움 등)이 목소리로 드러나는 1인칭 독백과 대표 대사 중심으로 쓴다.
-   - 쉼표·말줄임표·짧은 문장으로 숨과 억양을 표시하고, 마지막은 유머를 회수하는 한 줄로 끝낸다. 1분 안에 읽을 분량(600자 안팎).
+1. 괴짜 집착 1가지 필수
+   - 수집한 4개 조각(시대·신분·핵심 서사·소지품)과 띠 소재를 엮어, 주인공에게 엉뚱한 집착이나 뻔뻔한 재능 하나를 부여한다. 모든 사건은 이 집착 때문에 벌어진다.
+   - 예: 혼처가 들어오면 인수합병부터 따지는 막내딸 / 신선로에 김치를 때려 넣는 수라간 반항아 / 왕의 눈을 얼굴 절반 크기로 그리는 화원. (이 예를 그대로 쓰지 말고 이 전생에 맞게 새로 짓는다)
+   - 이야기는 "집착 → 엉뚱한 시도 → 주변의 당혹 → 뜻밖의 성과 → 여운" 순서의 갭 유머 구조다.
+2. 사극 어투 + 현대 개념 충돌 (Deadpan Anachronism)
+   - 대사는 사극 어미(~하옵니다, ~이옵니다, ~하였사옵니다, ~하오이다, ~소서)를 기본으로 하되 과하게 고풍스럽지 않게 한다. 현대 어미(~했어요, ~나요)는 대사에 쓰지 않는다. 주인공도 마찬가지다.
+   - 현대 개념은 전체에서 1~2곳, 주인공의 대사 안에서만 진지하고 능청스럽게 박아 넣는다.
+3. 문답 티키타카 + 괄호 지문 펀치라인
+   - story.dialogue 는 정상인 상대(상관·어른·손님·동료 등)와 주인공('나')의 짧은 문답 6~8줄로 구성한다. 한 대사는 60자 안팎.
+   - 주인공의 뻔뻔한 대답 바로 다음에 상대의 침묵 한 줄("…….")과, 상황을 코믹하게 압축하는 3인칭 괄호 지문 한 줄(speaker 는 빈 문자열, line 은 ( ) 로 감쌈)을 반드시 둔다. 괄호 지문은 이야기 전체에서 2~3개.
+4. 짧은 호흡과 여운 콜백
+   - setting 과 ending 은 짧은 문장으로 ~했어요 / ~했습니다 를 번갈아 쓴다.
+   - ending 에서는 주인공의 고집과 재능이 따뜻한 여운으로 남게 하고, 마지막 대사 한 줄로 앞의 유머를 회수한다. 교훈으로 끝내지 않는다.
+5. narration_text 는 성우 연기용 낭독문
+   - 3인칭 요약이 아니라, 주인공의 성격이 목소리로 드러나는 1인칭 독백과 대표 대사 중심으로 쓴다. 쉼표·말줄임표·짧은 문장으로 숨과 억양을 표시하고 마지막은 유머를 회수하는 한 줄로 끝낸다. 600자 안팎.
 
-[어투 필수 — 가장 중요]
-- 모든 대사(dialogue 의 speaker 가 있는 줄)는 반드시 사극 어미로 끝낸다: ~하옵니다 / ~이옵니다 / ~하였사옵니다 / ~하오이다 / ~소서 / ~하오리까. "~합니다", "~했어요", "~나요" 같은 현대 어미를 대사에 쓰지 않는다. 주인공 대사도 마찬가지다.
-- 대사마다 현대 개념 유머를 억지로 넣지 말고, 전체에서 1~2곳을 진지한 얼굴로 박아 넣는다. 나머지 대사는 사극 어투의 짧은 문답이다.
-- setting / ending / 괄호 지문은 서술체(~했어요 / ~했습니다)다.
+[베스트 예시 1 — 설정 & 대화 톤]
+설정: 대감댁 막내딸로 태어났어요. 집안에서는 얌전히 수를 놓길 바랐지만, 수놓기 시간마다 치마 밑에서는 주판 소리가 났습니다.
+어머니: "혼처가 들어왔다."
+나: "어머니, 그 댁 재산이 얼마나 되옵니까? 인수합병을 검토 중이옵니다."
+어머니: "너는 지아비를 구하는 것이냐, 장사 밑천을 구하는 것이냐?"
+나: "그 댁에서는 제가 비단 상단을 운영하는 것을 알고 있사옵니까?"
+어머니: "……."
+(어머니는 혼처보다 먼저 집안 사정부터 다시 알아보셔야 했다.)
 
-[형식 예시 — 다른 소재의 축약본. 소재·문장·인물·수치를 그대로 가져오지 말 것. 모든 필드를 이 이야기에 맞게 새로 쓴다]
-{"title": "나루터에서 인수합병을 외친 사공",
- "story": {
-  "setting": "한강 나루터에 배가 단 두 척뿐이었어요. 나는 사공이었고, 건너편 사공과는 오랜 앙숙이었습니다. 그러던 어느 장날, 손님이 줄어 둘 다 굶게 생겼어요.",
-  "dialogue": [
-   {"speaker": "건너편 사공", "line": "그대는 어찌하여 내 나루에 깃발을 꽂았는가."},
-   {"speaker": "나", "line": "합치면 한 배는 덤이옵니다. 우리 두 나루를 인수합병하시옵소서."},
-   {"speaker": "건너편 사공", "line": "……."},
-   {"speaker": "", "line": "(건너편 사공은 삿대를 떨어뜨렸고, 구경하던 나그네는 슬며시 두 번째 승선권을 샀다.)"},
-   {"speaker": "나", "line": "합병 기념으로 첫 손님께는 뱃삯을 반만 받겠사옵니다."},
-   {"speaker": "건너편 사공", "line": "반이라니…… 그렇다면 둘째 손님께는 어찌하려 하느냐."},
-   {"speaker": "나", "line": "둘째 손님께는 1+1이옵니다. 가는 길에 한 번 더 건너시게 하겠사옵니다."},
-   {"speaker": "", "line": "(나그네는 오가다 날이 저물었고, 두 사공은 처음으로 같은 밥상에 앉았다.)"}],
-  "result": {"job": "한강 나루터 통합 사공", "reputation": "앙숙을 동업자로 만든 능청스러운 뱃사공", "achievement": "두 나루를 한 배로 합쳐 겨울 매상을 두 배로 올렸다"},
-  "ending": "그해 겨울 나루터는 한 배로 합쳐졌어요. 두 사공은 여전히 싸웠지만 매상은 두 배가 되었습니다. 마지막으로 나는 늘 같은 말을 했어요. \"뱃삯은 반이오나, 돌아오시는 길은 덤이옵니다.\""},
- "image_prompt": "Waist-up three-quarter portrait of a sly boatman holding a bamboo pole and a bundle of fare tickets, pretend-serious look, hemp-colored work clothes", "narration_text": "에헴, 내가 이 나루의 사공이오. 앙숙과 합치자 하였더니…… 허허, 매상이 두 배가 되었사옵니다. 뱃삯은 반이오나, 돌아오시는 길은 덤이옵니다."}`;
+[베스트 예시 2 — 설정 & 대화 톤]
+설정: 궁궐 수라간의 막내 숙수였어요. 맑게 끓이라는 국에는 고춧가루를 넣고, 따로 내라는 음식은 한 냄비에 담았습니다.
+상궁: "전하 수라에 무엇을 올렸느냐?"
+나: "퓨전 신선로이옵니다. 김치를 넣었사옵니다."
+상궁: "누가 신선로에 김치를 넣으라 하였느냐!"
+나: "아무도 넣지 말라는 말씀은 없으셨사옵니다. 그러기에는 전하께서 이미 두 그릇째 드시고 계시옵니다."
+(상궁마마는 국자를 떨어뜨렸고, 전하는 세 번째 그릇을 내밀었다.)
+
+위 두 예시의 인물·직업·소재·대사는 이 전생에 쓰지 않는다. 같은 "톤과 구조"로 완전히 다른 집착·상황·대사를 새로 지어낸다.`;
 
 export function buildStoryPrompt(params: {
   name: string;
@@ -464,11 +523,17 @@ export function buildStoryPrompt(params: {
   statusDetail: string;
   category: CategoryRow;
   character: CharacterRow;
+  /** 같은 유형의 다른 공식 캐릭터(문체·유머 참고 자료). 선택된 캐릭터와 함께 Reference Data 로 준다 */
+  references?: CharacterRow[];
   rule: PromptRuleRow;
   zodiac: ZodiacRuleRow | null;
 }): { system: string; user: string } {
-  const { name, fragments, statusDetail, category, character, rule, zodiac } = params;
+  const { name, fragments, statusDetail, category, character, references = [], rule, zodiac } = params;
   const system = `당신은 전주 역사문화 체험 '전생여지도'의 이야기 작가입니다.
+
+${NEGATIVE_RULES}
+
+${STYLE_GUIDE}
 
 [작성 규칙 — writing_rules]
 ${asText(rule.writing_rules)}
@@ -505,7 +570,16 @@ ${HUMOR_CODE}`;
 - 고정 규칙: ${asText(character.fixed_rules)}
 - 원본 이야기(문체 참고):
 ${asText(character.reference_story)}
-${
+${references
+  .filter((r) => r.character_id !== character.character_id)
+  .map((r) => `
+[추가 Reference Data — 같은 유형의 공식 캐릭터. 유머가 만들어지는 원리만 참고]
+- 정체성: ${asText(r.identity)}
+- 신분·역할: ${asText(r.social_role)}
+- 원본 이야기:
+${asText(r.reference_story)}
+`)
+  .join('')}${
   zodiac
     ? `
 [12간지 소재 — 선택 사항, 이야기 소재로만]
@@ -516,10 +590,12 @@ ${asText(zodiac.motif_keywords) ? `- 소재 키워드: ${asText(zodiac.motif_key
 [출력 형식 — output_template 과 같은 구조의 JSON 하나만]
 ${asText(rule.output_template)}
 
+- JSON 의 맨 앞 키로 "quirk" 를 추가해 이 주인공의 괴짜 집착·뻔뻔한 재능을 한 줄로 먼저 정한 뒤(저장되지 않는 메모), 모든 사건을 그 집착에서 출발시킨다. 4개 조각·띠를 엮어 새로 짓고, 모범생 설정과 전래동화 미담 줄거리는 쓰지 않는다.
 - story.dialogue 는 {"speaker": "화자", "line": "대사"} 객체의 배열로 쓴다. 주인공은 speaker 를 "나" 로 쓴다. 문답 6~8회 + 괄호 지문(speaker 는 빈 문자열)으로 구성한다.
 - setting 은 ~했어요/~했습니다 가 번갈아 나오는 짧은 4~5문장, ending 은 따뜻한 여운 + 마지막 한 줄 유머 회수.
 - image_prompt 는 영어로, 이 전생의 인물 초상 한 장만 묘사한다. 반드시 포함: 반신상(waist-up) 3/4 측면 구도, 이 이야기의 유머가 드러나는 표정(능청스러운 미소·장난기 어린 눈빛·진지한 척하는 얼굴 중 하나), 수집한 조각과 이야기 핵심 소품(붓·문서·봇짐·관인·솥단지 등)을 들거나 착용한 모습, 시대에 맞는 의복. 건물·풍경 배경은 쓰지 않는다. 글자·한자·낙관·워터마크를 넣지 않는다.
-- narration_text 는 주인공의 1인칭 독백과 대표 대사가 중심인 성우 연기용 낭독문(600자 안팎)으로 쓴다.`;
+- narration_text 는 주인공의 1인칭 독백과 대표 대사가 중심인 성우 연기용 낭독문(600자 안팎)으로 쓴다.
+- JSON 마지막에 "voice_direction": {"rate": "slow|normal|fast", "pitch": "low|normal|high"} 를 추가한다(이 인물의 감정·성격에 맞는 낭독 속도와 높낮이).`;
   return { system, user };
 }
 
@@ -563,6 +639,12 @@ export interface StoryDeps {
   countRecentResults(userId: string, sinceIso: string): Promise<number>;
   insertResult(row: Omit<PastLifeResultRow, 'created_at'>): Promise<PastLifeResultRow>;
   getResult(id: string, userId: string): Promise<PastLifeResultRow | null>;
+  /** 공유 링크용: 소유자와 무관하게 id(추측 불가능한 UUID)로 1건 조회. 로그인 없이 쓰이므로 응답에서 소유자 정보를 지운다 */
+  getSharedResult(id: string): Promise<PastLifeResultRow | null>;
+  /** 운영자 대시보드용: 전생 유형(category_code)별 저장된 결과 수 (전체 기간) */
+  countResultsByCategory(codes: string[]): Promise<Record<string, number>>;
+  /** 운영자 확인: 요청 헤더의 관리자 코드가 맞거나, 로컬 개발(코드 미설정)이면 true */
+  isAdmin(request: Request): boolean;
   listResults(userId: string, limit: number): Promise<PastLifeResultRow[]>;
   updateAssetPaths(id: string, userId: string, patch: { image_path?: string; voice_path?: string }): Promise<PastLifeResultRow>;
   upload(bucket: string, path: string, data: Buffer, contentType: string): Promise<void>;
@@ -570,7 +652,7 @@ export interface StoryDeps {
   /** 초상화. 모든 외부 생성이 실패하면 null (화면은 기존 캐릭터 초상화로 대체) */
   generateImage(imagePrompt: string, signal: AbortSignal): Promise<{ data: Buffer; mimeType: string } | null>;
   /** 낭독 음성(MP3). voiceHint 는 남/여 음성 선택에 쓰는 인물 묘사 */
-  generateSpeech(text: string, signal: AbortSignal, voiceHint?: string): Promise<Buffer | null>;
+  generateSpeech(text: string, signal: AbortSignal, voiceHint?: string, direction?: VoiceDirection): Promise<Buffer | null>;
   userLimiter: SlidingWindowLimiter;
   ipLimiter: SlidingWindowLimiter;
   timeouts?: Partial<typeof LIMITS.timeouts>;
@@ -696,9 +778,9 @@ export function createStoryHandler(deps: StoryDeps) {
     const character = characters[Math.min(characters.length - 1, Math.max(0, pick(characters.length)))];
 
     // 3) 스토리 생성 → 검증 → 저장
-    const prompt = buildStoryPrompt({ name: req.name, fragments: req.fragments, statusDetail: set.statusDetail, category, character, rule, zodiac });
+    const prompt = buildStoryPrompt({ name: req.name, fragments: req.fragments, statusDetail: set.statusDetail, category, character, references: characters, rule, zodiac });
     const raw = await step('ai:story', () => withTimeout(
-      (signal) => deps.generateJson({ system: prompt.system, user: prompt.user, temperature: 1 }, signal),
+      (signal) => deps.generateJson({ system: prompt.system, user: prompt.user, temperature: STORY_TEMPERATURE }, signal),
       t.story,
     ));
     const checked = validateStoryOutput(raw);
@@ -735,7 +817,7 @@ export function createStoryHandler(deps: StoryDeps) {
     const [image, voice] = await Promise.allSettled([
       needImage ? timed('ai:image', () => withTimeout((sig) => deps.generateImage(row.story.image_prompt, sig), t.image)) : Promise.resolve(null),
       needVoice
-        ? timed('ai:voice', () => withTimeout((sig) => deps.generateSpeech(row.story.narration_text, sig, row.story.image_prompt), t.voice))
+        ? timed('ai:voice', () => withTimeout((sig) => deps.generateSpeech(row.story.narration_text, sig, row.story.image_prompt, row.story.voice_direction), t.voice))
         : Promise.resolve(null),
     ]);
 
@@ -789,6 +871,34 @@ export function createStoryHandler(deps: StoryDeps) {
     // 생년월일 거부·형식 검사를 가장 먼저 (본문을 어디에도 넘기지 않는다)
     const parsed = parseRequest(body);
     if (!parsed.ok) return json(400, { error: parsed.error });
+
+    // 운영자 대시보드: 전생 유형별 실제 저장 수(Supabase). 관리자 확인 후 개인정보 없는 집계만 돌려준다.
+    if (parsed.value.action === 'admin_type_stats') {
+      if (!deps.isAdmin(request)) return json(401, { error: '운영자 확인이 필요합니다.' });
+      try {
+        const categories = await step('db:story_categories', () => deps.loadCategories());
+        const counts = await step('db:count by category', () => deps.countResultsByCategory(categories.map((c) => c.category_code)));
+        const types = categories.map((c) => ({ category_code: c.category_code, name: c.name, count: counts[c.category_code] ?? 0 }));
+        return json(200, { total: types.reduce((a, t) => a + t.count, 0), types });
+      } catch {
+        return json(502, { error: '유형 집계를 불러오지 못했습니다.' });
+      }
+    }
+
+    // 공유 링크: 로그인 없이 결과 1건을 읽는다 (AI 호출 없음). 소유자 id·이름은 응답에서 지운다.
+    if (parsed.value.action === 'shared') {
+      const sharedId = parsed.value.resultId;
+      const ip0 = (request.headers.get('x-forwarded-for') ?? '').split(',')[0].trim() || 'unknown';
+      if (!deps.ipLimiter.take(ip0)) return json(429, { error: '요청이 너무 잦습니다. 잠시 후 다시 시도해 주세요.' });
+      try {
+        const row = await step('db:get shared past_life_results', () => deps.getSharedResult(sharedId));
+        if (!row) return json(404, { error: '공유된 결과를 찾을 수 없습니다.' });
+        const [v] = await views([{ ...row, user_id: '', user_name: '' }]);
+        return json(200, { result: v });
+      } catch {
+        return json(502, { error: '공유된 결과를 불러오지 못했습니다.' });
+      }
+    }
 
     const token = /^Bearer\s+(.+)$/i.exec(request.headers.get('authorization') ?? '')?.[1]?.trim() ?? '';
     if (!token) return json(401, { error: 'Google 로그인이 필요합니다.' });
@@ -965,6 +1075,28 @@ async function getRealHandler(): Promise<((request: Request) => Promise<Response
       if (error) throw error;
       return (data as unknown as PastLifeResultRow | null) ?? null;
     },
+    async getSharedResult(id) {
+      const { data, error } = await admin.from('past_life_results').select(ROW_COLUMNS).eq('id', id).maybeSingle();
+      if (error) throw error;
+      return (data as unknown as PastLifeResultRow | null) ?? null;
+    },
+    async countResultsByCategory(codes) {
+      const out: Record<string, number> = {};
+      await Promise.all(
+        codes.map(async (code) => {
+          const { count, error } = await admin.from('past_life_results').select('id', { count: 'exact', head: true }).eq('category_code', code);
+          if (error) throw error;
+          out[code] = count ?? 0;
+        }),
+      );
+      return out;
+    },
+    isAdmin(request) {
+      const pass = (process.env.ADMIN_PASSCODE || '').trim();
+      const given = decodeURIComponent(request.headers.get('x-admin-passcode') ?? '').trim();
+      if (pass) return given === pass;
+      return isDevDemoAllowed(); // 코드가 없으면 로컬 개발에서만 허용 (운영에서는 항상 거부)
+    },
     async listResults(userId, limit) {
       const { data, error } = await admin
         .from('past_life_results')
@@ -1013,10 +1145,10 @@ async function getRealHandler(): Promise<((request: Request) => Promise<Response
       return generatePortrait(imagePrompt, { geminiKey, geminiModel: geminiImageModel, signal, log: (m) => console.log(`[past-life/story] ${m}`) });
     },
     // 낭독: msedge-tts (키·결제 불필요). 인물 묘사로 남/여 음성을 고른다
-    async generateSpeech(text, signal, voiceHint) {
+    async generateSpeech(text, signal, voiceHint, direction) {
       const voice = pickVoice(voiceHint ?? '', text);
-      console.log(`[past-life/story] voice=${voice}`);
-      return synthesizeSpeech(text, voice, signal);
+      console.log(`[past-life/story] voice=${voice} rate=${direction?.rate ?? 'normal'} pitch=${direction?.pitch ?? 'normal'}`);
+      return synthesizeSpeech(text, voice, signal, direction);
     },
     userLimiter: new SlidingWindowLimiter(LIMITS.perUser.limit, LIMITS.perUser.windowMs),
     ipLimiter: new SlidingWindowLimiter(LIMITS.perIp.limit, LIMITS.perIp.windowMs),

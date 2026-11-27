@@ -54,7 +54,23 @@ test('generateClaudeJson: Messages API 형식으로 요청하고 text 블록을 
   assert.deepEqual(body.messages, [{ role: 'user', content: 'hello' }]);
   assert.match(body.system, /^sys/);
   assert.match(body.system, /JSON Schema/);
-  assert.equal(body.temperature, undefined); // 최신 모델은 temperature 를 거부하므로 보내지 않는다
+  assert.equal(body.temperature, 1); // Claude 범위(0~1)로 제한해 보낸다
+});
+
+test('generateClaudeJson: 모델이 temperature 를 거부(400)하면 빼고 한 번 다시 보낸다', async () => {
+  const bodies: Array<Record<string, unknown>> = [];
+  const fetchImpl = (async (_u: string, init: RequestInit) => {
+    const b = JSON.parse(String(init.body));
+    bodies.push(b);
+    return 'temperature' in b
+      ? new Response(JSON.stringify({ error: { message: '`temperature` is deprecated for this model.' } }), { status: 400 })
+      : new Response(JSON.stringify({ content: [{ type: 'text', text: '{"ok":true}' }] }), { status: 200 });
+  }) as unknown as typeof fetch;
+  const out = await generateClaudeJson({ apiKey: 'k', model: 'm', user: 'u', temperature: 0.9, fetchImpl });
+  assert.equal(out, '{"ok":true}');
+  assert.equal(bodies.length, 2);
+  assert.equal(bodies[0].temperature, 0.9);
+  assert.equal('temperature' in bodies[1], false);
 });
 
 test('generateClaudeJson: 오류 메시지에 API 키가 들어가지 않는다', async () => {

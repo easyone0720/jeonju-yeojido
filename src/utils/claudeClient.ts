@@ -69,42 +69,52 @@ export async function generateClaudeJson(params: ClaudeJsonParams): Promise<stri
   const jsonRule = params.schema
     ? `\n\n반드시 아래 JSON Schema 를 만족하는 JSON 객체 하나만 출력하세요. 마크다운 코드 울타리나 설명 문장은 붙이지 마세요.\n${JSON.stringify(params.schema)}`
     : '\n\n반드시 유효한 JSON 객체 하나만 출력하세요. 마크다운 코드 울타리나 설명 문장은 붙이지 마세요.';
-  const body = {
+  const body: Record<string, unknown> & { model: string } = {
     model: params.model || DEFAULT_CLAUDE_MODEL,
     max_tokens: params.maxTokens ?? DEFAULT_MAX_TOKENS,
     system: `${params.system ?? ''}${jsonRule}`.trim(),
     messages: [{ role: 'user', content: params.user }],
-    // temperature 는 최신 Claude 모델에서 deprecated(400) 라 보내지 않는다. 파라미터는 호환을 위해 받기만 한다.
   };
+  // temperature(0~1)는 지원하는 모델(haiku-4-5 등)에서만 보낸다. 최신 모델이 400 으로 거부하면 아래에서 빼고 한 번 다시 보낸다.
+  if (params.temperature !== undefined) body.temperature = Math.min(1, Math.max(0, params.temperature));
 
-  const doFetch = params.fetchImpl ?? fetch;
-  let res: Response;
-  try {
-    res = await doFetch(ANTHROPIC_MESSAGES_URL, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': params.apiKey,
-        'anthropic-version': ANTHROPIC_VERSION,
-      },
-      body: JSON.stringify(body),
-      signal: params.signal,
-    });
-  } catch (err) {
-    if (params.signal?.aborted) throw err; // 취소는 호출 측이 구분할 수 있게 그대로 올린다
-    throw new ClaudeApiError(`Claude 요청 실패: ${err instanceof Error ? err.message : 'network error'}`);
-  }
-
-  let payload: {
+  type Payload = {
     content?: Array<{ type?: string; text?: string }>;
     stop_reason?: string;
     usage?: { input_tokens?: number; output_tokens?: number };
     error?: { type?: string; message?: string };
-  } = {};
-  try {
-    payload = (await res.json()) as typeof payload;
-  } catch {
-    // JSON 이 아닌 응답은 아래에서 상태 코드로 처리
+  };
+  const doFetch = params.fetchImpl ?? fetch;
+  async function send(): Promise<{ res: Response; payload: Payload }> {
+    let res: Response;
+    try {
+      res = await doFetch(ANTHROPIC_MESSAGES_URL, {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json',
+          'x-api-key': params.apiKey,
+          'anthropic-version': ANTHROPIC_VERSION,
+        },
+        body: JSON.stringify(body),
+        signal: params.signal,
+      });
+    } catch (err) {
+      if (params.signal?.aborted) throw err; // 취소는 호출 측이 구분할 수 있게 그대로 올린다
+      throw new ClaudeApiError(`Claude 요청 실패: ${err instanceof Error ? err.message : 'network error'}`);
+    }
+    let payload: Payload = {};
+    try {
+      payload = (await res.json()) as Payload;
+    } catch {
+      // JSON 이 아닌 응답은 아래에서 상태 코드로 처리
+    }
+    return { res, payload };
+  }
+
+  let { res, payload } = await send();
+  if (!res.ok && res.status === 400 && body.temperature !== undefined && /temperature/i.test(payload.error?.message ?? '')) {
+    delete body.temperature;
+    ({ res, payload } = await send());
   }
   if (!res.ok) {
     const detail = payload.error?.message ? `: ${payload.error.message}` : '';
