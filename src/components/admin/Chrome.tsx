@@ -251,8 +251,6 @@ export function AdminHeader({
   onExport,
   onOpenMenu,
   onBackToApp,
-  liveOn,
-  onToggleLive,
 }: {
   preset: PeriodPreset;
   range: DateRange;
@@ -260,12 +258,13 @@ export function AdminHeader({
   onExport: () => void;
   onOpenMenu: () => void;
   onBackToApp: () => void;
-  liveOn: boolean;
-  onToggleLive: () => void;
 }) {
   return (
-    <header className="relative overflow-hidden bg-[#1D2A3A] text-white">
-      <HeaderArt />
+    <header className="relative z-30 bg-[#1D2A3A] text-white">
+      {/* 장식 배경만 잘라 낸다 — 헤더 자체에 overflow-hidden 을 두면 기간 선택 드롭다운이 잘린다 */}
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden">
+        <HeaderArt />
+      </div>
       <div className="relative flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-3 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <button
@@ -286,32 +285,10 @@ export function AdminHeader({
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
-          <span
-            className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-[#4A627A] bg-[#1D2A3A]/80 px-3 text-[13px] font-semibold"
-            title="실제 서버 지표가 연결되지 않아 데모 데이터로 표시 중입니다."
-          >
+          <span className="inline-flex min-h-[40px] items-center gap-2 rounded-full border border-[#4A627A] bg-[#1D2A3A]/80 px-3 text-[13px] font-semibold">
             <span className="h-2 w-2 rounded-full bg-[#39B86C]" aria-hidden="true" />
             실시간 운영 상태
-            <span className="rounded-full bg-[#F5C451] px-2 py-0.5 text-[11px] font-bold text-[#172638]">데모 모드</span>
           </span>
-
-          <button
-            type="button"
-            role="switch"
-            aria-checked={liveOn}
-            onClick={onToggleLive}
-            title="이 브라우저에서 방금 체험한 기록을 11/23 수치에 +1로 합산합니다."
-            className="inline-flex min-h-[40px] items-center gap-2 rounded-lg border border-[#4A627A] px-3 text-[13px] font-semibold hover:bg-[#2E4057]"
-          >
-            <span>내 기록 합산</span>
-            <span
-              aria-hidden="true"
-              className={`relative h-5 w-9 rounded-full transition-colors ${liveOn ? 'bg-[#F28C18]' : 'bg-[#4A627A]'}`}
-            >
-              <span className={`absolute left-0.5 top-0.5 h-4 w-4 rounded-full bg-white transition-transform ${liveOn ? 'translate-x-4' : ''}`} />
-            </span>
-            <span className="sr-only">{liveOn ? '켜짐' : '꺼짐'}</span>
-          </button>
 
           <PeriodPicker preset={preset} range={range} onChange={onPeriodChange} />
 

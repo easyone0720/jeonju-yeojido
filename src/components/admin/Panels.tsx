@@ -10,18 +10,16 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
-import { CheckCircle2, FileText, Hourglass, Landmark, Settings, Star, Ticket, Users } from 'lucide-react';
+import { CheckCircle2, FileText, Hourglass, Landmark, Star, Ticket, Users } from 'lucide-react';
 import type { AdminSpotKey } from '../../data/adminDummyStats';
 import {
   DEMO_ACTIVITY_LOG,
   DEMO_STATIC,
   EVENT_CAMPAIGN_START,
   EVENT_WEEKEND_PEAK,
-  EXPANSION_FEATURES,
   fmt,
   fmtPct,
   shortDate,
-  type ExpansionFeature,
   type PeriodSummary,
 } from '../../data/adminDashboardData';
 import { C, CardShell, Modal } from './ui';
@@ -546,22 +544,44 @@ function Donut({
 }
 
 /* ------------------------------------------------------------------ [4] 전생 유형 분포 */
-export function SurveyCard({ summary }: { summary: PeriodSummary }) {
+const TYPE_COLORS = ['#1D2A3A', '#F28C18', '#4A8F6B', '#7C5BA6', '#C0392B', '#2E7DA6', '#B58B2A', '#6B7C93'];
+
+/**
+ * 전생 유형 분포. realTypes(Supabase story_categories + past_life_results 실집계)가 있으면 그것을 보여 주고,
+ * 없으면(운영자 확인 실패·DB 미연결) 기존 데모 분포로 대신한다.
+ */
+export function SurveyCard({ summary, realTypes }: { summary: PeriodSummary; realTypes?: { total: number; types: Array<{ category_code: string; name: string; count: number }> } | null }) {
   const [active, setActive] = useState<number | null>(null);
+  const groups = realTypes
+    ? realTypes.types.map((t, i) => ({
+        id: t.category_code,
+        label: t.name,
+        color: TYPE_COLORS[i % TYPE_COLORS.length],
+        count: t.count,
+        rate: realTypes.total > 0 ? (t.count / realTypes.total) * 100 : 0,
+      }))
+    : summary.groups;
+  const n = realTypes ? realTypes.total : summary.surveyN;
   return (
     <CardShell num={4} title="설문 결과: 전생 유형 분포">
+      <p className="mb-2 text-[11.5px] text-[#4A627A]">
+        {realTypes ? 'Supabase 실집계 · 전체 기간 누적' : '데모 데이터 (DB 집계를 불러오지 못했습니다)'}
+      </p>
+      {realTypes && realTypes.total === 0 && (
+        <p className="mb-2 rounded-lg border border-[#D1C8B8] bg-white px-3 py-2 text-xs text-[#4A627A]">아직 저장된 전생 결과가 없습니다.</p>
+      )}
       <div className="@container">
         <div className="flex flex-col items-center gap-4 @[380px]:flex-row @[380px]:justify-center">
-          <Donut segments={summary.groups.map((g) => ({ value: g.count, color: g.color }))} active={active} size={170} stroke={30}>
+          <Donut segments={groups.map((g) => ({ value: g.count, color: g.color }))} active={active} size={170} stroke={30}>
             <span className="text-[12px] font-bold leading-tight text-[#172638]">
               전생 유형
               <br />
               분포
             </span>
-            <span className="text-[11px] tabular-nums text-[#4A627A]">(n = {fmt(summary.surveyN)})</span>
+            <span className="text-[11px] tabular-nums text-[#4A627A]">(n = {fmt(n)})</span>
           </Donut>
           <ul className="space-y-1.5">
-            {summary.groups.map((g, i) => (
+            {groups.map((g, i) => (
               <li key={g.id}>
                 <button
                   type="button"
@@ -745,63 +765,5 @@ export function SummaryCard({ summary }: { summary: PeriodSummary }) {
         ))}
       </ul>
     </section>
-  );
-}
-
-/* ------------------------------------------------------------------ 확장 기능 7종 */
-const EXPANSION_ICON_PATHS: Record<string, string> = {
-  ab: 'M4 5h7v14H4zM13 5h7v14h-7z',
-  return: 'M4 12a8 8 0 0 1 14-5l2-2v6h-6l2.2-2.2A5 5 0 1 0 17 14',
-  forecast: 'M4 19V9M10 19V5M16 19v-7M22 19H2',
-  anomaly: 'M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6zM12 8v5M12 16h.01',
-  report: 'M6 3h9l4 4v14H6zM14 3v5h5M9 13h7M9 17h7',
-  'live-map': 'M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11zM12 12a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z',
-};
-
-export function ExpansionRow() {
-  const [open, setOpen] = useState<ExpansionFeature | null>(null);
-  return (
-    <>
-      <section aria-label="추가 발전 아이디어" className="grid grid-cols-2 gap-3 min-[640px]:grid-cols-3 min-[1360px]:grid-cols-7">
-        <div className="col-span-2 flex items-center gap-3 rounded-2xl border border-[#D1C8B8] bg-[#F4F0E8] p-3.5 shadow-xs min-[640px]:col-span-3 min-[1360px]:col-span-1">
-          <Settings className="h-9 w-9 shrink-0 text-[#1D2A3A]" aria-hidden="true" />
-          <div className="leading-tight">
-            <p className="text-[15px] font-extrabold text-[#172638]">추가 발전 아이디어</p>
-            <p className="text-[11.5px] text-[#4A627A]">(확장 기능 제안)</p>
-          </div>
-        </div>
-        {EXPANSION_FEATURES.map((f) => (
-          <button
-            key={f.id}
-            type="button"
-            onClick={() => setOpen(f)}
-            className="flex min-w-0 flex-col items-start gap-1 rounded-2xl border border-[#D1C8B8] bg-[#F4F0E8] p-3.5 text-left shadow-xs transition duration-250 ease-out hover:-translate-y-1 hover:scale-[1.04] hover:shadow-lg motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:hover:scale-100"
-          >
-            <span className="flex items-center gap-2 text-[14px] font-extrabold text-[#172638]">
-              <svg viewBox="0 0 24 24" className="h-5 w-5 shrink-0 text-[#1D2A3A]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                <path d={EXPANSION_ICON_PATHS[f.id]} />
-              </svg>
-              {f.title}
-            </span>
-            <span className="text-[11.5px] leading-snug text-[#4A627A]">{f.summary}</span>
-          </button>
-        ))}
-      </section>
-      {open && (
-        <Modal title={open.title} onClose={() => setOpen(null)}>
-          <div className="space-y-3 text-sm text-[#172638]">
-            <div>
-              <p className="mb-1 text-xs font-bold text-[#4A627A]">기능 개요</p>
-              <p className="leading-relaxed">{open.detail}</p>
-            </div>
-            <div className="rounded-lg border border-[#F28C18] bg-[#FFF1DE] px-3 py-2.5">
-              <p className="mb-0.5 text-xs font-bold text-[#B45F00]">현재 개발·연동 상태</p>
-              <p className="leading-relaxed">{open.status}</p>
-            </div>
-            <p className="text-xs text-[#6B7C93]">이 카드는 확장 기능 제안이며, 아직 동작하는 기능이 아닙니다.</p>
-          </div>
-        </Modal>
-      )}
-    </>
   );
 }

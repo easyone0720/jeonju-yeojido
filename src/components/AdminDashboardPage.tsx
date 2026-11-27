@@ -1,7 +1,6 @@
 import { FormEvent, useCallback, useEffect, useMemo, useState } from 'react';
 import { Download, Lock } from 'lucide-react';
 import { USE_LOCAL_BACKEND } from '../config/features';
-import { CHARACTERS } from '../data/characters';
 import {
   ADMIN_MENU_INFO,
   buildReportCsv,
@@ -11,13 +10,13 @@ import {
   type DateRange,
   type PeriodPreset,
 } from '../data/adminDashboardData';
-import { apiFetch, getAdminLiveSnapshot } from '../utils/localApi';
+import { apiFetch } from '../utils/localApi';
+import { fetchAdminTypeStats, type AdminTypeStat } from '../services/aiPastLife/api';
 import { AdminOpsTools } from './AdminOpsTools';
 import { AdminHeader, SidebarContent, type AdminViewId } from './admin/Chrome';
 import {
   ActivityCard,
   CouponCard,
-  ExpansionRow,
   FunnelCard,
   KpiRow,
   SpotMapCard,
@@ -61,15 +60,25 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
   const [authError, setAuthError] = useState<string | null>(null);
   const [authLoading, setAuthLoading] = useState(false);
 
+  // Supabase 의 전생 유형 실집계 (로그인한 운영자 코드가 있으면 함께 보낸다). 실패하면 null → 카드가 데모 분포로 대신한다
+  const [realTypes, setRealTypes] = useState<{ total: number; types: AdminTypeStat[] } | null>(null);
+  useEffect(() => {
+    if (!authenticated) return;
+    const controller = new AbortController();
+    void fetchAdminTypeStats(passcode.trim() || undefined, controller.signal).then((r) => {
+      if (!controller.signal.aborted) setRealTypes(r);
+    });
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authenticated]);
+
   const [view, setView] = useState<AdminViewId>('dashboard');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [preset, setPreset] = useState<PeriodPreset>('last30');
   const [range, setRange] = useState<DateRange>(() => presetRange('last30'));
-  const [liveOn, setLiveOn] = useState(false);
-  const [snapshot, setSnapshot] = useState(() => getAdminLiveSnapshot());
   const [exportInfo, setExportInfo] = useState<ExportInfo | null>(null);
 
-  const summary = useMemo(() => summarize(range, liveOn ? snapshot : null), [range, liveOn, snapshot]);
+  const summary = useMemo(() => summarize(range, null), [range]);
 
   const handleLogin = async (e: FormEvent) => {
     e.preventDefault();
@@ -98,11 +107,6 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
     setDrawerOpen(false);
     window.scrollTo({ top: 0 });
   }, []);
-
-  const handleToggleLive = () => {
-    if (!liveOn) setSnapshot(getAdminLiveSnapshot());
-    setLiveOn((v) => !v);
-  };
 
   const handleExport = useCallback(() => {
     const { csv, rowCount, sections } = buildReportCsv(summary);
@@ -166,14 +170,6 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
     );
   }
 
-  const liveWall =
-    liveOn && snapshot.mediaWallAccepted
-      ? {
-          alias: snapshot.visitorName || '내 시연 기록',
-          characterTitle: snapshot.characterId ? CHARACTERS.find((c) => c.id === snapshot.characterId)?.title ?? '내 전생' : '내 전생',
-        }
-      : null;
-
   const renderBody = () => {
     if (view === 'dashboard') {
       return (
@@ -197,7 +193,7 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
               <SpotMapCard summary={summary} />
             </div>
             <div className="min-w-0">
-              <SurveyCard summary={summary} />
+              <SurveyCard summary={summary} realTypes={realTypes} />
             </div>
             <div className="min-w-0 min-[768px]:col-span-2 min-[1360px]:col-span-1">
               <CardShell num={8} title="현장 운영 도구 (QR코드 발급)">
@@ -218,7 +214,6 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
             </div>
           </div>
 
-          <ExpansionRow />
         </div>
       );
     }
@@ -229,8 +224,8 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
         <ContentView
           info={info}
           onBack={() => selectView('dashboard')}
-          liveCharacterId={liveOn ? snapshot.characterId : null}
-          liveWall={liveWall}
+          liveCharacterId={null}
+          liveWall={null}
         />
       );
     }
@@ -265,8 +260,6 @@ export function AdminDashboardPage({ onBackToApp }: AdminDashboardPageProps) {
           onExport={handleExport}
           onOpenMenu={() => setDrawerOpen(true)}
           onBackToApp={onBackToApp}
-          liveOn={liveOn}
-          onToggleLive={handleToggleLive}
         />
         <main className="min-w-0 flex-1 p-3 sm:p-4">{renderBody()}</main>
       </div>
